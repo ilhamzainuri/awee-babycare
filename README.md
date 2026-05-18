@@ -13,8 +13,10 @@ View your app in AI Studio: https://ai.studio/apps/c2d36b00-5311-4fe9-83de-2b657
 **Prerequisites:**  Node.js
 
 
-1. Install dependencies:
+1. Install kebutuhan:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+4. Import Database ke phpmyadmin:
+   `db_awee_babycare.sql`
