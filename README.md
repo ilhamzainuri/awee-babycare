@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="1200" height="475" alt="GHBanner" src="aweelogo.jpg" />
+  <img width="1200" height="auto" alt="GHBanner" src="aweelogo.jpg" />
   <h1>Awee Babycare - Clinic Management System</h1>
   <p>Sistem manajemen klinik untuk operasional Awee Babycare.</p>
 </div>
