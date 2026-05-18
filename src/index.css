@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  /* Pediatric Admin Design System Colors */
+  --color-surface: #fbf9f8;
+  --color-surface-dim: #dbd9d9;
+  --color-surface-bright: #fbf9f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f3f3;
+  --color-surface-container: #efeded;
+  --color-surface-container-high: #eae8e7;
+  --color-surface-container-highest: #e4e2e2;
+  
+  --color-on-surface: #1b1c1c;
+  --color-on-surface-variant: #3e494a;
+  
+  --color-primary: #006168;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #0d7c84;
+  --color-on-primary-container: #d9fcff;
+  
+  --color-secondary: #904d00;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #ffa454;
+  --color-on-secondary-container: #713b00;
+  
+  --color-tertiary: #00653c;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #148050;
+  --color-on-tertiary-container: #d6ffe1;
+  
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --color-outline: #6e797a;
+  --color-outline-variant: #bdc9ca;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
