@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import logo from "../assets/logo.jpg";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -90,14 +91,24 @@ export default function Layout({ children }: LayoutProps) {
         {/* Top App Bar */}
         <header className="sticky top-0 z-40 bg-surface-container-lowest/80 backdrop-blur-md border-b border-surface-container h-16 flex items-center justify-between px-4 md:px-8">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 text-primary-container hover:bg-primary-container/10 rounded-full transition-all"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="text-xl font-bold text-primary-container tracking-tight">Awee BabyCare Admin</h1>
-          </div>
+  <button
+    onClick={() => setIsMobileMenuOpen(true)}
+    className="md:hidden p-2 text-primary-container hover:bg-primary-container/10 rounded-full transition-all"
+  >
+    <Menu className="w-6 h-6" />
+  </button>
+
+  {/* Logo */}
+  <img
+    src={logo}
+    alt="Logo Admin"
+    className="w-10 h-10 rounded-full object-cover"
+  />
+
+  <h1 className="text-xl font-bold text-primary-container tracking-tight">
+    Admin
+  </h1>
+</div>
 
 
           {/*fungsi bell belum jalan*/}
