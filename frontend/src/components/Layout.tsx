@@ -91,24 +91,24 @@ export default function Layout({ children }: LayoutProps) {
         {/* Top App Bar */}
         <header className="sticky top-0 z-40 bg-surface-container-lowest/80 backdrop-blur-md border-b border-surface-container h-16 flex items-center justify-between px-4 md:px-8">
           <div className="flex items-center gap-3">
-  <button
-    onClick={() => setIsMobileMenuOpen(true)}
-    className="md:hidden p-2 text-primary-container hover:bg-primary-container/10 rounded-full transition-all"
-  >
-    <Menu className="w-6 h-6" />
-  </button>
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 text-primary-container hover:bg-primary-container/10 rounded-full transition-all"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
 
-  {/* Logo */}
-  <img
-    src={logo}
-    alt="Logo Admin"
-    className="w-10 h-10 rounded-full object-cover"
-  />
+            {/* Logo */}
+            <img
+              src={logo}
+              alt="Logo Admin"
+              className="w-10 h-10 rounded-full object-cover"
+            />
 
-  <h1 className="text-xl font-bold text-primary-container tracking-tight">
-    Admin
-  </h1>
-</div>
+            <h1 className="text-xl font-bold text-primary-container tracking-tight">
+              Admin
+            </h1>
+          </div>
 
 
           {/*fungsi bell belum jalan*/}
@@ -128,14 +128,14 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        {/* Content Container */}
+        {/* Konten */}
         <div className="flex-1 overflow-y-auto w-full">
           <div className="max-w-7xl mx-auto p-4 md:p-8 pb-32 md:pb-8">
             {children}
           </div>
         </div>
 
-        {/* Floating Action Button - Mobile */}
+        {/* Tombol Aaction - Mobile */}
         <NavLink
           to="/reservation"
           className="md:hidden fixed bottom-24 right-6 w-14 h-14 bg-secondary-container text-on-secondary-container rounded-2xl shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50"
@@ -143,7 +143,7 @@ export default function Layout({ children }: LayoutProps) {
           <Plus className="w-8 h-8" />
         </NavLink>
 
-        {/* Bottom Navigation - Mobile */}
+        {/*Navigation bawah - Mobile */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-surface-container-lowest border-t border-surface-container flex items-center justify-around px-2 z-40">
           {navItems.map((item) => (
             <NavLink

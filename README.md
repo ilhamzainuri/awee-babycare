@@ -87,17 +87,18 @@ awee-babycare/
 ├── backend/                  # Kode sumber Backend (PHP Native)
 │   ├── api/                  # Endpoint API (dashboard.php, reports.php, dll)
 │   └── config/               # Konfigurasi sistem (koneksi database)
-├── public/                   # Asset statis yang tidak ter-compile (icon, gambar)
-├── src/                      # Kode sumber Frontend (React.js)
+├── frontend/                 # Kode sumber Frontend (React.js)
+│   ├── public/                   # Asset statis yang tidak ter-compile (icon, gambar)
+│   ├── src/                      # Kode sumber Frontend (React.js)
 │   ├── components/           # Komponen UI Reusable (Layout, Icon, dll)
 │   ├── lib/                  # Fungsi-fungsi utility (Tailwind merge, dll)
 │   ├── pages/                # Halaman aplikasi (Dashboard, MasterData, Reports, dll)
 │   ├── App.tsx               # Entry point aplikasi React & Routing
 │   ├── index.css             # Konfigurasi global CSS & Tailwind
 │   └── main.tsx              # Root render React DOM
+│   ├── package.json              # Konfigurasi project NPM & dependencies
+│   └── vite.config.ts            # Konfigurasi Vite builder
 ├── db_awee_babycare.sql      # File Database MySQL
-├── package.json              # Konfigurasi project NPM & dependencies
-├── vite.config.ts            # Konfigurasi Vite builder
 └── README.md                 # Dokumentasi proyek (File ini)
 ```
 
