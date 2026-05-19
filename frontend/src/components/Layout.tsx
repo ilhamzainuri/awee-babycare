@@ -6,8 +6,6 @@ import {
   ShieldCheck,
   BarChart3,
   History,
-  Settings,
-  HelpCircle,
   Bell,
   Menu,
   Plus,
@@ -36,8 +34,8 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-surface">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-72 bg-surface-container-lowest border-r border-surface-container-high transition-all">
+      {/* Desktop Sidebar (Diubah menjadi sticky, top-0, dan h-screen) */}
+      <aside className="hidden md:flex flex-col w-72 bg-surface-container-lowest border-r border-surface-container-high transition-all sticky top-0 h-screen">
         <div className="p-8 border-b border-surface-container">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container">
@@ -56,7 +54,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -72,18 +70,18 @@ export default function Layout({ children }: LayoutProps) {
               <span className="text-sm">{item.label}</span>
             </NavLink>
           ))}
-
-          <div className="pt-4 mt-4 border-t border-surface-container space-y-1">
-            <button className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all">
-              <Settings className="w-5 h-5" />
-              <span className="text-sm">Settings</span>
-            </button>
-            <button className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all">
-              <HelpCircle className="w-5 h-5" />
-              <span className="text-sm">Help</span>
-            </button>
-          </div>
         </nav>
+
+        {/* Tombol Book - Desktop */}
+        <div className="p-4 mt-auto border-t border-surface-container">
+          <NavLink
+            to="/reservation"
+            className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-secondary-container text-on-secondary-container font-bold rounded-2xl hover:brightness-105 hover:scale-[1.02] active:scale-95 shadow-sm transition-all"
+          >
+            <CalendarPlus className="w-5 h-5" />
+            <span>Book Reservation</span>
+          </NavLink>
+        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -109,7 +107,6 @@ export default function Layout({ children }: LayoutProps) {
               Admin
             </h1>
           </div>
-
 
           {/*fungsi bell belum jalan*/}
           <div className="flex items-center gap-4">
@@ -207,7 +204,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                 </div>
               </div>
-              <nav className="flex-1 px-4 space-y-2">
+              <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
                 {navItems.map((item) => (
                   <NavLink
                     key={item.path}
