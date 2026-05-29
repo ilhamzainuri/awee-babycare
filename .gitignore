@@ -4,3 +4,5 @@
 /frontend/coverage/
 /frontend/*.DS_Store
 
+# Hide admin pages
+/frontend/src/pages/admin/
