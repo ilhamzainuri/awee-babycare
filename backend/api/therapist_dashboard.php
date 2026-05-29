@@ -24,9 +24,14 @@ try {
     exit();
 }
 
-// 2. Ambil ID User / Terapis (Simulasi)
-// TODO: Ganti dengan ID dari $_SESSION['user_id'] atau JWT token saat sistem login siap
-$user_id = 2; // Sesuai dengan id user 'ilhamzainuri' di tabel users
+// 2. Ambil ID User / Terapis secara Dinamis dari Frontend
+if (!isset($_GET['user_id']) || empty($_GET['user_id'])) {
+    http_response_code(400);
+    echo json_encode(["status" => 400, "message" => "Akses ditolak: ID User tidak disertakan dalam request."]);
+    exit();
+}
+
+$user_id = (int)$_GET['user_id']; 
 
 try {
     // ---- A. AMBIL DATA PROFIL & IDENTITAS TERAPIS ----
@@ -35,7 +40,7 @@ try {
     $therapist = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$therapist) {
-        throw new Exception("Data terapis tidak ditemukan.");
+        throw new Exception("Data terapis tidak ditemukan untuk user ini.");
     }
     
     $therapist_id = $therapist['id'];
@@ -60,7 +65,6 @@ try {
     $weekly_commission = (int)($comm_result['total_komisi'] ?? 0);
 
     // ---- C. DAFTAR JADWAL HARI INI (AKTIF) ----
-    // Mengambil reservasi hari ini yang belum selesai atau dibatalkan
     $stmtSched = $db->prepare("
         SELECT id, nama_anak, waktu_reservasi, alamat_lengkap, status_jadwal 
         FROM appointments 
@@ -73,7 +77,6 @@ try {
     
     $schedules = [];
     while ($row = $stmtSched->fetch(PDO::FETCH_ASSOC)) {
-        // Translasi status ENUM DB ke Status UI Frontend
         $ui_status = 'Pending';
         if ($row['status_jadwal'] === 'Menunggu') $ui_status = 'Pending';
         if ($row['status_jadwal'] === 'Diproses') $ui_status = 'On Process';
@@ -88,7 +91,6 @@ try {
     }
 
     // ---- D. RIWAYAT SINGKAT (5 LAYANAN TERAKHIR) ----
-    // Mengambil riwayat yang status pembayarannya Verified atau jadwal Selesai
     $stmtHist = $db->prepare("
         SELECT a.id, a.nama_anak, a.waktu_reservasi, a.total_komisi_kunjungan,
                (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
@@ -105,7 +107,6 @@ try {
     
     $history = [];
     while ($row = $stmtHist->fetch(PDO::FETCH_ASSOC)) {
-        // Format Tanggal Dinamis (Hari Ini / Kemarin / Tanggal)
         $date_db = date('Y-m-d', strtotime($row['waktu_reservasi']));
         $date_today = date('Y-m-d');
         $date_yesterday = date('Y-m-d', strtotime('-1 day'));
@@ -115,7 +116,7 @@ try {
         } elseif ($date_db == $date_yesterday) {
             $display_date = 'Kemarin';
         } else {
-            $display_date = date('d M Y', strtotime($row['waktu_reservasi'])); // cth: 18 Mei 2026
+            $display_date = date('d M Y', strtotime($row['waktu_reservasi'])); 
         }
 
         $history[] = [

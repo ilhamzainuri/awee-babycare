@@ -51,33 +51,46 @@ export default function TherapistDashboard() {
     const fetchTherapistData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Gagal memuat data dashboard terapis');
+        setError(null);
+
+        // 1. Cek sesi login di Local Storage
+        const sessionStr = localStorage.getItem('user_session');
+        if (!sessionStr) {
+          throw new Error('Sesi tidak ditemukan. Silakan login ulang.');
+        }
+        
+        const user = JSON.parse(sessionStr);
+        
+        // Pastikan id user ada
+        if (!user.id) {
+          throw new Error('ID User tidak valid di dalam sesi.');
+        }
+
+        // 2. Sisipkan user_id ke dalam URL API
+        const fetchUrl = `${apiUrl}?user_id=${user.id}`;
+        const response = await fetch(fetchUrl);
+        
         const result = await response.json();
         
-        if (result.status === 200) {
+        if (response.ok && result.status === 200) {
           setProfile(result.data.profile);
           setSchedules(result.data.schedules || []);
           setHistory(result.data.history || []);
+        } else {
+          throw new Error(result.message || 'Gagal memuat data dari server');
         }
+
       } catch (err: any) {
+        // 3. Tangkap dan tampilkan error asli, BUKAN data mockup
         setError(err.message);
-        // MOCK DATA UNTUK PREVIEW JIKA API BELUM SIAP
-        setProfile({ name: 'Bidan Naya', status: 'Standby', weeklyCommission: 1250000 });
-        setSchedules([
-          { id: 1, childName: 'Arkananta Putra', time: '09:00 - 10:30', address: 'Jl. Merbabu No. 12', status: 'Confirmed' },
-          { id: 2, childName: 'Baby Alika', time: '13:00 - 14:30', address: 'Perum Gading Asri Blok C-5', status: 'On Process' },
-          { id: 3, childName: 'Rayyanza', time: '16:00 - 17:30', address: 'Sawojajar Gang 2, No. 14', status: 'Pending' }
-        ]);
-        setHistory([
-          { id: 101, childName: 'Kenzie Ramadhan', serviceName: 'Baby Spa + Massage', date: 'Kemarin', commission: 150000 },
-          { id: 102, childName: 'Aisya Humaira', serviceName: 'Pediatric Massage', date: '28 Mei 2026', commission: 120000 },
-          { id: 103, childName: 'Gibran Rakabuming', serviceName: 'Tindik Telinga Medis', date: '27 Mei 2026', commission: 90000 }
-        ]);
+        setProfile(null);
+        setSchedules([]);
+        setHistory([]);
       } finally {
         setIsLoading(false);
       }
     };
+    
     fetchTherapistData();
   }, [apiUrl]);
 

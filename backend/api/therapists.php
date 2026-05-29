@@ -21,13 +21,14 @@ try {
             break;
 
         case 'POST': // CREATE
-            $stmt = $conn->prepare("INSERT INTO therapists (user_id, nama_terapis, no_whatsapp, status_aktif) VALUES (1, ?, ?, ?)");
-            $stmt->execute([$input['nama_terapis'], $input['no_whatsapp'], $input['status_aktif']]);
+            // PERBAIKAN: Ganti statis "1" menjadi placeholder "?" dan tambahkan $input['user_id']
+            $stmt = $conn->prepare("INSERT INTO therapists (user_id, nama_terapis, no_whatsapp, status_aktif) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$input['user_id'], $input['nama_terapis'], $input['no_whatsapp'], $input['status_aktif']]);
             
             $new_record_id = $conn->lastInsertId();
             
-            // FILTER PAYLOAD: Hanya simpan data yang berhubungan dengan terapis
             $data_log_baru = [
+                "user_id" => (int)$input['user_id'], // PERBAIKAN: Masukkan ke log
                 "nama_terapis" => $input['nama_terapis'],
                 "no_whatsapp" => $input['no_whatsapp'],
                 "status_aktif" => (int)$input['status_aktif']
@@ -42,15 +43,17 @@ try {
         case 'PUT': // UPDATE
             $id_target = $_GET['id'];
 
-            $old_stmt = $conn->prepare("SELECT nama_terapis, no_whatsapp, status_aktif FROM therapists WHERE id = ?");
+            // PERBAIKAN: Tambahkan user_id di SELECT data lama
+            $old_stmt = $conn->prepare("SELECT user_id, nama_terapis, no_whatsapp, status_aktif FROM therapists WHERE id = ?");
             $old_stmt->execute([$id_target]);
             $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 
-            $stmt = $conn->prepare("UPDATE therapists SET nama_terapis=?, no_whatsapp=?, status_aktif=? WHERE id=?");
-            $stmt->execute([$input['nama_terapis'], $input['no_whatsapp'], $input['status_aktif'], $id_target]);
+            // PERBAIKAN: Tambahkan SET user_id=? dan eksekusi $input['user_id']
+            $stmt = $conn->prepare("UPDATE therapists SET user_id=?, nama_terapis=?, no_whatsapp=?, status_aktif=? WHERE id=?");
+            $stmt->execute([$input['user_id'], $input['nama_terapis'], $input['no_whatsapp'], $input['status_aktif'], $id_target]);
             
-            // FILTER PAYLOAD: Ambil properti terapis saja untuk menghindari polusi form frontend
             $data_log_baru = [
+                "user_id" => (int)$input['user_id'], // PERBAIKAN: Masukkan ke log
                 "nama_terapis" => $input['nama_terapis'],
                 "no_whatsapp" => $input['no_whatsapp'],
                 "status_aktif" => (int)$input['status_aktif']
@@ -65,7 +68,8 @@ try {
         case 'DELETE': // SOFT DELETE
             $id_target = $_GET['id'];
 
-            $old_stmt = $conn->prepare("SELECT nama_terapis, no_whatsapp, status_aktif FROM therapists WHERE id = ?");
+            // Ambil data lama (termasuk user_id) untuk log
+            $old_stmt = $conn->prepare("SELECT user_id, nama_terapis, no_whatsapp, status_aktif FROM therapists WHERE id = ?");
             $old_stmt->execute([$id_target]);
             $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 
