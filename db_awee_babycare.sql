@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 18, 2026 at 11:32 AM
+-- Generation Time: May 29, 2026 at 02:02 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -48,16 +48,20 @@ CREATE TABLE `appointments` (
   `total_komisi_kunjungan` decimal(12,2) DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `deleted_at` timestamp NULL DEFAULT NULL
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `waktu_mulai_layanan` datetime DEFAULT NULL,
+  `waktu_selesai_layanan` datetime DEFAULT NULL,
+  `suhu_anak` varchar(20) DEFAULT NULL,
+  `catatan_terapis` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `appointments`
 --
 
-INSERT INTO `appointments` (`id`, `id_therapist`, `nama_anak`, `usia_saat_ini`, `bb_saat_ini`, `jenis_kelamin`, `alamat_lengkap`, `link_shareloc`, `no_hp_ortu`, `keluhan_awal`, `waktu_reservasi`, `status_jadwal`, `metode_bayar_admin`, `metode_bayar_terapis`, `status_pembayaran`, `bukti_bayar_url`, `total_harga_kunjungan`, `total_komisi_kunjungan`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 'Rasya', '8 bulan', '3 kg', 'Perempuan', 'Jl situ', 'https://maps.app.goo.gl/MFU6PmtLKJrQqFYU9', '08546215489', 'Susah tidur', '2026-05-18 10:27:06', 'Menunggu', 'cash', 'cash', 'Verified', '-', 150000.00, 75000.00, '2026-05-18 08:28:39', '2026-05-18 08:30:13', NULL),
-(2, 3, 'Udin petot', '8 bulan', '2', 'Laki-laki', 'Jl ya disitu', 'https://maps.app.goo.gl/NTeUpNyXLZVU8HeQ9', '08547851123547', 'Susah tidur', '2026-05-20 20:00:00', 'Menunggu', 'Transfer Bank', NULL, 'Unverified', NULL, 180000.00, 90000.00, '2026-05-18 09:02:34', '2026-05-18 09:02:34', NULL);
+INSERT INTO `appointments` (`id`, `id_therapist`, `nama_anak`, `usia_saat_ini`, `bb_saat_ini`, `jenis_kelamin`, `alamat_lengkap`, `link_shareloc`, `no_hp_ortu`, `keluhan_awal`, `waktu_reservasi`, `status_jadwal`, `metode_bayar_admin`, `metode_bayar_terapis`, `status_pembayaran`, `bukti_bayar_url`, `total_harga_kunjungan`, `total_komisi_kunjungan`, `created_at`, `updated_at`, `deleted_at`, `waktu_mulai_layanan`, `waktu_selesai_layanan`, `suhu_anak`, `catatan_terapis`) VALUES
+(1, 2, 'Jaya', '5 bulan', '3', 'Laki-laki', 'Ya disitu', 'https://maps.app.goo.gl/NTeUpNyXLZVU8HeQ9', '08547896276', 'Sakit', '2026-05-30 09:00:00', 'Menunggu', 'Transfer Bank', NULL, 'Unverified', NULL, 30000.00, 9000.00, '2026-05-29 11:45:39', '2026-05-29 11:45:39', NULL, NULL, NULL, NULL, NULL),
+(2, 2, 'Udin petot', '5 bulan', '2', 'Laki-laki', 'dsadas', 'https://maps.app.goo.gl/NTeUpNyXLZVU8HeQ9', '0854785112354781', 'dsadas', '2026-05-29 18:46:00', 'Menunggu', 'Cash', NULL, 'Unverified', NULL, 50000.00, 27500.00, '2026-05-29 11:46:56', '2026-05-29 11:46:56', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -82,9 +86,8 @@ CREATE TABLE `appointment_details` (
 --
 
 INSERT INTO `appointment_details` (`id`, `id_appointment`, `id_service`, `harga_snapshot`, `persentase_komisi_snapshot`, `nominal_komisi_kalkulasi`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 1, 150000.00, 50.00, 75000.00, '2026-05-18 08:29:30', '2026-05-18 08:29:30', NULL),
-(2, 2, 1, 150000.00, 50.00, 75000.00, '2026-05-18 09:02:34', '2026-05-18 09:02:34', NULL),
-(3, 2, 4, 30000.00, 50.00, 15000.00, '2026-05-18 09:02:34', '2026-05-18 09:02:34', NULL);
+(1, 1, 6, 30000.00, 30.00, 9000.00, '2026-05-29 11:45:39', '2026-05-29 11:45:39', NULL),
+(2, 2, 4, 50000.00, 55.00, 27500.00, '2026-05-29 11:46:56', '2026-05-29 11:46:56', NULL);
 
 -- --------------------------------------------------------
 
@@ -102,6 +105,18 @@ CREATE TABLE `audit_logs` (
   `data_baru` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Nilai setelah diubah' CHECK (json_valid(`data_baru`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `audit_logs`
+--
+
+INSERT INTO `audit_logs` (`id`, `user_id`, `aksi`, `nama_tabel`, `record_id`, `data_lama`, `data_baru`, `created_at`) VALUES
+(1, 1, 'create', 'therapists', 2, NULL, '{\"user_id\":3,\"nama_terapis\":\"Karina Wati\",\"no_whatsapp\":\"085785415578\",\"status_aktif\":1}', '2026-05-29 11:44:57'),
+(2, 1, 'create', 'appointments', 1, NULL, '{\"Nama Anak\":\"Jaya\",\"Usia\":\"5 bulan\",\"Berat Badan\":\"3 kg\",\"Jenis Kelamin\":\"Laki-laki\",\"No WhatsApp\":\"08547896276\",\"Alamat\":\"Ya disitu\",\"Waktu Kunjungan\":\"2026-05-30 09:00:00\",\"Terapis\":\"Karina Wati\",\"Metode Bayar\":\"Transfer Bank\",\"Layanan\":\"Cukur Rambut\",\"Total Biaya\":\"Rp 30.000\",\"Total Komisi\":\"Rp 9.000\"}', '2026-05-29 11:45:39'),
+(3, 1, 'update', 'therapists', 2, '{\"user_id\":3,\"nama_terapis\":\"Karina Wati\",\"no_whatsapp\":\"085785415578\",\"status_aktif\":1}', '{\"user_id\":3,\"nama_terapis\":\"Karina Wati\",\"no_whatsapp\":\"085785415578\",\"status_aktif\":1}', '2026-05-29 11:46:27'),
+(4, 1, 'update', 'therapists', 1, '{\"user_id\":2,\"nama_terapis\":\"Daniel\",\"no_whatsapp\":\"08548786214\",\"status_aktif\":1}', '{\"user_id\":2,\"nama_terapis\":\"Daniel\",\"no_whatsapp\":\"08548786214\",\"status_aktif\":1}', '2026-05-29 11:46:31'),
+(5, 1, 'create', 'appointments', 2, NULL, '{\"Nama Anak\":\"Udin petot\",\"Usia\":\"5 bulan\",\"Berat Badan\":\"2 kg\",\"Jenis Kelamin\":\"Laki-laki\",\"No WhatsApp\":\"0854785112354781\",\"Alamat\":\"dsadas\",\"Waktu Kunjungan\":\"2026-05-29 18:46:00\",\"Terapis\":\"Karina Wati\",\"Metode Bayar\":\"Cash\",\"Layanan\":\"Renang\",\"Total Biaya\":\"Rp 50.000\",\"Total Komisi\":\"Rp 27.500\"}', '2026-05-29 11:46:56'),
+(6, 1, 'update', 'users', 1, '{\"username\":\"ilham\",\"password\":\"[HIDDEN]\",\"foto\":\"\"}', '{\"username\":\"ilham\",\"foto\":\"user_1_1780055499.jpg\"}', '2026-05-29 11:51:39');
 
 -- --------------------------------------------------------
 
@@ -127,7 +142,9 @@ INSERT INTO `services` (`id`, `nama_layanan`, `harga_saat_ini`, `persentase_komi
 (1, 'Pijat Bayi', 150000.00, 50.00, '2026-05-18 08:26:53', '2026-05-18 08:26:53', NULL),
 (2, 'Renang Bayi', 100000.00, 50.00, '2026-05-18 08:48:46', '2026-05-18 08:49:15', '2026-05-18 08:49:15'),
 (3, 'Pijat Ibu Hamil', 200000.00, 40.00, '2026-05-18 08:49:29', '2026-05-18 08:49:29', NULL),
-(4, 'Renang', 30000.00, 50.00, '2026-05-18 08:56:26', '2026-05-18 08:56:26', NULL);
+(4, 'Renang', 50000.00, 55.00, '2026-05-18 08:56:26', '2026-05-19 04:42:26', NULL),
+(5, 'Pijat Laksa', 170000.00, 30.00, '2026-05-19 03:49:57', '2026-05-19 04:03:35', NULL),
+(6, 'Cukur Rambut', 30000.00, 30.00, '2026-05-19 04:04:18', '2026-05-19 04:04:18', NULL);
 
 -- --------------------------------------------------------
 
@@ -151,9 +168,8 @@ CREATE TABLE `therapists` (
 --
 
 INSERT INTO `therapists` (`id`, `user_id`, `nama_terapis`, `no_whatsapp`, `status_aktif`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 2, 'Ilham Zainuri', '085820664592', 1, '2026-05-18 08:26:21', '2026-05-18 08:26:21', NULL),
-(2, 1, 'Bidan Kimi', '081234567890', 1, '2026-05-18 08:38:54', '2026-05-18 08:38:54', NULL),
-(3, 1, 'Karin', '0857912563', 1, '2026-05-18 08:56:42', '2026-05-18 08:56:54', NULL);
+(1, 2, 'Daniel', '08548786214', 1, '2026-05-29 11:33:36', '2026-05-29 11:33:36', NULL),
+(2, 3, 'Karina Wati', '085785415578', 1, '2026-05-29 11:44:57', '2026-05-29 11:44:57', NULL);
 
 -- --------------------------------------------------------
 
@@ -165,6 +181,7 @@ CREATE TABLE `users` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `username` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
+  `foto` varchar(255) NOT NULL,
   `role` enum('admin','therapist') NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -175,9 +192,10 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `password`, `role`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'admin', 'admin', 'admin', '2026-05-18 08:24:48', '2026-05-18 08:24:48', NULL),
-(2, 'ilhamzainuri', 'ilhamzainuri', 'therapist', '2026-05-18 08:25:48', '2026-05-18 08:25:48', NULL);
+INSERT INTO `users` (`id`, `username`, `password`, `foto`, `role`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'ilham', 'ilham', 'user_1_1780055499.jpg', 'admin', '2026-05-29 11:33:02', '2026-05-29 11:51:39', NULL),
+(2, 'danil', 'danil', '', 'therapist', '2026-05-29 11:33:19', '2026-05-29 11:33:19', NULL),
+(3, 'karin', 'karin', '', 'therapist', '2026-05-29 11:44:37', '2026-05-29 11:44:37', NULL);
 
 --
 -- Indexes for dumped tables
@@ -239,31 +257,31 @@ ALTER TABLE `appointments`
 -- AUTO_INCREMENT for table `appointment_details`
 --
 ALTER TABLE `appointment_details`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `services`
 --
 ALTER TABLE `services`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `therapists`
 --
 ALTER TABLE `therapists`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
