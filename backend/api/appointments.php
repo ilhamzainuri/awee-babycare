@@ -78,6 +78,51 @@ try {
         $stmtUpdateTotal = $conn->prepare("UPDATE appointments SET total_harga_kunjungan = ?, total_komisi_kunjungan = ? WHERE id = ?");
         $stmtUpdateTotal->execute([$total_harga, $total_komisi, $id_appointment]);
 
+        // 4. Catat Ke Audit Log
+        $user_id = isset($input['user_id']) ? (int)$input['user_id'] : null;
+        
+        // Ambil nama terapis untuk mempermudah pembacaan log
+        $stmtTerapis = $conn->prepare("SELECT nama_terapis FROM therapists WHERE id = ?");
+        $stmtTerapis->execute([$input['id_therapist']]);
+        $terapis = $stmtTerapis->fetchColumn();
+
+        // Ambil daftar layanan yang dipilih
+        $layanan_list = [];
+        $stmtLayananName = $conn->prepare("SELECT nama_layanan FROM services WHERE id = ?");
+        foreach ($input['treatments'] as $treatment) {
+            $stmtLayananName->execute([$treatment['id_service']]);
+            $layananName = $stmtLayananName->fetchColumn();
+            if ($layananName) {
+                $layanan_list[] = $layananName;
+            }
+        }
+
+        $data_baru_log = [
+            "Nama Anak" => $input['nama_anak'],
+            "Usia" => $input['usia_saat_ini'],
+            "Berat Badan" => $input['bb_saat_ini'] . " kg",
+            "Jenis Kelamin" => $input['jenis_kelamin'],
+            "No WhatsApp" => $input['no_hp_ortu'],
+            "Alamat" => $input['alamat_lengkap'],
+            "Waktu Kunjungan" => $input['waktu_reservasi'],
+            "Terapis" => $terapis ?: "ID " . $input['id_therapist'],
+            "Metode Bayar" => $input['metode_bayar_admin'],
+            "Layanan" => implode(", ", $layanan_list),
+            "Total Biaya" => "Rp " . number_format($total_harga, 0, ',', '.'),
+            "Total Komisi" => "Rp " . number_format($total_komisi, 0, ',', '.')
+        ];
+
+        $stmtLog = $conn->prepare("
+            INSERT INTO audit_logs (
+                user_id, aksi, nama_tabel, record_id, data_lama, data_baru
+            ) VALUES (?, 'create', 'appointments', ?, NULL, ?)
+        ");
+        $stmtLog->execute([
+            $user_id,
+            $id_appointment,
+            json_encode($data_baru_log)
+        ]);
+
         // Selesai, Permanenkan data
         $conn->commit();
 

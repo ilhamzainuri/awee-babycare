@@ -10,11 +10,12 @@ import Reports from './pages/Reports';
 import AuditLog from './pages/AuditLog';
 import Reservation from './pages/Reservation';
 import Login from './pages/Login';
+import Settings from './pages/Settings'; // 1. Tambahkan Import Settings di sini
 
 // ==========================================
 // KOMPONEN PROTECTED ROUTE (PENGAMAN JALUR)
 // ==========================================
-const ProtectedRoute = ({ children, allowedRoles }: { children: JSX.Element, allowedRoles: string[] }) => {
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
   const userStr = localStorage.getItem('user_session');
   
   // 1. Jika belum login (tidak ada sesi), lempar kembali ke halaman Login
@@ -58,6 +59,8 @@ export default function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/audit-log" element={<AuditLog />} />
                   <Route path="/reservation" element={<Reservation />} />
+                  {/* 2. Tambahkan Route Settings di sini */}
+                  <Route path="/settings" element={<Settings />} /> 
                 </Routes>
               </Layout>
             </ProtectedRoute>

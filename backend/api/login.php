@@ -24,10 +24,29 @@ try {
     $username = trim($data->username);
     $password = $data->password; // Menggunakan plain-text sesuai struktur database saat ini
 
-    // Cek user di database
-    $stmt = $conn->prepare("SELECT id, username, role FROM users WHERE username = ? AND password = ?");
+    // Cek apakah kolom foto ada di tabel users untuk backward compatibility
+    $hasFotoColumn = false;
+    try {
+        $checkCol = $conn->query("SHOW COLUMNS FROM users LIKE 'foto'");
+        if ($checkCol && $checkCol->fetch()) {
+            $hasFotoColumn = true;
+        }
+    } catch (Exception $e) {
+        // Abaikan
+    }
+
+    if ($hasFotoColumn) {
+        $stmt = $conn->prepare("SELECT id, username, role, foto FROM users WHERE username = ? AND password = ?");
+    } else {
+        $stmt = $conn->prepare("SELECT id, username, role FROM users WHERE username = ? AND password = ?");
+    }
+    
     $stmt->execute([$username, $password]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($user && !$hasFotoColumn) {
+        $user['foto'] = null;
+    }
 
     if (!$user) {
         throw new Exception("Username atau password salah.");

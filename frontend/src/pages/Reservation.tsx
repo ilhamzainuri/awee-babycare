@@ -50,7 +50,12 @@ export default function Reservation() {
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    if (e.target.name === 'no_hp_ortu') {
+      // Hanya izinkan karakter angka (0-9)
+      value = value.replace(/[^0-9]/g, '');
+    }
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   // Treatment Handlers
@@ -78,7 +83,19 @@ export default function Reservation() {
     // Ubah format HTML datetime-local (T) menjadi format MySQL (Spasi)
     const formattedDate = formData.waktu_reservasi.replace('T', ' ') + ':00';
 
-    const payload = { ...formData, waktu_reservasi: formattedDate, treatments };
+    // Dapatkan user_id dari session di local storage
+    const sessionStr = localStorage.getItem('user_session');
+    let userId = null;
+    if (sessionStr) {
+      try {
+        const sessionData = JSON.parse(sessionStr);
+        userId = sessionData.id;
+      } catch (e) {
+        console.error("Gagal membaca session data", e);
+      }
+    }
+
+    const payload = { ...formData, waktu_reservasi: formattedDate, treatments, user_id: userId };
 
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || FALLBACK_BASE_URL;
@@ -159,7 +176,7 @@ export default function Reservation() {
             <div className="space-y-2 md:col-span-2 flex flex-col sm:flex-row gap-6">
                <div className="flex-1 space-y-2">
                   <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1 flex items-center gap-1"><Phone className="w-3 h-3" /> No. WhatsApp Ortu</label>
-                  <input required name="no_hp_ortu" value={formData.no_hp_ortu} onChange={handleInputChange} type="tel" placeholder="08..." className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
+                  <input required name="no_hp_ortu" value={formData.no_hp_ortu} onChange={handleInputChange} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="08..." className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
                </div>
                <div className="flex-1 space-y-2">
                   <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> Shareloc Link</label>

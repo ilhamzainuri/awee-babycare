@@ -75,6 +75,25 @@ export default function AuditLog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [searchUser, setSearchUser] = useState('');
+  const [searchDate, setSearchDate] = useState('');
+
+  // Filter log secara reaktif
+  const filteredLogs = logs.filter(log => {
+    const matchesUser = (log.user || '').toLowerCase().includes(searchUser.toLowerCase()) ||
+                        (log.role || '').toLowerCase().includes(searchUser.toLowerCase()) ||
+                        (log.nama_tabel || '').toLowerCase().includes(searchUser.toLowerCase()) ||
+                        (log.aksi || '').toLowerCase().includes(searchUser.toLowerCase());
+                        
+    let matchesDate = true;
+    if (searchDate && log.created_at) {
+      const logDateString = log.created_at.substring(0, 10);
+      matchesDate = logDateString === searchDate;
+    }
+    
+    return matchesUser && matchesDate;
+  });
+
   const apiUrl = import.meta.env.VITE_API_BASE_URL 
     ? `${import.meta.env.VITE_API_BASE_URL}/auditlog.php` 
     : 'http://localhost/awee-babycare/backend/api/auditlog.php';
@@ -111,13 +130,15 @@ export default function AuditLog() {
       <div className="bg-surface-container-lowest/80 backdrop-blur-xl border border-surface-container p-6 rounded-3xl shadow-xl space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest px-1">Search User</label>
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest px-1">Search User / Table / Action</label>
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
               <input 
                 type="text" 
-                placeholder="Admin Sari..."
-                className="w-full pl-12 pr-4 py-3 bg-surface-container-low border-surface-container rounded-2xl text-sm focus:ring-2 focus:ring-primary-container transition-all"
+                value={searchUser}
+                onChange={(e) => setSearchUser(e.target.value)}
+                placeholder="Cari user, tabel, atau aksi..."
+                className="w-full pl-12 pr-4 py-3 bg-surface-container-low border border-surface-container rounded-2xl text-sm focus:ring-2 focus:ring-primary-container transition-all text-on-surface"
               />
             </div>
           </div>
@@ -127,14 +148,28 @@ export default function AuditLog() {
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
               <input 
                 type="date" 
-                className="w-full pl-12 pr-4 py-3 bg-surface-container-low border-surface-container rounded-2xl text-sm focus:ring-2 focus:ring-primary-container transition-all text-on-surface-variant"
+                value={searchDate}
+                onChange={(e) => setSearchDate(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-surface-container-low border-surface-container rounded-2xl text-sm focus:ring-2 focus:ring-primary-container transition-all text-on-surface"
               />
             </div>
           </div>
         </div>
-        <button className="w-full flex items-center justify-center gap-2 py-4 bg-primary-container text-on-primary-container font-black rounded-2xl hover:brightness-110 active:scale-[0.99] transition-all shadow-lg shadow-primary-container/20 text-sm">
-          <Filter className="w-4 h-4" />
-          FILTER ACTIVITIES
+        <button 
+          onClick={() => {
+            setSearchUser('');
+            setSearchDate('');
+          }}
+          disabled={!searchUser && !searchDate}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 py-4 font-black rounded-2xl transition-all text-sm",
+            searchUser || searchDate 
+              ? "bg-error/10 text-error hover:bg-error/20 cursor-pointer shadow-md"
+              : "bg-surface-container text-on-surface-variant opacity-60 cursor-not-allowed"
+          )}
+        >
+          <Trash2 className="w-4 h-4" />
+          RESET FILTER PENCARIAN
         </button>
       </div>
 
@@ -156,12 +191,18 @@ export default function AuditLog() {
          </div>
       )}
 
+      {!loading && !error && logs.length > 0 && filteredLogs.length === 0 && (
+         <div className="text-center py-12 text-on-surface-variant font-medium">
+           Tidak ada aktivitas yang cocok dengan filter pencarian Anda.
+         </div>
+      )}
+
       {/* Timeline List */}
-      {!loading && !error && logs.length > 0 && (
+      {!loading && !error && filteredLogs.length > 0 && (
         <div className="relative space-y-6">
           <div className="absolute left-5 sm:left-24 top-8 bottom-8 w-[2px] bg-surface-container rounded-full hidden sm:block" />
 
-          {logs.map((log, i) => {
+          {filteredLogs.map((log, i) => {
             const dateObj = new Date(log.created_at);
             const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).replace(' ', " '");
             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
