@@ -8,7 +8,9 @@ import {
   Menu,
   Settings,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Activity,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,9 +20,10 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-// Menu khusus yang hanya relevan bagi Bidan / Therapist
 const therapistNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/therapist' },
+  { icon: Activity, label: 'Pemeriksaan Klinis', path: '/therapist/start-service' },
+  { icon: ClipboardList, label: 'Laporan Selesai', path: '/therapist/submit-report' },
   { icon: Settings, label: 'Settings', path: '/settings' }, 
 ];
 

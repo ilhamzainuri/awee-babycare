@@ -17,8 +17,9 @@ import Settings from './pages/Settings';
 // Import Halaman Public
 import Login from './pages/Login';
 
-// Import Halaman Therapist / Bidan
 import TherapistDashboard from './pages/therapist/TherapistDashboard';
+import StartService from './pages/therapist/StartService';
+import SubmitReport from './pages/therapist/SubmitReport';
 
 // ==========================================
 // KOMPONEN PROTECTED ROUTE (PENGAMAN JALUR)
@@ -81,6 +82,8 @@ export default function App() {
                 <Routes>
                   {/* Base path /therapist akan merender Dashboard Terapis */}
                   <Route path="/" element={<TherapistDashboard />} />
+                  <Route path="/start-service" element={<StartService />} />
+                  <Route path="/submit-report" element={<SubmitReport />} />
                   
                   {/* Anda bisa menambahkan halaman internal terapis lainnya di sini, contoh: */}
                   {/* <Route path="/history" element={<TherapistHistory />} /> */}
