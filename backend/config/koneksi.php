@@ -28,7 +28,7 @@ try {
     
     die(json_encode([
         "status" => 500, 
-        "message" => "Koneksi Database Gagal. Pastikan MySQL berjalan dan nama database benar.",
+        "message" => "ERROR 404 NOT FOUND, DATABASE FAILED TO CONNECT",
         "error_detail" => $e->getMessage()
     ]));
 }

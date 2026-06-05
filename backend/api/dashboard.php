@@ -44,6 +44,7 @@ try {
                 FROM appointments a
                 JOIN therapists t ON a.id_therapist = t.id
                 WHERE DATE(a.waktu_reservasi) = :filterDate 
+                AND a.status_jadwal != 'Selesai'
                 AND a.deleted_at IS NULL 
                 AND t.deleted_at IS NULL";
 
@@ -111,6 +112,7 @@ try {
         SELECT id, nama_anak, metode_bayar_admin, metode_bayar_terapis, waktu_reservasi 
         FROM appointments 
         WHERE metode_bayar_admin != metode_bayar_terapis 
+        AND metode_bayar_terapis IS NOT NULL
         AND status_pembayaran = 'Unverified'
         AND deleted_at IS NULL
     ");

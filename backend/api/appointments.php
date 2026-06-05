@@ -127,6 +127,60 @@ try {
         $conn->commit();
 
         echo json_encode(["status" => 201, "message" => "Reservasi berhasil disimpan!"]);
+    } elseif ($method === 'GET') {
+        if (isset($_GET['user_id'])) {
+            $user_id = (int)$_GET['user_id'];
+            
+            // Ambil id_therapist berdasarkan user_id
+            $stmtTerapis = $conn->prepare("SELECT id FROM therapists WHERE user_id = ? AND deleted_at IS NULL LIMIT 1");
+            $stmtTerapis->execute([$user_id]);
+            $terapis = $stmtTerapis->fetch(PDO::FETCH_ASSOC);
+
+            if (!$terapis) {
+                echo json_encode(["status" => 404, "message" => "Therapist not found"]);
+                exit;
+            }
+
+            $therapist_id = $terapis['id'];
+
+            // Ambil semua jadwal untuk terapis tersebut
+            $stmtSched = $conn->prepare("
+                SELECT a.id, a.nama_anak, a.usia_saat_ini, a.bb_saat_ini, a.waktu_reservasi, a.alamat_lengkap, a.status_jadwal,
+                       a.no_hp_ortu, a.link_shareloc, a.keluhan_awal, a.total_komisi_kunjungan,
+                       (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
+                        FROM appointment_details ad 
+                        JOIN services s ON ad.id_service = s.id 
+                        WHERE ad.id_appointment = a.id) as rincian_layanan
+                FROM appointments a
+                WHERE a.id_therapist = :id 
+                  AND a.deleted_at IS NULL
+                ORDER BY a.waktu_reservasi ASC
+            ");
+            $stmtSched->execute([':id' => $therapist_id]);
+            
+            $schedules = [];
+            while ($row = $stmtSched->fetch(PDO::FETCH_ASSOC)) {
+                $schedules[] = [
+                    "id" => (int)$row['id'],
+                    "nama_anak" => $row['nama_anak'],
+                    "usia_saat_ini" => $row['usia_saat_ini'],
+                    "bb_saat_ini" => $row['bb_saat_ini'],
+                    "waktu_reservasi" => $row['waktu_reservasi'],
+                    "alamat_lengkap" => $row['alamat_lengkap'],
+                    "status_jadwal" => $row['status_jadwal'],
+                    "no_hp_ortu" => $row['no_hp_ortu'],
+                    "link_shareloc" => $row['link_shareloc'],
+                    "keluhan_awal" => $row['keluhan_awal'],
+                    "total_komisi_kunjungan" => (int)$row['total_komisi_kunjungan'],
+                    "rincian_layanan" => $row['rincian_layanan']
+                ];
+            }
+            
+            echo json_encode(["status" => 200, "message" => "Berhasil memuat semua jadwal", "data" => $schedules]);
+        } else {
+            http_response_code(400); 
+            echo json_encode(["status" => 400, "message" => "Parameter user_id diperlukan"]);
+        }
     } 
     else {
         http_response_code(405); echo json_encode(["status" => 405, "message" => "Method Not Allowed"]);

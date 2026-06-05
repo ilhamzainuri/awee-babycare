@@ -59,7 +59,7 @@ Backend pada proyek ini tidak memerlukan instalasi tambahan. Karena Anda menyimp
 `http://localhost/awee-babycare/backend/api/...`
 
 ### 4. Persiapan Frontend (React Vite)
-Buka terminal baru pada *root* folder proyek (`c:\xampp\htdocs\awee-babycare`), lalu jalankan:
+Buka terminal baru pada *root* folder frontend proyek (`c:\xampp\htdocs\awee-babycare\frontend`), lalu jalankan:
 
 ```bash
 # 1. Install semua dependencies/library frontend
