@@ -129,4 +129,5 @@ Anggota :
 1. Ilham Zainuri
 2. M Hafiz Firmansyah
 3. Akhmad Labib
-   _Dikembangkan untuk Awee Babycare._
+
+_Dikembangkan untuk Awee Babycare._
