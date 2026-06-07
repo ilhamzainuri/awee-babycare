@@ -24,7 +24,7 @@ $action = isset($_GET['action']) ? $_GET['action'] : 'kpi';
 
 try {
     // ========================================================
-    // FITUR BARU: ENDPOINT JADWAL TERAPIS DENGAN ADVANCED FILTER
+    // ENDPOINT JADWAL TERAPIS DENGAN ADVANCED FILTER & ALAMAT
     // ========================================================
     if ($action === 'schedule') {
         // Tangkap parameter filter dari React, jika kosong berikan nilai default hari ini
@@ -32,12 +32,13 @@ try {
         $filter_therapist = isset($_GET['therapist']) ? trim($_GET['therapist']) : '';
 
         // Query mengambil jadwal dengan JOIN ke tabel therapists
+        // Kolom a.alamat_lengkap diubah aliasnya menjadi 'room' untuk frontend
         $sql = "SELECT 
                     a.id, 
                     t.nama_terapis AS therapist, 
                     'Klinik Bidan & Anak' AS specialty, 
                     a.nama_anak AS patient, 
-                    'Poli Utama' AS room, 
+                    a.alamat_lengkap AS room, 
                     DATE_FORMAT(a.waktu_reservasi, '%H:%i') AS time, 
                     a.status_jadwal AS status,
                     UPPER(SUBSTRING(t.nama_terapis, 1, 2)) AS initials
@@ -78,7 +79,7 @@ try {
     }
 
     // ========================================================
-    // BAGIAN 1: MENGAMBIL DATA KPI (METRIK UTAMA) - DEFAULT ALL
+    // BAGIAN 1: MENGAMBIL DATA KPI (METRIK UTAMA) - DEFAULT LOAD
     // ========================================================
 
     // KPI 1: Total Reservasi Hari Ini
@@ -107,7 +108,6 @@ try {
     // ==========================================
     // BAGIAN 2: MENGAMBIL DATA WARNING / ALERTS
     // ==========================================
-    
     $stmt = $conn->query("
         SELECT id, nama_anak, metode_bayar_admin, metode_bayar_terapis, waktu_reservasi 
         FROM appointments 
@@ -133,7 +133,6 @@ try {
     // ==========================================
     // BAGIAN 3: MENYUSUN DAN MENGIRIM RESPONSE JSON
     // ==========================================
-    
     $response = [
         'status' => 200,
         'message' => 'Berhasil mengambil data dashboard',

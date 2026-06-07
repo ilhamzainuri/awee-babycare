@@ -6,24 +6,33 @@ import {
   Wallet, 
   AlertTriangle, 
   Coffee,
-  ArrowRight,
   Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 
+// Tipe Data
 interface ScheduleData {
   id: number;
   therapist: string;
   specialty: string;
   patient: string | null;
-  room: string;
+  room: string; // Sekarang berisi alamat lengkap dari API
   time: string;
   status: 'active' | 'upcoming' | 'break' | 'completed' | string;
   initials: string;
 }
 
+interface GroupedSchedule {
+  [therapistName: string]: {
+    initials: string;
+    specialty: string;
+    appointments: ScheduleData[];
+  };
+}
+
 export default function Dashboard() {
+  // State Utama
   const [data, setData] = useState({
     kpis: {
       reservasi: 0,
@@ -35,20 +44,22 @@ export default function Dashboard() {
     alerts: []
   });
   
-  // State khusus untuk jadwal dan filter
+  // State Jadwal & Filter
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
   const [filterTherapist, setFilterTherapist] = useState('');
   
+  // State Loading & Error
   const [isLoading, setIsLoading] = useState(true);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sesuaikan URL API Anda
   const apiUrl = import.meta.env.VITE_API_BASE_URL 
     ? `${import.meta.env.VITE_API_BASE_URL}/dashboard.php` 
     : 'http://localhost/awee-babycare/backend/api/dashboard.php';
 
-  // Fetch data awal (KPI & Alerts)
+  // 1. Fetch data awal (KPI & Alerts)
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -68,12 +79,11 @@ export default function Dashboard() {
     fetchInitialData();
   }, [apiUrl]);
 
-  // Fetch jadwal dinamis berdasarkan filter dengan teknik Debounce
+  // 2. Fetch jadwal dinamis berdasarkan filter dengan teknik Debounce
   useEffect(() => {
     const fetchFilteredSchedule = async () => {
       setIsScheduleLoading(true);
       try {
-        // Mengirim parameter filter ke API
         const response = await fetch(`${apiUrl}?action=schedule&date=${filterDate}&therapist=${filterTherapist}`);
         if (!response.ok) throw new Error('Gagal memuat jadwal');
         
@@ -88,7 +98,7 @@ export default function Dashboard() {
       }
     };
 
-    // Memberi jeda 500ms saat mengetik sebelum memanggil API (Debounce)
+    // Jeda 500ms saat mengetik sebelum memanggil API (Debounce)
     const delayDebounceFn = setTimeout(() => {
       fetchFilteredSchedule();
     }, 500);
@@ -96,12 +106,14 @@ export default function Dashboard() {
     return () => clearTimeout(delayDebounceFn);
   }, [apiUrl, filterDate, filterTherapist]);
 
+  // Utility Rupiah
   const formatRupiah = (angka: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency', currency: 'IDR', minimumFractionDigits: 0
     }).format(angka);
   };
 
+  // Konfigurasi Array KPI
   const dynamicKpis = [
     { 
       label: 'Total Reservasi Hari Ini', 
@@ -126,6 +138,20 @@ export default function Dashboard() {
     },
   ];
 
+  // 3. Logika Grouping berdasarkan nama Terapis
+  const groupedSchedules: GroupedSchedule = schedules.reduce((acc: GroupedSchedule, curr) => {
+    if (!acc[curr.therapist]) {
+      acc[curr.therapist] = {
+        initials: curr.initials,
+        specialty: curr.specialty,
+        appointments: []
+      };
+    }
+    acc[curr.therapist].appointments.push(curr);
+    return acc;
+  }, {});
+
+  // Tampilan Loading & Error Global
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -142,7 +168,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* KPI Section */}
+      {/* ================= KPI SECTION ================= */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {dynamicKpis.map((kpi, i) => (
           <motion.div
@@ -172,7 +198,8 @@ export default function Dashboard() {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Warning System */}
+        
+        {/* ================= WARNING SYSTEM ================= */}
         <section className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-on-surface">Warning System</h2>
@@ -213,7 +240,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Therapist Schedule */}
+        {/* ================= THERAPIST SCHEDULE ================= */}
         <section className="lg:col-span-2 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold text-on-surface">Therapist Schedule</h2>
@@ -243,42 +270,63 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-surface-container-lowest border border-surface-container rounded-3xl overflow-hidden shadow-sm min-h-[250px] relative">
-            {isScheduleLoading ? (
+            {/* Overlay Loading Jadwal */}
+            {isScheduleLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-surface-container-lowest/50 backdrop-blur-sm z-10">
                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : null}
+            )}
 
-            {/* List */}
+            {/* List Data Terkelompok */}
             <div className="divide-y divide-surface-container">
-              {schedules.length === 0 && !isScheduleLoading ? (
+              {Object.keys(groupedSchedules).length === 0 && !isScheduleLoading ? (
                 <div className="p-8 text-center text-on-surface-variant text-sm font-bold">
                   Tidak ada jadwal untuk kriteria pencarian ini.
                 </div>
               ) : (
-                schedules.map((item) => (
-                  <div key={item.id} className="p-4 md:p-6 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-surface-container-highest flex items-center justify-center bg-surface-container text-on-surface-variant font-bold">
-                       {item.initials}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-on-surface text-sm">{item.therapist}</h3>
-                      <p className="text-xs text-on-surface-variant">{item.specialty}</p>
-                    </div>
-                    {item.status === 'break' ? (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface-variant rounded-xl border border-dashed border-outline-variant">
-                        <Coffee className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wide">Break</span>
+                Object.entries(groupedSchedules).map(([therapistName, tData]) => (
+                  <div key={therapistName} className="p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+                    
+                    {/* Profil Terapis (Kolom Kiri) */}
+                    <div className="flex items-center gap-4 md:w-1/3 shrink-0">
+                      <div className="w-12 h-12 rounded-full overflow-hidden border border-surface-container-highest flex items-center justify-center bg-surface-container text-on-surface-variant font-bold">
+                         {tData.initials}
                       </div>
-                    ) : (
-                      <div className={cn(
-                        "p-3 rounded-2xl border transition-all max-w-[200px] flex flex-col gap-1",
-                        item.status === 'active' || item.status === 'Diproses' ? "bg-primary-container/10 border-primary-container text-primary-container" : "bg-secondary-container/10 border-secondary-container text-secondary"
-                      )}>
-                        <p className="text-xs font-bold truncate">{item.patient || 'Pasien Umum'}</p>
-                        <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">{item.room} • {item.time}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-on-surface text-sm truncate">{therapistName}</h3>
+                        <p className="text-xs text-on-surface-variant truncate">{tData.specialty}</p>
                       </div>
-                    )}
+                    </div>
+
+                    {/* Daftar Jadwal Pasien (Kolom Kanan - Horizontal Scroll) */}
+                    <div className="flex-1 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                      {tData.appointments.map((item, idx) => (
+                        <React.Fragment key={item.id || idx}>
+                          {item.status === 'break' ? (
+                            <div className="shrink-0 flex items-center justify-center gap-2 px-4 py-2 bg-surface-container text-on-surface-variant rounded-2xl border border-dashed border-outline-variant min-w-[140px]">
+                              <Coffee className="w-4 h-4" />
+                              <span className="text-[10px] font-bold uppercase tracking-wide">Break • {item.time}</span>
+                            </div>
+                          ) : (
+                            <div 
+                              className={cn(
+                                "shrink-0 p-3 rounded-2xl border transition-all min-w-[160px] max-w-[200px] flex flex-col gap-1 justify-center",
+                                item.status === 'active' || item.status === 'Diproses' 
+                                  ? "bg-primary-container/10 border-primary-container text-primary-container" 
+                                  : "bg-secondary-container/10 border-secondary-container text-secondary"
+                              )}
+                              title={item.room} // <-- Menampilkan alamat lengkap saat di hover
+                            >
+                              <p className="text-xs font-bold truncate">{item.patient || 'Pasien Umum'}</p>
+                              <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest truncate">
+                                {item.room} • {item.time}
+                              </p>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+
                   </div>
                 ))
               )}
