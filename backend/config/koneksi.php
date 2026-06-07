@@ -1,9 +1,9 @@
 <?php
 
 $host = "localhost";
-$user = "root";       // Default username XAMPP/Laragon
-$pass = "";           // Default password XAMPP (kosong)
-$db   = "db_awee_babycare"; // Nama database Anda
+$user = "root";       
+$pass = "";           
+$db   = "db_awee_babycare";
 
 try {
     $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";

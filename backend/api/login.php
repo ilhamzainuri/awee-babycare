@@ -22,7 +22,7 @@ try {
     }
 
     $username = trim($data->username);
-    $password = $data->password; // Menggunakan plain-text sesuai struktur database saat ini
+    $password = $data->password;
 
     // Cek apakah kolom foto ada di tabel users untuk backward compatibility
     $hasFotoColumn = false;
