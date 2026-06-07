@@ -32,4 +32,34 @@ try {
         "error_detail" => $e->getMessage()
     ]));
 }
+
+function getRevenueSummary($conn, $whereClause = "a.deleted_at IS NULL", $params = []) {
+    $sql = "SELECT 
+                SUM(CASE WHEN a.status_jadwal != 'Dibatalkan' THEN a.total_harga_kunjungan ELSE 0 END) as total_kotor,
+                SUM(CASE WHEN a.status_pembayaran = 'Verified' THEN a.total_bersih ELSE 0 END) as total_bersih
+            FROM appointments a 
+            WHERE $whereClause";
+            
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $res = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return [
+        'kotor'  => $res['total_kotor'] ? (float)$res['total_kotor'] : 0.00,
+        'bersih' => $res['total_bersih'] ? (float)$res['total_bersih'] : 0.00
+    ];
+}
+
+function getTotalCommission($conn, $whereClause = "a.deleted_at IS NULL", $params = []) {
+    $sql = "SELECT 
+                SUM(a.total_komisi_kunjungan) as total_komisi
+            FROM appointments a 
+            WHERE $whereClause";
+            
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $res = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $res['total_komisi'] ? (float)$res['total_komisi'] : 0.00;
+}
 ?>

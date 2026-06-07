@@ -13,6 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
+// Sembunyikan error teks mentah agar tidak merusak format JSON di frontend
+ini_set('display_errors', 0);
+
 // 2. Panggil koneksi database
 require_once '../config/koneksi.php';
 
@@ -27,12 +30,9 @@ try {
     // ENDPOINT JADWAL TERAPIS DENGAN ADVANCED FILTER & ALAMAT
     // ========================================================
     if ($action === 'schedule') {
-        // Tangkap parameter filter dari React, jika kosong berikan nilai default hari ini
         $filter_date = isset($_GET['date']) && !empty($_GET['date']) ? $_GET['date'] : $hari_ini;
         $filter_therapist = isset($_GET['therapist']) ? trim($_GET['therapist']) : '';
 
-        // Query mengambil jadwal dengan JOIN ke tabel therapists
-        // Kolom a.alamat_lengkap diubah aliasnya menjadi 'room' untuk frontend
         $sql = "SELECT 
                     a.id, 
                     t.nama_terapis AS therapist, 
@@ -49,7 +49,6 @@ try {
                 AND a.deleted_at IS NULL 
                 AND t.deleted_at IS NULL";
 
-        // Tambahkan kondisi pencarian nama terapis jika diisi di frontend
         if ($filter_therapist !== '') {
             $sql .= " AND t.nama_terapis LIKE :filterTherapist";
         }
@@ -67,12 +66,11 @@ try {
         $stmt->execute();
         $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Kirim response jadwal terfilter ke React
         echo json_encode([
             'status' => 200,
             'message' => 'Berhasil mengambil data jadwal terapis',
             'data' => [
-                'schedules' => $schedules
+                'schedules' => $schedules ? $schedules : []
             ]
         ]);
         exit();
@@ -85,25 +83,30 @@ try {
     // KPI 1: Total Reservasi Hari Ini
     $stmt = $conn->prepare("SELECT COUNT(id) as total FROM appointments WHERE DATE(waktu_reservasi) = ? AND deleted_at IS NULL");
     $stmt->execute([$hari_ini]);
-    $total_reservasi = $stmt->fetch()['total'];
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $total_reservasi = $row ? (int)$row['total'] : 0;
 
     // KPI 2: Terapis On-Duty (Aktif)
     $stmt = $conn->query("SELECT COUNT(id) as aktif FROM therapists WHERE status_aktif = 1 AND deleted_at IS NULL");
-    $terapis_aktif = $stmt->fetch()['aktif'];
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $terapis_aktif = $row ? (int)$row['aktif'] : 0;
 
     // KPI 3: Total Semua Terapis
     $stmt = $conn->query("SELECT COUNT(id) as total FROM therapists WHERE deleted_at IS NULL");
-    $total_terapis = $stmt->fetch()['total'];
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $total_terapis = $row ? (int)$row['total'] : 0;
 
     // KPI 4: Menunggu Verifikasi Pembayaran
     $stmt = $conn->query("SELECT COUNT(id) as unverified FROM appointments WHERE status_pembayaran = 'Unverified' AND deleted_at IS NULL");
-    $menunggu_verifikasi = $stmt->fetch()['unverified'];
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $menunggu_verifikasi = $row ? (int)$row['unverified'] : 0;
 
     // KPI 5: Estimasi Omzet Hari Ini
-    $stmt = $conn->prepare("SELECT SUM(total_harga_kunjungan) as omzet FROM appointments WHERE DATE(waktu_reservasi) = ? AND deleted_at IS NULL");
-    $stmt->execute([$hari_ini]);
-    $hasil_omzet = $stmt->fetch()['omzet'];
-    $omzet = $hasil_omzet ? (float)$hasil_omzet : 0.00;
+    $dashboardWhere = "DATE(a.waktu_reservasi) = ? AND a.deleted_at IS NULL";
+$revenueHariIni = getRevenueSummary($conn, $dashboardWhere, [$hari_ini]);
+
+$omzet = $revenueHariIni['kotor'];             // Menggantikan KPI 5
+$pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
 
     // ==========================================
     // BAGIAN 2: MENGAMBIL DATA WARNING / ALERTS
@@ -120,35 +123,36 @@ try {
     $alerts_db = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $alerts = [];
     
-    foreach ($alerts_db as $alert) {
-        $alerts[] = [
-            'id' => $alert['id'],
-            'title' => $alert['nama_anak'] . ' - Mismatch',
-            'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
-            'description' => "Terdeteksi selisih metode pembayaran pada #TRX-{$alert['id']}. Rencana awal: {$alert['metode_bayar_admin']}, Fakta lapangan: {$alert['metode_bayar_terapis']}.",
-            'type' => 'error'
-        ];
+    if ($alerts_db) {
+        foreach ($alerts_db as $alert) {
+            $alerts[] = [
+                'id' => $alert['id'],
+                'title' => $alert['nama_anak'] . ' - Mismatch',
+                'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
+                'description' => "Terdeteksi selisih metode pembayaran pada #TRX-{$alert['id']}. Rencana awal: {$alert['metode_bayar_admin']}, Fakta lapangan: {$alert['metode_bayar_terapis']}.",
+                'type' => 'error'
+            ];
+        }
     }
 
     // ==========================================
     // BAGIAN 3: MENYUSUN DAN MENGIRIM RESPONSE JSON
     // ==========================================
-    $response = [
+    echo json_encode([
         'status' => 200,
         'message' => 'Berhasil mengambil data dashboard',
         'data' => [
             'kpis' => [
-                'reservasi' => (int)$total_reservasi,
-                'terapis_aktif' => (int)$terapis_aktif,
-                'terapis_total' => (int)$total_terapis,
-                'unverified' => (int)$menunggu_verifikasi,
-                'omzet' => (float)$omzet
+                'reservasi' => $total_reservasi,
+                'terapis_aktif' => $terapis_aktif,
+                'terapis_total' => $total_terapis,
+                'unverified' => $menunggu_verifikasi,
+                'omzet' => $omzet,
+                'pendapatan_bersih' => $pendapatan_bersih
             ],
             'alerts' => $alerts
         ]
-    ];
-
-    echo json_encode($response);
+    ]);
 
 } catch(PDOException $e) {
     http_response_code(500);

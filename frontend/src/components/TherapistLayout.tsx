@@ -8,9 +8,9 @@ import {
   Menu,
   Settings,
   LogOut,
-  ChevronRight,
   Activity,
-  ClipboardList
+  ClipboardList,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,8 +22,10 @@ interface LayoutProps {
 
 const therapistNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/therapist' },
+  { icon: Calendar, label: 'Jadwal Saya', path: '/therapist/Schedule' },
   { icon: Activity, label: 'Pemeriksaan Klinis', path: '/therapist/start-service' },
   { icon: ClipboardList, label: 'Laporan Selesai', path: '/therapist/submit-report' },
+  { icon: BarChart3, label: 'Reports', path: '/therapist/TherapistReport' },
   { icon: Settings, label: 'Settings', path: '/settings' }, 
 ];
 

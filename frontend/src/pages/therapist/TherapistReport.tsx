@@ -21,7 +21,10 @@ const STATUS_COLORS: Record<string, string> = {
   'Dibatalkan': '#EF4444'
 };
 
-export default function Reports() {
+
+
+
+export default function Report() {
   const [activeFilter, setActiveFilter] = useState('Monthly');
 
   // Custom Date States
@@ -47,6 +50,7 @@ export default function Reports() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTherapist, setFilterTherapist] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  
 
   // ==========================================
   // STATE & EFFECT UNTUK MODAL DETAIL KOMISI TERAPIS
@@ -68,7 +72,7 @@ export default function Reports() {
         
         // 1. Arahkan ke reports.php & ubah id_therapist menjadi therapist_id
         // 2. Kirimkan filter waktu agar sinkron dengan dashboard utama
-        let url = `${baseUrl}/reports.php?filter=${activeFilter}&therapist_id=${selectedTherapistId}`;
+        let url = `${baseUrl}/therapist_reports.php?filter=${activeFilter}&therapist_id=${selectedTherapistId}`;
         if (activeFilter === 'Custom') {
           url += `&start=${startDate}&end=${endDate}`;
         }
@@ -272,41 +276,12 @@ export default function Reports() {
               <div className="absolute top-0 left-0 w-2 h-full bg-primary-container" />
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Keuangan Klinik</h3>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Komisi Therapist</h3>
                   <p className="text-sm text-on-surface-variant">Revenue summary based on selected filter</p>
                 </div>
                 <div className="p-2 bg-primary-container/10 text-primary-container rounded-2xl"><Landmark className="w-6 h-6" /></div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container">
-                <div>
-                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total Omzet (Kotor)</span>
-                  <h2 className="text-3xl font-black text-primary-container tracking-tight mt-1">{formatRupiah(totalOmzet)}</h2>
-                </div>
-                <div className="pt-4 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-surface-container-high">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
-                    Pendapatan Bersih (Net)
-                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  </span>
-                  <h2 className="text-3xl font-black text-emerald-600 tracking-tight mt-1">{formatRupiah(totalBersih)}</h2>
-                </div>
-              </div>
-
-              <div className="h-64 h-full min-h-[250px]">
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <Tooltip formatter={(value: number) => formatRupiah(value)} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} cursor={{ fill: 'var(--color-surface-container)', radius: 8 }} />
-                      <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                        {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill="var(--color-primary-container)" fillOpacity={index === chartData.length - 1 ? 1 : 0.4} />)}
-                      </Bar>
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--color-on-surface-variant)' }} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-on-surface-variant font-bold text-sm">Tidak ada data transaksi.</div>
-                )}
-              </div>
             </motion.div>
 
             {/* 2. KOTAK STATUS RESERVASI */}
@@ -314,7 +289,7 @@ export default function Reports() {
               <div className="absolute top-0 left-0 w-2 h-full bg-tertiary-container" />
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Status Reservasi</h3>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Total Pelayanan</h3>
                   <p className="text-sm text-on-surface-variant">Total {totalReservasi} Pasien</p>
                 </div>
                 <div className="p-2 bg-tertiary-container/10 text-tertiary rounded-2xl"><PieIcon className="w-6 h-6" /></div>
@@ -353,71 +328,10 @@ export default function Reports() {
             </motion.div>
 
             {/* 3. KOTAK KOMISI TERAPIS */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-2 bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-surface-container-high shadow-sm relative overflow-hidden flex flex-col">
-  <div className="absolute top-0 left-0 w-2 h-full bg-secondary-container" />
-  <div className="flex justify-between items-start mb-8">
-    <div>
-      <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Komisi Terapis</h3>
-      <p className="text-sm text-on-surface-variant">Top performance (Klik untuk detail)</p>
-    </div>
-    <div className="p-2 bg-secondary-container/20 text-secondary rounded-2xl"><Users className="w-6 h-6" /></div>
-  </div>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {therapists.length > 0 ? therapists.map((t) => (
-      <div
-        key={t.id_therapist || t.id} // Gunakan ID sebagai key yang lebih aman daripada nama
-        onClick={() => setSelectedTherapistId(t.id_therapist || t.id)}
-        className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low border border-surface-container hover:border-secondary/40 hover:bg-surface-container transition-all cursor-pointer group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-xs group-hover:scale-105 transition-transform">
-            {/* Sesuaikan properti nama_terapis */}
-            {getInitials(t.nama_terapis || t.name || '')}
-          </div>
-          <div>
-            {/* Sesuaikan properti nama_terapis dan total_sesi */}
-            <h4 className="font-bold text-on-surface text-sm group-hover:text-secondary transition-colors">
-              {t.nama_terapis || t.name}
-            </h4>
-            <p className="text-xs text-on-surface-variant">
-              {t.total_sesi !== undefined ? t.total_sesi : t.sessions} Sesi Selesai
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Sesuaikan properti total_komisi */}
-          <p className="text-sm font-black text-secondary">
-            {formatRupiah(t.total_komisi !== undefined ? t.total_komisi : t.commission)}
-          </p>
-          <ArrowUpRight className="w-4 h-4 text-outline opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </div>
-      </div>
-    )) : <p className="text-sm font-bold text-on-surface-variant">Belum ada data komisi.</p>}
-  </div>
-</motion.div>
+            
 
             {/* 4. KOTAK LAYANAN TERLARIS */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-surface-container-high shadow-sm relative overflow-hidden flex flex-col">
-              <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Layanan Terlaris</h3>
-                  <p className="text-sm text-on-surface-variant">Top booked services</p>
-                </div>
-                <div className="p-2 bg-primary/10 text-primary rounded-2xl"><Activity className="w-6 h-6" /></div>
-              </div>
-              <div className="space-y-3 flex-1">
-                {topServices.length > 0 ? topServices.map((service, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border-b border-surface-container last:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-black text-surface-container-highest">{index + 1}</span>
-                      <span className="font-bold text-sm text-on-surface">{service.name}</span>
-                    </div>
-                    <span className="px-3 py-1 bg-surface-container-high rounded-full text-xs font-bold">{service.total_booked}x</span>
-                  </div>
-                )) : <p className="text-sm font-bold text-on-surface-variant">Belum ada data layanan.</p>}
-              </div>
-            </motion.div>
+
           </div>
 
           {/* ==========================================

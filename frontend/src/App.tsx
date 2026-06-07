@@ -17,9 +17,12 @@ import Settings from './pages/Settings';
 // Import Halaman Public
 import Login from './pages/Login';
 
+// Import Halaman Therapist
 import TherapistDashboard from './pages/therapist/TherapistDashboard';
+import TherapistSchedules from './pages/therapist/TherapistSchedules';
 import StartService from './pages/therapist/StartService';
 import SubmitReport from './pages/therapist/SubmitReport';
+import TherapistReport from './pages/therapist/TherapistReport';
 
 // ==========================================
 // KOMPONEN PROTECTED ROUTE (PENGAMAN JALUR)
@@ -76,17 +79,28 @@ export default function App() {
             ========================================== */}
         <Route 
           path="/therapist/*" 
-          element={
+          element = {
             <ProtectedRoute allowedRoles={['therapist']}>
               <TherapistLayout>
                 <Routes>
                   {/* Base path /therapist akan merender Dashboard Terapis */}
                   <Route path="/" element={<TherapistDashboard />} />
-                  <Route path="/start-service" element={<StartService />} />
-                  <Route path="/submit-report" element={<SubmitReport />} />
                   
-                  {/* Anda bisa menambahkan halaman internal terapis lainnya di sini, contoh: */}
-                  {/* <Route path="/history" element={<TherapistHistory />} /> */}
+                  {/* Rute Halaman Jadwal Kerja Terapis */}
+                  <Route path="/schedule" element={<TherapistSchedules />} /> {/* <-- 2. TAMBAHKAN ROUTE DI SINI */}
+                  
+                  {/* Menggunakan parameter :id agar fleksibel saat memproses data spesifik */}
+                  <Route path="/start-service/:id" element={<StartService />} />
+                  <Route path="/start-service" element={<StartService />} />
+                  
+                  <Route path="/submit-report/:id" element={<SubmitReport />} />
+                  <Route path="/submit-report" element={<SubmitReport />} />
+
+                  <Route path="/TherapistReport/:id" element={<TherapistReport />} />
+                  <Route path="/TherapistReport" element={<TherapistReport />} />
+                  
+                  {/* Catch-all jika route internal terapis tidak ditemukan */}
+                  <Route path="*" element={<Navigate to="/therapist" replace />} />
                 </Routes>
               </TherapistLayout>
             </ProtectedRoute>
@@ -98,7 +112,7 @@ export default function App() {
             ========================================== */}
         <Route 
           path="/*" 
-          element={
+          element = {
             <ProtectedRoute allowedRoles={['admin']}>
               <Layout>
                 <Routes>

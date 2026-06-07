@@ -36,6 +36,7 @@ try {
                     $detail['id'] = (int)$detail['id'];
                     $detail['total_harga_kunjungan'] = (float)$detail['total_harga_kunjungan'];
                     $detail['total_komisi_kunjungan'] = (float)$detail['total_komisi_kunjungan'];
+                    $detail['total_bersih'] = $detail['total_bersih'] ? (float)$detail['total_bersih'] : null;
                     
                     echo json_encode(["status" => 200, "message" => "Sukses", "data" => $detail]);
                 } else {
@@ -79,18 +80,22 @@ try {
 
                 // 1. Ambil data lama sebelum diverifikasi
                 // Kita ambil data krusial yang berkaitan dengan rekonsiliasi pembayaran
-                $old_stmt = $conn->prepare("SELECT id, nama_anak, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, status_pembayaran FROM appointments WHERE id = ?");
+                $old_stmt = $conn->prepare("SELECT id, nama_anak, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, total_bersih, status_pembayaran FROM appointments WHERE id = ?");
                 $old_stmt->execute([$id_target]);
                 $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($data_lama) {
-                    // 2. Eksekusi query update utama
-                    $stmt = $conn->prepare("UPDATE appointments SET status_pembayaran = 'Verified' WHERE id = ?");
+                    // Hitung total bersih untuk keperluan log
+                    $kalkulasi_bersih = $data_lama['total_harga_kunjungan'] - $data_lama['total_komisi_kunjungan'];
+
+                    // 2. Eksekusi query update utama (Menambahkan kalkulasi total_bersih)
+                    $stmt = $conn->prepare("UPDATE appointments SET status_pembayaran = 'Verified', total_bersih = (total_harga_kunjungan - total_komisi_kunjungan) WHERE id = ?");
                     $stmt->execute([$id_target]);
 
-                    // 3. Siapkan data baru (Sama dengan data lama, namun status_pembayaran berubah)
+                    // 3. Siapkan data baru (Sama dengan data lama, namun status dan total bersih berubah)
                     $data_baru = $data_lama;
                     $data_baru['status_pembayaran'] = 'Verified';
+                    $data_baru['total_bersih'] = $kalkulasi_bersih; // Simpan nilai bersih ke dalam log
 
                     // 4. Catat ke audit_logs
                     $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'update', 'appointments', ?, ?, ?)");
@@ -101,7 +106,7 @@ try {
                         json_encode($data_baru)
                     ]);
 
-                    echo json_encode(["status" => 200, "message" => "Pembayaran berhasil diverifikasi"]);
+                    echo json_encode(["status" => 200, "message" => "Pembayaran berhasil diverifikasi dan total bersih tersimpan"]);
                 } else {
                     http_response_code(404);
                     echo json_encode(["status" => 404, "message" => "Data appointment tidak ditemukan"]);

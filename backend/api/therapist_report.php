@@ -1,5 +1,17 @@
 <?php
-// Letak file: backend/api/reports.php
+// Letak file: backend/api/therapist_reports.php
+session_start();
+
+if (!isset($_SESSION['id_therapist'])) {
+    http_response_code(401);
+    echo json_encode([
+        "status" => 401,
+        "message" => "Unauthorized"
+    ]);
+    exit();
+}
+
+$therapist_id = (int) $_SESSION['id_therapist'];
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -16,8 +28,8 @@ require_once '../config/koneksi.php';
 
 // Ambil filter dari parameter URL (Default ke Bulanan / Monthly)
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'Monthly';
-$whereClause = "a.deleted_at IS NULL";
-$params = [];
+$whereClause .= " AND a.id_therapist = :therapist_id";
+$params[':therapist_id'] = $therapist_id;
 
 // 1. Atur Cakupan Waktu dan Format Pengelompokan Grafik Berdasarkan Filter
 switch ($filter) {
@@ -60,8 +72,7 @@ switch ($filter) {
         break;
 }
 
-if (isset($_GET['therapist_id']) && !empty($_GET['therapist_id'])) {
-    $therapist_id = (int)$_GET['therapist_id'];
+
     
     try {
         // 1. Ambil Nama Terapis, Total Sesi, dan Total Komisi (sesuai filter waktu)
@@ -132,7 +143,7 @@ if (isset($_GET['therapist_id']) && !empty($_GET['therapist_id'])) {
         echo json_encode(["status" => 500, "message" => "Error: " . $e->getMessage()]);
         exit();
     }
-}
+
 
 try {
     // 2. Kueri A: Hitung Total Omzet, Komisi, dan GRAND TOTAL BERSIH Langsung via SQL

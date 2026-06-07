@@ -6,10 +6,11 @@ import {
   Wallet, 
   AlertTriangle, 
   Coffee,
-  Search
+  Search,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion'; // Ubah ke 'framer-motion' jika 'motion/react' tidak terinstall
 
 // Tipe Data
 interface ScheduleData {
@@ -17,7 +18,7 @@ interface ScheduleData {
   therapist: string;
   specialty: string;
   patient: string | null;
-  room: string; // Sekarang berisi alamat lengkap dari API
+  room: string;
   time: string;
   status: 'active' | 'upcoming' | 'break' | 'completed' | string;
   initials: string;
@@ -31,7 +32,21 @@ interface GroupedSchedule {
   };
 }
 
+// Helper untuk mendapatkan tanggal lokal format YYYY-MM-DD tanpa bug timezone
+const getLocalDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function Dashboard() {
+
+  const [dailySummary, setDailySummary] = useState({
+    omzet: 0,
+    bersih: 0
+  });
   // State Utama
   const [data, setData] = useState({
     kpis: {
@@ -39,14 +54,15 @@ export default function Dashboard() {
       terapis_aktif: 0,
       terapis_total: 0,
       unverified: 0,
-      omzet: 0
+      omzet: 0,
+      pendapatan_bersih: 0
     },
     alerts: []
   });
   
   // State Jadwal & Filter
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterDate, setFilterDate] = useState(getLocalDateString()); // Fixed bug timezone
   const [filterTherapist, setFilterTherapist] = useState('');
   
   // State Loading & Error
@@ -54,21 +70,48 @@ export default function Dashboard() {
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sesuaikan URL API Anda
   const apiUrl = import.meta.env.VITE_API_BASE_URL 
     ? `${import.meta.env.VITE_API_BASE_URL}/dashboard.php` 
     : 'http://localhost/awee-babycare/backend/api/dashboard.php';
 
   // 1. Fetch data awal (KPI & Alerts)
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchDailySummary = async () => {
       try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Gagal terhubung ke server');
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost/awee-babycare/backend/api';
+        // Memanggil report dengan filter Daily
+        const response = await fetch(`${baseUrl}/reports.php?filter=Daily`);
         const result = await response.json();
         
         if (result.status === 200) {
-          setData({ kpis: result.data.kpis, alerts: result.data.alerts });
+          setDailySummary({
+            omzet: result.data.total_omzet,
+            bersih: result.data.total_pendapatan_bersih
+          });
+        }
+      } catch (err) {
+        console.error("Gagal memuat summary harian:", err);
+      }
+    };
+    fetchDailySummary();
+  }, []);
+  
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`HTTP Error! status: ${response.status}`);
+        
+        const result = await response.json();
+        console.log("Response KPI:", result); // Untuk mempermudah debugging Anda di console
+
+        if (result.status === 200 && result.data) {
+          setData({ 
+            kpis: result.data.kpis || { reservasi: 0, terapis_aktif: 0, terapis_total: 0, unverified: 0, omzet: 0, pendapatan_bersih: 0 }, 
+            alerts: result.data.alerts || [] 
+          });
+        } else {
+          throw new Error(result.message || 'Format data dari server tidak sesuai');
         }
       } catch (err: any) {
         setError(err.message);
@@ -84,21 +127,22 @@ export default function Dashboard() {
     const fetchFilteredSchedule = async () => {
       setIsScheduleLoading(true);
       try {
-        const response = await fetch(`${apiUrl}?action=schedule&date=${filterDate}&therapist=${filterTherapist}`);
+        const response = await fetch(`${apiUrl}?action=schedule&date=${filterDate}&therapist=${encodeURIComponent(filterTherapist)}`);
         if (!response.ok) throw new Error('Gagal memuat jadwal');
         
         const result = await response.json();
-        if (result.status === 200) {
+        console.log("Response Schedule:", result); // Untuk mempermudah debugging Anda di console
+
+        if (result.status === 200 && result.data) {
           setSchedules(result.data.schedules || []);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Schedule Fetch Error:", err);
       } finally {
         setIsScheduleLoading(false);
       }
     };
 
-    // Jeda 500ms saat mengetik sebelum memanggil API (Debounce)
     const delayDebounceFn = setTimeout(() => {
       fetchFilteredSchedule();
     }, 500);
@@ -117,33 +161,39 @@ export default function Dashboard() {
   const dynamicKpis = [
     { 
       label: 'Total Reservasi Hari Ini', 
-      value: data.kpis.reservasi.toString(), 
+      value: (data.kpis?.reservasi ?? 0).toString(), 
       icon: CalendarCheck, color: 'text-primary', bgColor: 'bg-primary-container/20' 
     },
     { 
       label: 'Terapis On-Duty vs Standby', 
-      value: data.kpis.terapis_aktif.toString(), subValue: `/ ${data.kpis.terapis_total}`,
+      value: (data.kpis?.terapis_aktif ?? 0).toString(), subValue: `/ ${data.kpis?.terapis_total ?? 0}`,
       icon: Users, color: 'text-secondary', bgColor: 'bg-secondary-container/20' 
     },
     { 
       label: 'Menunggu Verifikasi', 
-      value: data.kpis.unverified.toString(), 
+      value: (data.kpis?.unverified ?? 0).toString(), 
       icon: Clock, color: 'text-error', bgColor: 'bg-error-container/30',
-      isUrgent: data.kpis.unverified > 0
+      isUrgent: (data.kpis?.unverified ?? 0) > 0
     },
     { 
-      label: 'Estimasi Omzet Hari Ini', 
-      value: formatRupiah(data.kpis.omzet), 
-      icon: Wallet, color: 'text-tertiary', bgColor: 'bg-tertiary-container/20' 
+      label: 'Omzet Hari Ini', 
+      value: formatRupiah(dailySummary.omzet), 
+      icon: Wallet, color: 'text-tertiary', bgColor: 'bg-tertiary-container/20'
+    },
+    { 
+      label: 'Pendapatan Bersih (Net)', 
+      value: formatRupiah(dailySummary.bersih), 
+      icon: TrendingUp, color: 'text-emerald-600', bgColor: 'bg-emerald-500/10'
     },
   ];
 
   // 3. Logika Grouping berdasarkan nama Terapis
   const groupedSchedules: GroupedSchedule = schedules.reduce((acc: GroupedSchedule, curr) => {
+    if (!curr.therapist) return acc;
     if (!acc[curr.therapist]) {
       acc[curr.therapist] = {
-        initials: curr.initials,
-        specialty: curr.specialty,
+        initials: curr.initials || '??',
+        specialty: curr.specialty || 'Klinik',
         appointments: []
       };
     }
@@ -162,21 +212,24 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="p-4 bg-error-container text-on-error-container rounded-xl font-bold">Error: {error}</div>
+      <div className="p-4 bg-error-container text-on-error-container rounded-xl font-bold m-4">
+        <p>Gagal Memuat Dashboard:</p>
+        <span className="text-xs font-normal opacity-80">{error}</span>
+      </div>
     );
   }
 
   return (
     <div className="space-y-8">
       {/* ================= KPI SECTION ================= */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"> {/* Mengubah grid ke 5 kolom agar muat pas */}
         {dynamicKpis.map((kpi, i) => (
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
             key={kpi.label}
             className={cn(
-              "p-4 md:p-6 rounded-3xl border shadow-sm flex flex-col justify-between transition-all hover:shadow-md",
-              kpi.isUrgent ? "bg-error-container/20 border-error-container" : "bg-surface-container-lowest border-surface-container-high"
+              "p-4 md:p-6 rounded-3xl border shadow-sm flex flex-col justify-between transition-all hover:shadow-md bg-surface-container-lowest border-surface-container-high",
+              kpi.isUrgent && "bg-error-container/20 border-error-container"
             )}
           >
             <div className={cn("p-2 rounded-xl inline-flex mb-4", kpi.bgColor, kpi.color)}>
@@ -187,10 +240,10 @@ export default function Dashboard() {
                 {kpi.label}
               </p>
               <div className="flex items-baseline gap-1">
-                <span className={cn("text-2xl md:text-3xl font-extrabold", kpi.isUrgent ? "text-error" : "text-on-surface")}>
+                <span className={cn("text-xl md:text-2xl font-extrabold", kpi.isUrgent ? "text-error" : "text-on-surface")}>
                   {kpi.value}
                 </span>
-                {kpi.subValue && <span className="text-on-surface-variant text-sm md:text-lg font-bold">{kpi.subValue}</span>}
+                {kpi.subValue && <span className="text-on-surface-variant text-xs md:text-sm font-bold">{kpi.subValue}</span>}
               </div>
             </div>
           </motion.div>
@@ -198,7 +251,6 @@ export default function Dashboard() {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
         {/* ================= WARNING SYSTEM ================= */}
         <section className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between">
@@ -245,7 +297,6 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold text-on-surface">Therapist Schedule</h2>
             
-            {/* Filter Controls */}
             <div className="flex gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
@@ -270,14 +321,12 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-surface-container-lowest border border-surface-container rounded-3xl overflow-hidden shadow-sm min-h-[250px] relative">
-            {/* Overlay Loading Jadwal */}
             {isScheduleLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-surface-container-lowest/50 backdrop-blur-sm z-10">
                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             )}
 
-            {/* List Data Terkelompok */}
             <div className="divide-y divide-surface-container">
               {Object.keys(groupedSchedules).length === 0 && !isScheduleLoading ? (
                 <div className="p-8 text-center text-on-surface-variant text-sm font-bold">
@@ -286,8 +335,6 @@ export default function Dashboard() {
               ) : (
                 Object.entries(groupedSchedules).map(([therapistName, tData]) => (
                   <div key={therapistName} className="p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-                    
-                    {/* Profil Terapis (Kolom Kiri) */}
                     <div className="flex items-center gap-4 md:w-1/3 shrink-0">
                       <div className="w-12 h-12 rounded-full overflow-hidden border border-surface-container-highest flex items-center justify-center bg-surface-container text-on-surface-variant font-bold">
                          {tData.initials}
@@ -298,7 +345,6 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Daftar Jadwal Pasien (Kolom Kanan - Horizontal Scroll) */}
                     <div className="flex-1 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                       {tData.appointments.map((item, idx) => (
                         <React.Fragment key={item.id || idx}>
@@ -315,7 +361,7 @@ export default function Dashboard() {
                                   ? "bg-primary-container/10 border-primary-container text-primary-container" 
                                   : "bg-secondary-container/10 border-secondary-container text-secondary"
                               )}
-                              title={item.room} // <-- Menampilkan alamat lengkap saat di hover
+                              title={item.room}
                             >
                               <p className="text-xs font-bold truncate">{item.patient || 'Pasien Umum'}</p>
                               <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest truncate">
@@ -326,7 +372,6 @@ export default function Dashboard() {
                         </React.Fragment>
                       ))}
                     </div>
-
                   </div>
                 ))
               )}
