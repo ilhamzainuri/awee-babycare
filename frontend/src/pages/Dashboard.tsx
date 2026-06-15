@@ -32,6 +32,32 @@ interface GroupedSchedule {
   };
 }
 
+const getStatusStyle = (status: string) => {
+  switch (status) {
+    case 'Diproses':
+      return {
+        card: "bg-blue-500/5 border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-sm",
+        badge: "bg-blue-500/10 text-blue-600 border-blue-500/20"
+      };
+    case 'Selesai':
+      return {
+        card: "bg-emerald-500/5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 opacity-75 shadow-none",
+        badge: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+      };
+    case 'Dibatalkan':
+      return {
+        card: "bg-red-500/5 border-red-500/30 text-red-600 dark:text-red-400 line-through opacity-50 shadow-none",
+        badge: "bg-red-500/10 text-red-600 border-red-500/20"
+      };
+    case 'Menunggu':
+    default:
+      return {
+        card: "bg-amber-500/5 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-sm",
+        badge: "bg-amber-500/10 text-amber-600 border-amber-500/20"
+      };
+  }
+};
+
 // Helper untuk mendapatkan tanggal lokal format YYYY-MM-DD tanpa bug timezone
 const getLocalDateString = () => {
   const today = new Date();
@@ -122,32 +148,37 @@ export default function Dashboard() {
     fetchInitialData();
   }, [apiUrl]);
 
-  // 2. Fetch jadwal dinamis berdasarkan filter dengan teknik Debounce
+  // 2. Fetch jadwal dinamis berdasarkan filter dengan teknik Debounce & real-time polling
   useEffect(() => {
-    const fetchFilteredSchedule = async () => {
-      setIsScheduleLoading(true);
+    const fetchFilteredSchedule = async (showLoading = true) => {
+      if (showLoading) setIsScheduleLoading(true);
       try {
         const response = await fetch(`${apiUrl}?action=schedule&date=${filterDate}&therapist=${encodeURIComponent(filterTherapist)}`);
         if (!response.ok) throw new Error('Gagal memuat jadwal');
         
         const result = await response.json();
-        console.log("Response Schedule:", result); // Untuk mempermudah debugging Anda di console
-
         if (result.status === 200 && result.data) {
           setSchedules(result.data.schedules || []);
         }
       } catch (err) {
         console.error("Schedule Fetch Error:", err);
       } finally {
-        setIsScheduleLoading(false);
+        if (showLoading) setIsScheduleLoading(false);
       }
     };
 
     const delayDebounceFn = setTimeout(() => {
-      fetchFilteredSchedule();
+      fetchFilteredSchedule(true);
     }, 500);
 
-    return () => clearTimeout(delayDebounceFn);
+    const intervalId = setInterval(() => {
+      fetchFilteredSchedule(false);
+    }, 15000); // Poll every 15 seconds for real-time schedule updates
+
+    return () => {
+      clearTimeout(delayDebounceFn);
+      clearInterval(intervalId);
+    };
   }, [apiUrl, filterDate, filterTherapist]);
 
   // Utility Rupiah
@@ -346,31 +377,44 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex-1 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                      {tData.appointments.map((item, idx) => (
-                        <React.Fragment key={item.id || idx}>
-                          {item.status === 'break' ? (
-                            <div className="shrink-0 flex items-center justify-center gap-2 px-4 py-2 bg-surface-container text-on-surface-variant rounded-2xl border border-dashed border-outline-variant min-w-[140px]">
+                      {tData.appointments.map((item, idx) => {
+                        if (item.status === 'break') {
+                          return (
+                            <div key={item.id || idx} className="shrink-0 flex items-center justify-center gap-2 px-4 py-2 bg-surface-container text-on-surface-variant rounded-2xl border border-dashed border-outline-variant min-w-[140px]">
                               <Coffee className="w-4 h-4" />
                               <span className="text-[10px] font-bold uppercase tracking-wide">Break • {item.time}</span>
                             </div>
-                          ) : (
-                            <div 
-                              className={cn(
-                                "shrink-0 p-3 rounded-2xl border transition-all min-w-[160px] max-w-[200px] flex flex-col gap-1 justify-center",
-                                item.status === 'active' || item.status === 'Diproses' 
-                                  ? "bg-primary-container/10 border-primary-container text-primary-container" 
-                                  : "bg-secondary-container/10 border-secondary-container text-secondary"
-                              )}
-                              title={item.room}
-                            >
-                              <p className="text-xs font-bold truncate">{item.patient || 'Pasien Umum'}</p>
-                              <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest truncate">
-                                {item.room} • {item.time}
-                              </p>
+                          );
+                        }
+                        
+                        const statusStyle = getStatusStyle(item.status);
+                        return (
+                          <div 
+                            key={item.id || idx}
+                            className={cn(
+                              "shrink-0 p-3.5 rounded-2xl border transition-all min-w-[170px] max-w-[210px] flex flex-col gap-1.5 justify-center relative overflow-hidden",
+                              statusStyle.card
+                            )}
+                            title={`${item.patient || 'Pasien Umum'} - ${item.room}`}
+                          >
+                            <div className="flex items-center justify-between gap-1.5">
+                              <p className="text-xs font-black truncate">{item.patient || 'Pasien Umum'}</p>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase border flex items-center gap-1 shrink-0",
+                                statusStyle.badge
+                              )}>
+                                {item.status === 'Diproses' && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                                )}
+                                {item.status}
+                              </span>
                             </div>
-                          )}
-                        </React.Fragment>
-                      ))}
+                            <p className="text-[9px] font-bold opacity-80 uppercase tracking-widest truncate">
+                              {item.time} • {item.room}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))

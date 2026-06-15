@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import AuditLog from './pages/AuditLog';
 import Reservation from './pages/Reservation';
 import Settings from './pages/Settings'; 
+import AdminSchedules from './pages/AdminSchedules'; 
 
 // Import Halaman Public
 import Login from './pages/Login';
@@ -117,6 +118,7 @@ export default function App() {
               <Layout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/admin-schedule" element={<AdminSchedules />} />
                   <Route path="/master-data" element={<MasterData />} />
                   <Route path="/verify" element={<Verification />} />
                   <Route path="/reports" element={<Reports />} />

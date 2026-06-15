@@ -32,6 +32,36 @@ try {
         
         // KONDISI 1: JIKA ADA PARAMETER 'id_therapist' (BERARTI INI RESERVASI BARU)
         if (isset($input['id_therapist']) && isset($input['treatments'])) {
+            // Cek Double Order (Overlap +/- 1 Jam)
+            $waktu_reservasi = $input['waktu_reservasi'];
+            $id_therapist = (int)$input['id_therapist'];
+
+            $stmtCheckOverlap = $conn->prepare("
+                SELECT waktu_reservasi, nama_anak 
+                FROM appointments 
+                WHERE id_therapist = :id_therapist 
+                  AND status_jadwal != 'Dibatalkan' 
+                  AND deleted_at IS NULL 
+                  AND waktu_reservasi > DATE_SUB(:waktu_reservasi_lower, INTERVAL 1 HOUR)
+                  AND waktu_reservasi < DATE_ADD(:waktu_reservasi_upper, INTERVAL 1 HOUR)
+                LIMIT 1
+            ");
+            $stmtCheckOverlap->execute([
+                ':id_therapist' => $id_therapist,
+                ':waktu_reservasi_lower' => $waktu_reservasi,
+                ':waktu_reservasi_upper' => $waktu_reservasi
+            ]);
+            $overlap = $stmtCheckOverlap->fetch(PDO::FETCH_ASSOC);
+
+            if ($overlap) {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => 400,
+                    "message" => "Gagal: Terapis tersebut sudah memiliki jadwal lain pada jam " . date('H:i', strtotime($overlap['waktu_reservasi'])) . " (" . $overlap['nama_anak'] . "). Mohon pilih waktu lain dengan selisih minimal 1 jam."
+                ]);
+                exit();
+            }
+
             $conn->beginTransaction();
 
             // 1. Simpan Header

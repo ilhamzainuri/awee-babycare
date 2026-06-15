@@ -45,7 +45,6 @@ try {
                 FROM appointments a
                 JOIN therapists t ON a.id_therapist = t.id
                 WHERE DATE(a.waktu_reservasi) = :filterDate 
-                AND a.status_jadwal != 'Selesai'
                 AND a.deleted_at IS NULL 
                 AND t.deleted_at IS NULL";
 

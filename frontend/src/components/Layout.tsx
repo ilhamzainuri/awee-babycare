@@ -17,11 +17,14 @@ import {
   FileEdit,
   Trash2,
   RefreshCw,
-  Activity
+  Activity,
+  Calendar1,
+  
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import logo from "../assets/logo.jpg";
+import { scheduler } from 'timers/promises';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -29,6 +32,7 @@ interface LayoutProps {
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+  { icon: Calendar1, label: 'Schedules', path: '/admin-schedule'},
   { icon: Database, label: 'Master Data', path: '/master-data' },
   { icon: ShieldCheck, label: 'Verify', path: '/verify' },
   { icon: BarChart3, label: 'Reports', path: '/reports' },
