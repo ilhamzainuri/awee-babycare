@@ -8,12 +8,8 @@
 
 
 FITUR EDIT APPOINTMENT PADA DASHBOARD ADMIN (ngedit waktu jika klien minta re-schedule)
-
 FITUR CRUD USER OLEH ADMIN
-
-
 EXPORT LAPORAN & GRAFIK DALAM FORMAT PDF
-
 Halaman login verifikasi angka, lihat password
 
 

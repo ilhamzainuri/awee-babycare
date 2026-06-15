@@ -3,7 +3,7 @@ import {
   FileText, Table as TableIcon, TrendingUp, Users,
   ArrowUpRight, ChevronRight, Landmark, AlertTriangle,
   PieChart as PieIcon, Activity, Search, Filter, Calendar,
-  X, Baby, Phone, MapPin, CalendarClock, Stethoscope, Receipt, Banknote, Eye
+  X, Baby, Phone, MapPin, CalendarClock, Stethoscope, Receipt, Banknote, Eye, FileSpreadsheet
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell,
@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { exportToExcel, exportToPDF } from '@/lib/exportUtils';
 
 const FALLBACK_BASE_URL = 'http://localhost/awee-babycare/backend/api';
 
@@ -195,20 +196,102 @@ export default function TherapistReport() {
     return matchSearch && matchStatus;
   });
 
+  const prepareExportData = () => {
+      return filteredReservations.map((res) => {
+        const hargaKotor = parseFloat(res.total_harga_kunjungan) || 0;
+        const komisiTerapis = parseFloat(res.total_komisi_kunjungan) || 0;
+        const totalBersih = hargaKotor - komisiTerapis;
+  
+        const tgl = new Date(res.waktu_reservasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        const jam = new Date(res.waktu_reservasi).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  
+        return {
+          "ID Transaksi": `TRX-${res.trx_id}`,
+          "Waktu": `${tgl} ${jam}`,
+          "Nama Pasien": res.nama_anak,
+          "Nama Terapis": res.nama_terapis,
+          "Metode Bayar": res.metode_bayar_admin,
+          "Status Pembayaran": res.status_pembayaran,
+          "Status Pelaksanaan": res.status_jadwal,
+          "Total Kotor (Rp)": hargaKotor,
+          "Total Bersih (Rp)": totalBersih,
+        };
+      });
+    };
+  
+    const handleExportExcel = async () => {
+    const data = prepareExportData();
+    
+    // Definisikan header, key data, dan lebar kolom (dalam karakter)
+    const excelColumns = [
+      { header: 'ID Transaksi', key: 'ID Transaksi', width: 20 },
+      { header: 'Waktu', key: 'Waktu', width: 22 },
+      { header: 'Nama Pasien', key: 'Nama Pasien', width: 25 },
+      { header: 'Nama Terapis', key: 'Nama Terapis', width: 25 },
+      { header: 'Metode Bayar', key: 'Metode Bayar', width: 18 },
+      { header: 'Status Pembayaran', key: 'Status Pembayaran', width: 20 },
+      { header: 'Status Pelaksanaan', key: 'Status Pelaksanaan', width: 20 },
+      { header: 'Total Kotor', key: 'Total Kotor (Rp)', width: 20, isCurrency: true },
+      { header: 'Total Bersih', key: 'Total Bersih (Rp)', width: 20, isCurrency: true },
+    ];
+
+    await exportToExcel({
+      data,
+      fileName: `Laporan_Klinik_${activeFilter}_${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Data Transaksi',
+      columns: excelColumns
+    });
+  };
+  
+    const handleExportPDF = () => {
+      const data = prepareExportData();
+  
+      const pdfColumns = [
+        { header: 'ID Transaksi', dataKey: 'ID Transaksi' },
+        { header: 'Waktu', dataKey: 'Waktu' },
+        { header: 'Nama Pasien', dataKey: 'Nama Pasien' },
+        { header: 'Terapis', dataKey: 'Nama Terapis' },
+        { header: 'Pembayaran', dataKey: 'Status Pembayaran' },
+        { header: 'Pelaksanaan', dataKey: 'Status Pelaksanaan' },
+        { header: 'Kotor (Rp)', dataKey: 'Total Kotor (Rp)' },
+        { header: 'Bersih (Rp)', dataKey: 'Total Bersih (Rp)' }
+      ];
+  
+      exportToPDF({
+        title: `Laporan Transaksi & Keuangan - Filter: ${activeFilter}`,
+        fileName: `Laporan_Klinik_${activeFilter}`,
+        data,
+        columns: pdfColumns,
+        orientation: 'landscape'
+      });
+    };
+
   return (
     <div className="space-y-8 pb-12 relative">
       {/* Header & Export */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">Laporan Kerja & Komisi</h1>
-          <p className="text-on-surface-variant mt-1">Ikhtisar pendapatan komisi, reservasi pasien, dan kinerja pelayanan Anda.</p>
-        </div>
-        <div className="flex gap-4 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 border-2 border-primary-container text-primary-container font-bold rounded-full hover:bg-primary-container/10 transition-all text-sm">
-            <FileText className="w-4 h-4" /> Export PDF
-          </button>
-        </div>
-      </div>
+              <div>
+                <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">Financial & Activity Reports</h1>
+                <p className="text-on-surface-variant mt-1">Overview of clinic revenue, reservations, and staff performance.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                {/* Tombol Export Excel */}
+                <button
+                  onClick={handleExportExcel}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-[#107C41] hover:bg-[#107C41]/90 text-white font-bold rounded-full transition-all text-sm shadow-sm"
+                >
+                  <FileSpreadsheet className="w-4 h-4" /> Export Excel
+                </button>
+      
+                {/* Tombol Export PDF */}
+                <button
+                  onClick={handleExportPDF}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-error hover:bg-error/90 text-white font-bold rounded-full transition-all text-sm shadow-sm"
+                >
+                  <FileText className="w-4 h-4" /> Export PDF
+                </button>
+              </div>
+            </div>
 
       {/* Global Filter Tabs & Custom Date Picker */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
@@ -495,6 +578,7 @@ export default function TherapistReport() {
                   </tr>
                 </thead>
                 <tbody>
+                  
                   {filteredReservations.length > 0 ? (
                     filteredReservations.map((res) => {
                       const tgl = new Date(res.waktu_reservasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });

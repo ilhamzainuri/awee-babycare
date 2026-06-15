@@ -3,7 +3,7 @@ import {
   FileText, Table as TableIcon, TrendingUp, Users,
   ArrowUpRight, ChevronRight, Landmark, AlertTriangle,
   PieChart as PieIcon, Activity, Search, Filter, Calendar,
-  X, Baby, Phone, MapPin, CalendarClock, Stethoscope, Receipt, Banknote, Eye
+  X, Baby, Phone, MapPin, CalendarClock, Stethoscope, Receipt, Banknote, Eye, FileSpreadsheet
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell,
@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { exportToExcel, exportToPDF } from '@/lib/exportUtils';
 
 const FALLBACK_BASE_URL = 'http://localhost/awee-babycare/backend/api';
 
@@ -65,7 +66,7 @@ export default function Reports() {
       setIsLoadingComm(true);
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || FALLBACK_BASE_URL;
-        
+
         // 1. Arahkan ke reports.php & ubah id_therapist menjadi therapist_id
         // 2. Kirimkan filter waktu agar sinkron dengan dashboard utama
         let url = `${baseUrl}/reports.php?filter=${activeFilter}&therapist_id=${selectedTherapistId}`;
@@ -183,6 +184,79 @@ export default function Reports() {
     return matchSearch && matchTherapist && matchStatus;
   });
 
+  // ==========================================
+  // TAMBAHKAN 3 FUNGSI INI DI SINI
+  // ==========================================
+  const prepareExportData = () => {
+    return filteredReservations.map((res) => {
+      const hargaKotor = parseFloat(res.total_harga_kunjungan) || 0;
+      const komisiTerapis = parseFloat(res.total_komisi_kunjungan) || 0;
+      const totalBersih = hargaKotor - komisiTerapis;
+
+      const tgl = new Date(res.waktu_reservasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      const jam = new Date(res.waktu_reservasi).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+      return {
+        "ID Transaksi": `TRX-${res.trx_id}`,
+        "Waktu": `${tgl} ${jam}`,
+        "Nama Pasien": res.nama_anak,
+        "Nama Terapis": res.nama_terapis,
+        "Metode Bayar": res.metode_bayar_admin,
+        "Status Pembayaran": res.status_pembayaran,
+        "Status Pelaksanaan": res.status_jadwal,
+        "Total Kotor (Rp)": hargaKotor,
+        "Total Bersih (Rp)": totalBersih,
+      };
+    });
+  };
+
+  const handleExportExcel = async () => {
+    const data = prepareExportData();
+    
+    // Definisikan header, key data, dan lebar kolom (dalam karakter)
+    const excelColumns = [
+      { header: 'ID Transaksi', key: 'ID Transaksi', width: 20 },
+      { header: 'Waktu', key: 'Waktu', width: 22 },
+      { header: 'Nama Pasien', key: 'Nama Pasien', width: 25 },
+      { header: 'Nama Terapis', key: 'Nama Terapis', width: 25 },
+      { header: 'Metode Bayar', key: 'Metode Bayar', width: 18 },
+      { header: 'Status Pembayaran', key: 'Status Pembayaran', width: 20 },
+      { header: 'Status Pelaksanaan', key: 'Status Pelaksanaan', width: 20 },
+      { header: 'Total Kotor', key: 'Total Kotor (Rp)', width: 20, isCurrency: true },
+      { header: 'Total Bersih', key: 'Total Bersih (Rp)', width: 20, isCurrency: true },
+    ];
+
+    await exportToExcel({
+      data,
+      fileName: `Laporan_Klinik_${activeFilter}_${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Data Transaksi',
+      columns: excelColumns
+    });
+  };
+
+  const handleExportPDF = () => {
+    const data = prepareExportData();
+
+    const pdfColumns = [
+      { header: 'ID Transaksi', dataKey: 'ID Transaksi' },
+      { header: 'Waktu', dataKey: 'Waktu' },
+      { header: 'Nama Pasien', dataKey: 'Nama Pasien' },
+      { header: 'Terapis', dataKey: 'Nama Terapis' },
+      { header: 'Pembayaran', dataKey: 'Status Pembayaran' },
+      { header: 'Pelaksanaan', dataKey: 'Status Pelaksanaan' },
+      { header: 'Kotor (Rp)', dataKey: 'Total Kotor (Rp)' },
+      { header: 'Bersih (Rp)', dataKey: 'Total Bersih (Rp)' }
+    ];
+
+    exportToPDF({
+      title: `Laporan Transaksi & Keuangan - Filter: ${activeFilter}`,
+      fileName: `Laporan_Klinik_${activeFilter}`,
+      data,
+      columns: pdfColumns,
+      orientation: 'landscape'
+    });
+  };
+
   return (
     <div className="space-y-8 pb-12 relative">
       {/* Header & Export */}
@@ -191,8 +265,20 @@ export default function Reports() {
           <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">Financial & Activity Reports</h1>
           <p className="text-on-surface-variant mt-1">Overview of clinic revenue, reservations, and staff performance.</p>
         </div>
-        <div className="flex gap-4 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 border-2 border-primary-container text-primary-container font-bold rounded-full hover:bg-primary-container/10 transition-all text-sm">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          {/* Tombol Export Excel */}
+          <button
+            onClick={handleExportExcel}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-[#107C41] hover:bg-[#107C41]/90 text-white font-bold rounded-full transition-all text-sm shadow-sm"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Export Excel
+          </button>
+
+          {/* Tombol Export PDF */}
+          <button
+            onClick={handleExportPDF}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-error hover:bg-error/90 text-white font-bold rounded-full transition-all text-sm shadow-sm"
+          >
             <FileText className="w-4 h-4" /> Export PDF
           </button>
         </div>
@@ -350,47 +436,47 @@ export default function Reports() {
 
             {/* 3. KOTAK KOMISI TERAPIS */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-2 bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-surface-container-high shadow-sm relative overflow-hidden flex flex-col">
-  <div className="absolute top-0 left-0 w-2 h-full bg-secondary-container" />
-  <div className="flex justify-between items-start mb-8">
-    <div>
-      <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Komisi Terapis</h3>
-      <p className="text-sm text-on-surface-variant">Top performance (Klik untuk detail)</p>
-    </div>
-    <div className="p-2 bg-secondary-container/20 text-secondary rounded-2xl"><Users className="w-6 h-6" /></div>
-  </div>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {therapists.length > 0 ? therapists.map((t) => (
-      <div
-        key={t.id_therapist || t.id} 
-        onClick={() => setSelectedTherapistId(t.id_therapist || t.id)}
-        className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low border border-surface-container hover:border-secondary/40 hover:bg-surface-container transition-all cursor-pointer group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-xs group-hover:scale-105 transition-transform">
-            {/* Sesuaikan properti nama_terapis */}
-            {getInitials(t.nama_terapis || t.name || '')}
-          </div>
-          <div>
-            {/* Sesuaikan properti nama_terapis dan total_sesi */}
-            <h4 className="font-bold text-on-surface text-sm group-hover:text-secondary transition-colors">
-              {t.nama_terapis || t.name}
-            </h4>
-            <p className="text-xs text-on-surface-variant">
-              {t.total_sesi !== undefined ? t.total_sesi : t.sessions} Sesi Selesai
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Sesuaikan properti total_komisi */}
-          <p className="text-sm font-black text-secondary">
-            {formatRupiah(t.total_komisi !== undefined ? t.total_komisi : t.commission)}
-          </p>
-          <ArrowUpRight className="w-4 h-4 text-outline opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </div>
-      </div>
-    )) : <p className="text-sm font-bold text-on-surface-variant">Belum ada data komisi.</p>}
-  </div>
-</motion.div>
+              <div className="absolute top-0 left-0 w-2 h-full bg-secondary-container" />
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Komisi Terapis</h3>
+                  <p className="text-sm text-on-surface-variant">Top performance (Klik untuk detail)</p>
+                </div>
+                <div className="p-2 bg-secondary-container/20 text-secondary rounded-2xl"><Users className="w-6 h-6" /></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {therapists.length > 0 ? therapists.map((t) => (
+                  <div
+                    key={t.id_therapist || t.id}
+                    onClick={() => setSelectedTherapistId(t.id_therapist || t.id)}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low border border-surface-container hover:border-secondary/40 hover:bg-surface-container transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-xs group-hover:scale-105 transition-transform">
+                        {/* Sesuaikan properti nama_terapis */}
+                        {getInitials(t.nama_terapis || t.name || '')}
+                      </div>
+                      <div>
+                        {/* Sesuaikan properti nama_terapis dan total_sesi */}
+                        <h4 className="font-bold text-on-surface text-sm group-hover:text-secondary transition-colors">
+                          {t.nama_terapis || t.name}
+                        </h4>
+                        <p className="text-xs text-on-surface-variant">
+                          {t.total_sesi !== undefined ? t.total_sesi : t.sessions} Sesi Selesai
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* Sesuaikan properti total_komisi */}
+                      <p className="text-sm font-black text-secondary">
+                        {formatRupiah(t.total_komisi !== undefined ? t.total_komisi : t.commission)}
+                      </p>
+                      <ArrowUpRight className="w-4 h-4 text-outline opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </div>
+                  </div>
+                )) : <p className="text-sm font-bold text-on-surface-variant">Belum ada data komisi.</p>}
+              </div>
+            </motion.div>
 
             {/* 4. KOTAK LAYANAN TERLARIS */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-surface-container-high shadow-sm relative overflow-hidden flex flex-col">
@@ -498,7 +584,76 @@ export default function Reports() {
                       const hargaKotor = parseFloat(res.total_harga_kunjungan) || 0;
                       const komisiTerapis = parseFloat(res.total_komisi_kunjungan) || 0;
                       const totalBersih = hargaKotor - komisiTerapis;
+                      const prepareExportData = () => {
+                        return filteredReservations.map((res) => {
+                          const hargaKotor = parseFloat(res.total_harga_kunjungan) || 0;
+                          const komisiTerapis = parseFloat(res.total_komisi_kunjungan) || 0;
+                          const totalBersih = hargaKotor - komisiTerapis;
 
+                          const tgl = new Date(res.waktu_reservasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                          const jam = new Date(res.waktu_reservasi).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                          return {
+                            "ID Transaksi": `TRX-${res.trx_id}`,
+                            "Waktu": `${tgl} ${jam}`,
+                            "Nama Pasien": res.nama_anak,
+                            "Nama Terapis": res.nama_terapis,
+                            "Metode Bayar": res.metode_bayar_admin,
+                            "Status Pembayaran": res.status_pembayaran,
+                            "Status Pelaksanaan": res.status_jadwal,
+                            "Total Kotor (Rp)": hargaKotor,
+                            "Total Bersih (Rp)": totalBersih,
+                          };
+                        });
+                      };
+
+                      const handleExportExcel = async () => {
+    const data = prepareExportData();
+    
+    // Definisikan header, key data, dan lebar kolom (dalam karakter)
+    const excelColumns = [
+      { header: 'ID Transaksi', key: 'ID Transaksi', width: 20 },
+      { header: 'Waktu', key: 'Waktu', width: 22 },
+      { header: 'Nama Pasien', key: 'Nama Pasien', width: 25 },
+      { header: 'Nama Terapis', key: 'Nama Terapis', width: 25 },
+      { header: 'Metode Bayar', key: 'Metode Bayar', width: 18 },
+      { header: 'Status Pembayaran', key: 'Status Pembayaran', width: 20 },
+      { header: 'Status Pelaksanaan', key: 'Status Pelaksanaan', width: 20 },
+      { header: 'Total Kotor', key: 'Total Kotor (Rp)', width: 20, isCurrency: true },
+      { header: 'Total Bersih', key: 'Total Bersih (Rp)', width: 20, isCurrency: true },
+    ];
+
+    await exportToExcel({
+      data,
+      fileName: `Laporan_Klinik_${activeFilter}_${new Date().toISOString().split('T')[0]}`,
+      sheetName: 'Data Transaksi',
+      columns: excelColumns
+    });
+  };
+
+                      const handleExportPDF = () => {
+                        const data = prepareExportData();
+
+                        // Definisikan kolom untuk PDF (sesuaikan dengan keys dari prepareExportData)
+                        const pdfColumns = [
+                          { header: 'ID Transaksi', dataKey: 'ID Transaksi' },
+                          { header: 'Waktu', dataKey: 'Waktu' },
+                          { header: 'Nama Pasien', dataKey: 'Nama Pasien' },
+                          { header: 'Terapis', dataKey: 'Nama Terapis' },
+                          { header: 'Pembayaran', dataKey: 'Status Pembayaran' },
+                          { header: 'Pelaksanaan', dataKey: 'Status Pelaksanaan' },
+                          { header: 'Kotor (Rp)', dataKey: 'Total Kotor (Rp)' },
+                          { header: 'Bersih (Rp)', dataKey: 'Total Bersih (Rp)' }
+                        ];
+
+                        exportToPDF({
+                          title: `Laporan Transaksi & Keuangan - Filter: ${activeFilter}`,
+                          fileName: `Laporan_Klinik_${activeFilter}`,
+                          data,
+                          columns: pdfColumns,
+                          orientation: 'landscape' // Memanjang ke samping karena kolom cukup banyak
+                        });
+                      };
                       return (
                         <tr key={res.trx_id} className="hover:bg-surface-container-lowest/50 transition-colors group">
                           <td className="p-4 border-b border-surface-container">
