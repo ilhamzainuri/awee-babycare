@@ -207,9 +207,6 @@ export default function TherapistReport() {
           <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 border-2 border-primary-container text-primary-container font-bold rounded-full hover:bg-primary-container/10 transition-all text-sm">
             <FileText className="w-4 h-4" /> Export PDF
           </button>
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-primary-container text-on-primary-container font-bold rounded-full hover:brightness-110 shadow-lg transition-all text-sm">
-            <TableIcon className="w-4 h-4" /> Export Excel
-          </button>
         </div>
       </div>
 

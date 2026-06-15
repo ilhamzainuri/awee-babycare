@@ -24,6 +24,7 @@ import TherapistSchedules from './pages/therapist/TherapistSchedules';
 import StartService from './pages/therapist/StartService';
 import SubmitReport from './pages/therapist/SubmitReport';
 import TherapistReport from './pages/therapist/TherapistReport';
+import TherapistSettings from './pages/therapist/TherapistSettings'; 
 
 // ==========================================
 // KOMPONEN PROTECTED ROUTE (PENGAMAN JALUR)
@@ -72,7 +73,7 @@ export default function App() {
       <Routes>
         {/* ==========================================
             PUBLIC ROUTE (Tanpa Layout/Sidebar)
-            ========================================== */}
+            ========================================= */}
         <Route path="/login" element={<Login />} />
 
         {/* ==========================================
@@ -88,7 +89,7 @@ export default function App() {
                   <Route path="/" element={<TherapistDashboard />} />
                   
                   {/* Rute Halaman Jadwal Kerja Terapis */}
-                  <Route path="/schedule" element={<TherapistSchedules />} /> {/* <-- 2. TAMBAHKAN ROUTE DI SINI */}
+                  <Route path="/schedule" element={<TherapistSchedules />} />
                   
                   {/* Menggunakan parameter :id agar fleksibel saat memproses data spesifik */}
                   <Route path="/start-service/:id" element={<StartService />} />
@@ -99,7 +100,10 @@ export default function App() {
 
                   <Route path="/TherapistReport/:id" element={<TherapistReport />} />
                   <Route path="/TherapistReport" element={<TherapistReport />} />
-                  
+
+                  {/* TAMBAHAN ROUTE: Halaman Pengaturan (Settings) Terapis */}
+                  <Route path="/settings" element={<TherapistSettings />} />
+
                   {/* Catch-all jika route internal terapis tidak ditemukan */}
                   <Route path="*" element={<Navigate to="/therapist" replace />} />
                 </Routes>

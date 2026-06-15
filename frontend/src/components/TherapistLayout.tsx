@@ -3,14 +3,16 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Calendar,
-  History,
-  Bell,
-  Menu,
-  Settings,
-  LogOut,
   Activity,
   ClipboardList,
-  BarChart3
+  BarChart3,
+  Settings,
+  LogOut,
+  Menu,
+  Bell,
+  CalendarPlus,
+  FileEdit,
+  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,16 +28,50 @@ const therapistNavItems = [
   { icon: Activity, label: 'Pemeriksaan Klinis', path: '/therapist/start-service' },
   { icon: ClipboardList, label: 'Laporan Selesai', path: '/therapist/submit-report' },
   { icon: BarChart3, label: 'Reports', path: '/therapist/TherapistReport' },
-  { icon: Settings, label: 'Settings', path: '/settings' }, 
+  { icon: Settings, label: 'Settings', path: '/therapist/settings' }, // Path disesuaikan
 ];
+
+// Helper untuk format UI Notifikasi Terapis
+const getNotificationConfig = (type: string) => {
+  switch (type) {
+    case 'reservation':
+      return {
+        icon: CalendarPlus,
+        color: "bg-tertiary-container/10 text-tertiary",
+        title: "Reservasi Masuk"
+      };
+    case 'status_change':
+      return {
+        icon: Activity,
+        color: "bg-primary-container/20 text-primary",
+        title: "Perubahan Status Layanan"
+      };
+    case 'data_update':
+      return {
+        icon: FileEdit,
+        color: "bg-secondary-container/20 text-secondary",
+        title: "Perubahan Data"
+      };
+    default:
+      return {
+        icon: Info,
+        color: "bg-surface-container text-on-surface",
+        title: "Informasi Sistem"
+      };
+  }
+};
 
 export default function TherapistLayout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
+  // State User Profile
+  const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('Therapist');
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
-  const [activeSchedules, setActiveSchedules] = useState<any[]>([]);
+
+  // State Notifications
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
@@ -46,6 +82,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
       if (sessionStr) {
         try {
           const user = JSON.parse(sessionStr);
+          if (user.id) setUserId(user.id); 
           if (user.username) setUserName(user.username);
 
           if (user.foto) {
@@ -66,29 +103,31 @@ export default function TherapistLayout({ children }: LayoutProps) {
     return () => window.removeEventListener('storage', loadUserData);
   }, []);
 
-  // Polling data jadwal hari ini untuk pengingat notifikasi terapis
+  // Polling data notifikasi khusus terapis berdasarkan ID
   useEffect(() => {
-    const fetchTodaySchedules = async () => {
+    const fetchNotifications = async () => {
+      if (!userId) return; 
+
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost/awee-babycare/backend/api';
-        const response = await fetch(`${baseUrl}/therapist_dashboard.php`);
+        const response = await fetch(`${baseUrl}/therapist_notifications.php?terapist_id=${userId}`);
         const result = await response.json();
-        if (result.status === 200 && result.data.schedules) {
-          setActiveSchedules(result.data.schedules);
-          // Jika ada jadwal hari ini, nyalakan badge notifikasi
-          if (result.data.schedules.length > 0) {
+        
+        if (result.status === 200 && result.data) {
+          setNotifications(result.data.slice(0, 5)); 
+          if (result.data.length > 0) {
             setHasNewNotifications(true);
           }
         }
       } catch (error) {
-        console.error("Gagal mengambil data notifikasi jadwal", error);
+        console.error("Gagal mengambil data notifikasi", error);
       }
     };
 
-    fetchTodaySchedules();
-    const interval = setInterval(fetchTodaySchedules, 45000); // refresh setiap 45 detik
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [userId]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -107,7 +146,12 @@ export default function TherapistLayout({ children }: LayoutProps) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-72 bg-surface-container-lowest border-r border-surface-container-high transition-all sticky top-0 h-screen">
         <div className="p-8 border-b border-surface-container">
-          <div className="flex items-center gap-4">
+          {/* Tambahkan NavLink ke Settings jika area Profil di-klik */}
+          <NavLink 
+            to="/therapist/settings" 
+            className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer"
+            title="Buka Pengaturan Profil"
+          >
             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container flex items-center justify-center bg-surface-container-high">
               <ProfileImage />
             </div>
@@ -115,7 +159,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
               <h2 className="font-bold text-on-surface text-sm capitalize">{userName}</h2>
               <p className="text-xs text-primary font-bold">Official Therapist</p>
             </div>
-          </div>
+          </NavLink>
         </div>
 
         <nav className="flex-1 p-4 flex flex-col gap-1 overflow-y-auto">
@@ -167,7 +211,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notification Dropdown Khusus Jadwal Kunjungan Bidan */}
+            {/* Notification Dropdown Terapis */}
             <div className="relative">
               <button 
                 onClick={() => {
@@ -193,32 +237,45 @@ export default function TherapistLayout({ children }: LayoutProps) {
                       className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-surface-container rounded-3xl shadow-2xl z-50 overflow-hidden"
                     >
                       <div className="p-4 border-b border-surface-container flex items-center justify-between bg-surface-container-low">
-                        <span className="font-extrabold text-sm text-on-surface">Agenda Hari Ini</span>
-                        <span className="text-[10px] bg-warning-container/20 text-warning font-black px-2 py-0.5 rounded-full">
-                          {activeSchedules.length} PASIEN
+                        <span className="font-extrabold text-sm text-on-surface">Pemberitahuan Baru</span>
+                        <span className="text-[10px] bg-primary-container/10 text-primary-container font-black px-2 py-0.5 rounded-full">
+                          TERBARU
                         </span>
                       </div>
 
                       <div className="max-h-[320px] overflow-y-auto divide-y divide-surface-container">
-                        {activeSchedules.length === 0 ? (
+                        {notifications.length === 0 ? (
                           <div className="p-8 text-center text-xs text-on-surface-variant font-medium italic">
-                            Tidak ada kunjungan tersisa hari ini.
+                            Belum ada pemberitahuan baru.
                           </div>
                         ) : (
-                          activeSchedules.map((schedule) => (
-                            <div key={schedule.id} className="p-4 hover:bg-surface-container-low transition-all text-left flex gap-3 items-start">
-                              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                                <Calendar className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex justify-between items-center mb-0.5">
-                                  <span className="text-xs font-black text-on-surface truncate">{schedule.childName}</span>
-                                  <span className="text-[9px] font-bold text-primary shrink-0">{schedule.time.split(' ')[0]}</span>
+                          notifications.map((notif, index) => {
+                            const config = getNotificationConfig(notif.type); 
+                            const Icon = config.icon;
+                            const notifTime = new Date(notif.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                            return (
+                              <NavLink
+                                key={index}
+                                to={notif.link || "/therapist"}
+                                onClick={() => setIsNotificationOpen(false)}
+                                className="p-4 hover:bg-surface-container-low transition-all text-left flex gap-3 items-start"
+                              >
+                                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", config.color)}>
+                                  <Icon className="w-4 h-4" />
                                 </div>
-                                <p className="text-[11px] text-on-surface-variant line-clamp-1 font-medium">{schedule.address}</p>
-                              </div>
-                            </div>
-                          ))
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex justify-between items-center mb-0.5">
+                                    <span className="text-xs font-black text-on-surface truncate">{config.title}</span>
+                                    <span className="text-[9px] font-bold text-on-surface-variant shrink-0">{notifTime}</span>
+                                  </div>
+                                  <p className="text-[11px] text-on-surface-variant line-clamp-2 font-medium">
+                                    {notif.message} 
+                                  </p>
+                                </div>
+                              </NavLink>
+                            );
+                          })
                         )}
                       </div>
                     </motion.div>
@@ -227,7 +284,8 @@ export default function TherapistLayout({ children }: LayoutProps) {
               </AnimatePresence>
             </div>
             
-            <NavLink to="/settings">
+            {/* Foto Profil pada Header juga akan diarahkan ke Settings */}
+            <NavLink to="/therapist/settings" title="Pengaturan Akun">
               <div className="w-8 h-8 rounded-full overflow-hidden border border-surface-container-highest cursor-pointer hover:opacity-80 transition-all flex items-center justify-center bg-surface-container-high">
                 <ProfileImage />
               </div>
@@ -242,7 +300,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
           </div>
         </div>
 
-        {/* Bottom Navigation Khusus Mobile View (Mobile Screen Setup) */}
+        {/* Bottom Navigation Khusus Mobile View */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-surface-container-lowest border-t border-surface-container flex items-center justify-around px-4 z-40">
           {therapistNavItems.map((item) => (
             <NavLink
@@ -284,7 +342,12 @@ export default function TherapistLayout({ children }: LayoutProps) {
             >
               <div className="px-8 mb-8">
                 <h1 className="text-xl font-black text-primary mb-6">Awee Therapist Portal</h1>
-                <div className="flex items-center gap-4 p-4 bg-surface-container rounded-2xl">
+                {/* Tautan Profil di Mobile Drawer */}
+                <NavLink 
+                  to="/therapist/settings" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 bg-surface-container hover:bg-surface-container-high transition-colors rounded-2xl cursor-pointer"
+                >
                   <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-surface-container-high border-2 border-primary/20">
                     <ProfileImage />
                   </div>
@@ -292,7 +355,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
                     <h2 className="font-bold text-on-surface text-sm capitalize">{userName}</h2>
                     <p className="text-xs text-primary font-bold">On-Duty</p>
                   </div>
-                </div>
+                </NavLink>
               </div>
               
               <nav className="flex-1 px-4 flex flex-col gap-2 overflow-y-auto pb-8">

@@ -24,7 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import logo from "../assets/logo.jpg";
-import { scheduler } from 'timers/promises';
+
 
 interface LayoutProps {
   children: React.ReactNode;
