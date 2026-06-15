@@ -12,8 +12,8 @@ import Verification from './pages/Verification';
 import Reports from './pages/Reports';
 import AuditLog from './pages/AuditLog';
 import Reservation from './pages/Reservation';
-import Settings from './pages/Settings'; 
-import AdminSchedules from './pages/AdminSchedules'; 
+import Settings from './pages/Settings';
+import AdminSchedules from './pages/AdminSchedules';
 
 // Import Halaman Public
 import Login from './pages/Login';
@@ -24,20 +24,20 @@ import TherapistSchedules from './pages/therapist/TherapistSchedules';
 import StartService from './pages/therapist/StartService';
 import SubmitReport from './pages/therapist/SubmitReport';
 import TherapistReport from './pages/therapist/TherapistReport';
-import TherapistSettings from './pages/therapist/TherapistSettings'; 
+import TherapistSettings from './pages/therapist/TherapistSettings';
 
 // ==========================================
 // KOMPONEN PROTECTED ROUTE (PENGAMAN JALUR)
 // ==========================================
-const ProtectedRoute = ({ 
-  children, 
-  allowedRoles 
-}: { 
-  children: React.ReactNode; 
-  allowedRoles: string[]; 
+const ProtectedRoute = ({
+  children,
+  allowedRoles
+}: {
+  children: React.ReactNode;
+  allowedRoles: string[];
 }) => {
   const userStr = localStorage.getItem('user_session');
-  
+
   // 1. Jika belum login (tidak ada sesi), lempar kembali ke halaman Login
   if (!userStr) {
     return <Navigate to="/login" replace />;
@@ -45,7 +45,7 @@ const ProtectedRoute = ({
 
   try {
     const user = JSON.parse(userStr);
-    
+
     // 2. Jika sudah login tapi rolenya tidak diizinkan mengakses halaman ini
     if (!allowedRoles.includes(user.role)) {
       // Tendang ke halaman utama masing-masing role agar tidak tersesat
@@ -79,22 +79,22 @@ export default function App() {
         {/* ==========================================
             PROTECTED ROUTES KHUSUS THERAPIST / BIDAN
             ========================================== */}
-        <Route 
-          path="/therapist/*" 
-          element = {
+        <Route
+          path="/therapist/*"
+          element={
             <ProtectedRoute allowedRoles={['therapist']}>
               <TherapistLayout>
                 <Routes>
                   {/* Base path /therapist akan merender Dashboard Terapis */}
                   <Route path="/" element={<TherapistDashboard />} />
-                  
+
                   {/* Rute Halaman Jadwal Kerja Terapis */}
                   <Route path="/schedule" element={<TherapistSchedules />} />
-                  
+
                   {/* Menggunakan parameter :id agar fleksibel saat memproses data spesifik */}
                   <Route path="/start-service/:id" element={<StartService />} />
                   <Route path="/start-service" element={<StartService />} />
-                  
+
                   <Route path="/submit-report/:id" element={<SubmitReport />} />
                   <Route path="/submit-report" element={<SubmitReport />} />
 
@@ -109,15 +109,15 @@ export default function App() {
                 </Routes>
               </TherapistLayout>
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* ==========================================
             PROTECTED ROUTES KHUSUS ADMIN
             ========================================== */}
-        <Route 
-          path="/*" 
-          element = {
+        <Route
+          path="/*"
+          element={
             <ProtectedRoute allowedRoles={['admin']}>
               <Layout>
                 <Routes>
@@ -128,14 +128,14 @@ export default function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/audit-log" element={<AuditLog />} />
                   <Route path="/reservation" element={<Reservation />} />
-                  <Route path="/settings" element={<Settings />} /> 
-                  
+                  <Route path="/settings" element={<Settings />} />
+
                   {/* Catch-all jika route admin tidak ditemukan */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
-          } 
+          }
         />
       </Routes>
     </BrowserRouter>

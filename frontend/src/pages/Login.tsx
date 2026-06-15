@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { User, Lock, ArrowRight, AlertTriangle } from 'lucide-react';
@@ -9,7 +9,28 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
+  const [captchaNum1, setCaptchaNum1] = useState(0);
+  const [captchaNum2, setCaptchaNum2] = useState(0);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [operator, setOperator] = useState('+');
+
+  const generateCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+
+    const ops = ['+', '-'];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+
+    setCaptchaNum1(num1);
+    setCaptchaNum2(num2);
+    setOperator(op);
+    setCaptchaAnswer('');
+  };
+
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
+
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -17,9 +38,23 @@ export default function Login() {
     setIsLoading(true);
     setErrorMsg(null);
 
+    const expectedAnswer =
+      operator === '+'
+        ? captchaNum1 + captchaNum2
+        : operator === '-'
+          ? captchaNum1 - captchaNum2
+          : captchaNum1 * captchaNum2;
+
+    if (parseInt(captchaAnswer) !== expectedAnswer) {
+      setErrorMsg('Jawaban captcha salah.');
+      generateCaptcha();
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost/awee-babycare/backend/api';
-      
+
       const response = await fetch(`${baseUrl}/login.php`, {
         method: 'POST',
         headers: {
@@ -38,14 +73,16 @@ export default function Login() {
         if (result.data.role === 'admin') {
           navigate('/'); // Arahkan ke Dashboard Admin
         } else if (result.data.role === 'therapist') {
-          navigate('/therapist-dashboard'); // Sesuaikan dengan rute terapis kamu
+          navigate('/therapist-dashboard');
         } else {
           navigate('/'); // Fallback
         }
       } else {
+        generateCaptcha();
         throw new Error(result.message || "Gagal melakukan otentikasi.");
       }
     } catch (error: any) {
+      generateCaptcha();
       setErrorMsg(error.message);
     } finally {
       setIsLoading(false);
@@ -54,7 +91,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-surface-container-lowest rounded-[2rem] p-8 md:p-10 shadow-2xl border border-surface-container"
@@ -68,9 +105,9 @@ export default function Login() {
         </div>
 
         {errorMsg && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }} 
-            animate={{ opacity: 1, height: 'auto' }} 
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
             className="mb-6 p-4 bg-error-container/50 text-error flex items-center gap-3 rounded-2xl border border-error/20"
           >
             <AlertTriangle className="w-5 h-5 flex-shrink-0" />
@@ -105,6 +142,28 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-12 pr-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
                 placeholder="Masukkan password"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">
+              Verifikasi
+            </label>
+
+            <div className="flex items-center gap-3">
+              {/* DI SINI PERBAIKANNYA: Mengganti tanda '+' statis dengan variabel {operator} */}
+              <div className="px-4 py-3 bg-surface-container rounded-2xl font-bold text-lg min-w-[90px] text-center">
+                {captchaNum1} {operator} {captchaNum2} = ?
+              </div>
+
+              <input
+                type="number"
+                required
+                value={captchaAnswer}
+                onChange={(e) => setCaptchaAnswer(e.target.value)}
+                className="flex-1 px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                placeholder="Jawaban"
               />
             </div>
           </div>

@@ -7,9 +7,12 @@
 //UBAH DATA AKUN USER DAN DATA PRIBADI THERAPIST
 //EXPORT LAPORAN DALAM FORMAT PDF dan excel
 
-frontend\src\pages\AdminSchedules.tsx DATA UPDATE BELUM TERSIMPAN
+
 
 FITUR EDIT APPOINTMENT PADA DASHBOARD ADMIN (ngedit waktu jika klien minta re-schedule)
+frontend\src\pages\AdminSchedules.tsx DATA UPDATE BELUM TERSIMPAN
+
+
 FITUR CRUD USER OLEH ADMIN
 
 Halaman login verifikasi angka, lihat password
