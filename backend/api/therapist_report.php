@@ -1,22 +1,10 @@
 <?php
-// Letak file: backend/api/therapist_reports.php
-session_start();
-
-if (!isset($_SESSION['id_therapist'])) {
-    http_response_code(401);
-    echo json_encode([
-        "status" => 401,
-        "message" => "Unauthorized"
-    ]);
-    exit();
-}
-
-$therapist_id = (int) $_SESSION['id_therapist'];
+// Letak file: backend/api/therapist_report.php
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
@@ -26,55 +14,80 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 ini_set('display_errors', 0);
 require_once '../config/koneksi.php';
 
-// Ambil filter dari parameter URL (Default ke Bulanan / Monthly)
-$filter = isset($_GET['filter']) ? $_GET['filter'] : 'Monthly';
-$whereClause .= " AND a.id_therapist = :therapist_id";
-$params[':therapist_id'] = $therapist_id;
-
-// 1. Atur Cakupan Waktu dan Format Pengelompokan Grafik Berdasarkan Filter
-switch ($filter) {
-    case 'Daily':
-        $whereClause .= " AND DATE(a.waktu_reservasi) = CURRENT_DATE()";
-        $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%H:00')"; // Grafik per Jam hari ini
-        break;
-    case 'Weekly':
-        $whereClause .= " AND a.waktu_reservasi >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)";
-        $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')"; // Grafik per Hari (7 hari terakhir)
-        break;
-    case 'Monthly':
-        $whereClause .= " AND MONTH(a.waktu_reservasi) = MONTH(CURRENT_DATE()) AND YEAR(a.waktu_reservasi) = YEAR(CURRENT_DATE())";
-        $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')"; // Grafik per Tanggal di bulan berjalan
-        break;
-    case 'Yearly':
-        $whereClause .= " AND YEAR(a.waktu_reservasi) = YEAR(CURRENT_DATE())";
-        $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%b')"; // Grafik per Bulan di tahun berjalan
-        break;
-    case 'Custom':
-        $start = isset($_GET['start']) ? $_GET['start'] : date('Y-m-d');
-        $end = isset($_GET['end']) ? $_GET['end'] : date('Y-m-d');
-        $whereClause .= " AND DATE(a.waktu_reservasi) BETWEEN :start AND :end";
-        $params[':start'] = $start;
-        $params[':end'] = $end;
-
-        // Tentukan format grafik dinamis berdasarkan rentang hari custom
-        $diff = strtotime($end) - strtotime($start);
-        if ($diff > 31536000) { // > 1 Tahun
-            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%Y')";
-        } elseif ($diff > 2592000) { // > 1 Bulan
-            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%b %y')";
-        } else {
-            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')";
-        }
-        break;
-    default:
-        $whereClause .= " AND MONTH(a.waktu_reservasi) = MONTH(CURRENT_DATE()) AND YEAR(a.waktu_reservasi) = YEAR(CURRENT_DATE())";
-        $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')";
-        break;
+// Ambil user_id dari parameter URL
+if (!isset($_GET['user_id']) || empty($_GET['user_id'])) {
+    http_response_code(400);
+    echo json_encode(["status" => 400, "message" => "Akses ditolak: ID User tidak valid."]);
+    exit();
 }
 
+$user_id = (int)$_GET['user_id'];
 
+try {
+    // 1. Ambil data identitas terapis dari user_id
+    $stmt = $conn->prepare("SELECT id, nama_terapis FROM therapists WHERE user_id = :user_id AND deleted_at IS NULL LIMIT 1");
+    $stmt->execute([':user_id' => $user_id]);
+    $therapist = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$therapist) {
+        http_response_code(404);
+        echo json_encode(["status" => 404, "message" => "Profil terapis tidak ditemukan atau telah dinonaktifkan."]);
+        exit();
+    }
     
-    try {
+    $therapist_id = (int)$therapist['id'];
+    $nama_terapis = $therapist['nama_terapis'];
+
+    // Ambil filter dari parameter URL (Default ke Bulanan / Monthly)
+    $filter = isset($_GET['filter']) ? $_GET['filter'] : 'Monthly';
+    
+    // Inisialisasi parameter filter
+    $whereClause = "a.deleted_at IS NULL AND a.id_therapist = :therapist_id";
+    $params = [':therapist_id' => $therapist_id];
+
+    // Atur Cakupan Waktu dan Format Pengelompokan Grafik Berdasarkan Filter
+    switch ($filter) {
+        case 'Daily':
+            $whereClause .= " AND DATE(a.waktu_reservasi) = CURRENT_DATE()";
+            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%H:00')"; // Grafik per Jam hari ini
+            break;
+        case 'Weekly':
+            $whereClause .= " AND a.waktu_reservasi >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)";
+            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')"; // Grafik per Hari (7 hari terakhir)
+            break;
+        case 'Monthly':
+            $whereClause .= " AND MONTH(a.waktu_reservasi) = MONTH(CURRENT_DATE()) AND YEAR(a.waktu_reservasi) = YEAR(CURRENT_DATE())";
+            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')"; // Grafik per Tanggal di bulan berjalan
+            break;
+        case 'Yearly':
+            $whereClause .= " AND YEAR(a.waktu_reservasi) = YEAR(CURRENT_DATE())";
+            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%b')"; // Grafik per Bulan di tahun berjalan
+            break;
+        case 'Custom':
+            $start = isset($_GET['start']) ? $_GET['start'] : date('Y-m-d');
+            $end = isset($_GET['end']) ? $_GET['end'] : date('Y-m-d');
+            $whereClause .= " AND DATE(a.waktu_reservasi) BETWEEN :start AND :end";
+            $params[':start'] = $start;
+            $params[':end'] = $end;
+
+            // Tentukan format grafik dinamis berdasarkan rentang hari custom
+            $diff = strtotime($end) - strtotime($start);
+            if ($diff > 31536000) { // > 1 Tahun
+                $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%Y')";
+            } elseif ($diff > 2592000) { // > 1 Bulan
+                $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%b %y')";
+            } else {
+                $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')";
+            }
+            break;
+        default:
+            $whereClause .= " AND MONTH(a.waktu_reservasi) = MONTH(CURRENT_DATE()) AND YEAR(a.waktu_reservasi) = YEAR(CURRENT_DATE())";
+            $chartGroup = "DATE_FORMAT(a.waktu_reservasi, '%d %b')";
+            break;
+    }
+
+    // Jika dipanggil untuk detail komisi terapis (modal popup di frontend)
+    if (isset($_GET['therapist_id']) && !empty($_GET['therapist_id'])) {
         // 1. Ambil Nama Terapis, Total Sesi, dan Total Komisi (sesuai filter waktu)
         $stmtDetail = $conn->prepare("
             SELECT 
@@ -92,12 +105,8 @@ switch ($filter) {
         $therapistInfo = $stmtDetail->fetch(PDO::FETCH_ASSOC);
 
         if (!$therapistInfo) {
-            $stmtName = $conn->prepare("SELECT nama_terapis FROM therapists WHERE id = :id");
-            $stmtName->execute([':id' => $therapist_id]);
-            $nama = $stmtName->fetchColumn();
-            
             $therapistInfo = [
-                'nama_terapis' => $nama ? $nama : 'Unknown',
+                'nama_terapis' => $nama_terapis,
                 'total_sesi' => 0,
                 'total_komisi' => 0
             ];
@@ -137,25 +146,18 @@ switch ($filter) {
             ]
         ]);
         exit();
-
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(["status" => 500, "message" => "Error: " . $e->getMessage()]);
-        exit();
     }
 
-
-try {
-    // 2. Kueri A: Hitung Total Omzet, Komisi, dan GRAND TOTAL BERSIH Langsung via SQL
+    // A. Hitung Total Omzet Layanan, Komisi, dan Total Bersih (Komisi Terverifikasi)
     $stmtRev = $conn->prepare("
         SELECT 
             COALESCE(SUM(CASE WHEN a.status_jadwal != 'Dibatalkan' THEN a.total_harga_kunjungan ELSE 0 END), 0) AS total_kotor,
             COALESCE(SUM(CASE WHEN a.status_jadwal != 'Dibatalkan' THEN a.total_komisi_kunjungan ELSE 0 END), 0) AS total_komisi,
             COALESCE(SUM(CASE 
                 WHEN a.status_jadwal != 'Dibatalkan' AND a.status_pembayaran = 'Verified' 
-                THEN (a.total_harga_kunjungan - a.total_komisi_kunjungan) 
+                THEN a.total_komisi_kunjungan 
                 ELSE 0 
-            END), 0) AS grand_total_bersih
+            END), 0) AS total_komisi_bersih
         FROM appointments a
         WHERE $whereClause
     ");
@@ -164,17 +166,17 @@ try {
 
     $totalOmzet  = (float)$revData['total_kotor'];
     $totalKomisi = (float)$revData['total_komisi'];
-    $totalBersih = (float)$revData['grand_total_bersih']; // Ini adalah hasil Grand Total Bersih All
+    $totalBersih = (float)$revData['total_komisi_bersih']; // Verified earnings
 
-    // 3. Kueri B: Hitung Total Angka Reservasi Pasien
+    // B. Hitung Total Angka Reservasi Pasien
     $stmtCount = $conn->prepare("SELECT COUNT(id) as total FROM appointments a WHERE $whereClause");
     $stmtCount->execute($params);
     $resCount = $stmtCount->fetch(PDO::FETCH_ASSOC);
     $totalReservasi = (int)$resCount['total'];
 
-    // 4. Kueri C: Susun Data Grafik Penjualan (Bar Chart)
+    // C. Susun Data Grafik Penjualan (Bar Chart) - Menampilkan komisi terapis over time
     $stmtChart = $conn->prepare("
-        SELECT $chartGroup as name, SUM(total_harga_kunjungan) as value 
+        SELECT $chartGroup as name, SUM(total_komisi_kunjungan) as value 
         FROM appointments a 
         WHERE $whereClause AND a.status_jadwal != 'Dibatalkan'
         GROUP BY name 
@@ -184,27 +186,26 @@ try {
     $chartData = $stmtChart->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chartData as &$c) { $c['value'] = (float)$c['value']; }
 
-    // 5. Kueri D: Hitung Komisi & Sesi Terapis/Bidan (Top Performance Card)
-    $stmtTherapists = $conn->prepare("
-        SELECT 
-            t.id AS id_therapist,
-            t.nama_terapis as name, 
-            COUNT(a.id) as sessions, 
-            SUM(a.total_komisi_kunjungan) as commission 
+    // D. Data Performa Terapis (Hanya terapis itu sendiri)
+    // Hitung total sesi selesai untuk terapis itu sendiri
+    $stmtSesiSelesai = $conn->prepare("
+        SELECT COUNT(id) as total_selesai
         FROM appointments a
-        JOIN therapists t ON a.id_therapist = t.id
-        WHERE $whereClause AND a.status_jadwal = 'Selesai' AND t.deleted_at IS NULL
-        GROUP BY t.id
-        ORDER BY commission DESC
+        WHERE $whereClause AND a.status_jadwal = 'Selesai'
     ");
-    $stmtTherapists->execute($params);
-    $therapistsData = $stmtTherapists->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($therapistsData as &$t) {
-        $t['sessions'] = (int)$t['sessions'];
-        $t['commission'] = (float)$t['commission'];
-    }
+    $stmtSesiSelesai->execute($params);
+    $totalSesiSelesai = (int)$stmtSesiSelesai->fetch(PDO::FETCH_ASSOC)['total_selesai'];
 
-    // 6. Kueri E: Hitung Proporsi Status Reservasi (Donut / Pie Chart)
+    $therapistsData = [
+        [
+            "id_therapist" => $therapist_id,
+            "nama_terapis" => $nama_terapis,
+            "total_sesi" => $totalSesiSelesai,
+            "total_komisi" => $totalKomisi
+        ]
+    ];
+
+    // E. Hitung Proporsi Status Reservasi (Donut / Pie Chart)
     $stmtStatus = $conn->prepare("
         SELECT a.status_jadwal as name, COUNT(a.id) as value 
         FROM appointments a 
@@ -215,7 +216,7 @@ try {
     $statusData = $stmtStatus->fetchAll(PDO::FETCH_ASSOC);
     foreach ($statusData as &$s) { $s['value'] = (int)$s['value']; }
 
-    // 7. Kueri F: Cari 5 Layanan Paling Laris Manis (Top Booked Services)
+    // F. Cari 5 Layanan Paling Laris oleh terapis ini
     $stmtTopServices = $conn->prepare("
         SELECT s.nama_layanan as name, COUNT(ad.id) as total_booked 
         FROM appointment_details ad
@@ -230,7 +231,7 @@ try {
     $topServicesData = $stmtTopServices->fetchAll(PDO::FETCH_ASSOC);
     foreach ($topServicesData as &$ts) { $ts['total_booked'] = (int)$ts['total_booked']; }
 
-    // 8. Kueri G: Ambil Semua Daftar Baris Transaksi Rinci untuk Grid Tabel Utama
+    // G. Ambil Semua Daftar Baris Transaksi Rinci untuk Grid Tabel Utama
     $stmtGrid = $conn->prepare("
         SELECT 
             a.id as trx_id, 
@@ -250,7 +251,7 @@ try {
     $stmtGrid->execute($params);
     $gridData = $stmtGrid->fetchAll(PDO::FETCH_ASSOC);
 
-    // Siapkan statement di luar loop untuk performa yang lebih baik
+    // Siapkan statement di luar loop
     $stmtDetail = $conn->prepare("
         SELECT 
             s.nama_layanan, 
@@ -266,26 +267,20 @@ try {
         $g['total_komisi_kunjungan'] = (float)$g['total_komisi_kunjungan'];
         $g['total_bersih'] = $g['total_harga_kunjungan'] - $g['total_komisi_kunjungan'];
 
-        // Ambil detail layanan untuk ID transaksi ini
         $stmtDetail->execute([':id_appointment' => $g['trx_id']]);
-        
-        // Simpan hasilnya ke dalam array kunci 'layanan' 
-        // Ini yang akan dibaca oleh trxDetail.layanan di React Anda
         $g['layanan'] = $stmtDetail->fetchAll(PDO::FETCH_ASSOC);
         
-        // Konversi harga_snapshot ke float agar formatRupiah di React bekerja baik
         foreach ($g['layanan'] as &$l) {
             $l['harga_snapshot'] = (float)$l['harga_snapshot'];
         }
     }
 
-    // 9. Gabungkan dan Kirim Seluruh Data Sesuai Kontrak UI di Frontend
     echo json_encode([
         "status" => 200,
-        "message" => "Sukses menganalisis data laporan",
+        "message" => "Sukses menganalisis data laporan terapis",
         "data" => [
             "total_omzet" => $totalOmzet,
-            "total_pendapatan_bersih" => $totalBersih, // Ini sekarang berisi Grand Total
+            "total_pendapatan_bersih" => $totalBersih, // Verified Commission
             "total_reservasi" => $totalReservasi,
             "total_komisi" => $totalKomisi,
             "chart" => $chartData,
@@ -296,12 +291,11 @@ try {
         ]
     ]);
 
-} catch (PDOException $e) {
+} catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         "status" => 500,
         "message" => "Gagal memproses laporan database: " . $e->getMessage()
     ]);
 }
-
 ?>

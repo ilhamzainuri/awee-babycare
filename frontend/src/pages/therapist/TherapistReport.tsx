@@ -21,10 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
   'Dibatalkan': '#EF4444'
 };
 
-
-
-
-export default function Report() {
+export default function TherapistReport() {
   const [activeFilter, setActiveFilter] = useState('Monthly');
 
   // Custom Date States
@@ -48,9 +45,24 @@ export default function Report() {
 
   // States untuk Filter Tabel (Client-Side)
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTherapist, setFilterTherapist] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
-  
+
+  // Get Logged-in Therapist User ID
+  const [userId, setUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const sessionStr = localStorage.getItem('user_session');
+    if (sessionStr) {
+      try {
+        const user = JSON.parse(sessionStr);
+        if (user.id) {
+          setUserId(user.id);
+        }
+      } catch (e) {
+        console.error("Gagal membaca session data", e);
+      }
+    }
+  }, []);
 
   // ==========================================
   // STATE & EFFECT UNTUK MODAL DETAIL KOMISI TERAPIS
@@ -60,7 +72,7 @@ export default function Report() {
   const [isLoadingComm, setIsLoadingComm] = useState(false);
 
   useEffect(() => {
-    if (!selectedTherapistId) {
+    if (!selectedTherapistId || !userId) {
       setCommDetail(null);
       return;
     }
@@ -70,9 +82,7 @@ export default function Report() {
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || FALLBACK_BASE_URL;
         
-        // 1. Arahkan ke reports.php & ubah id_therapist menjadi therapist_id
-        // 2. Kirimkan filter waktu agar sinkron dengan dashboard utama
-        let url = `${baseUrl}/therapist_reports.php?filter=${activeFilter}&therapist_id=${selectedTherapistId}`;
+        let url = `${baseUrl}/therapist_report.php?filter=${activeFilter}&user_id=${userId}&therapist_id=${selectedTherapistId}`;
         if (activeFilter === 'Custom') {
           url += `&start=${startDate}&end=${endDate}`;
         }
@@ -82,7 +92,6 @@ export default function Report() {
 
         const result = await response.json();
         if (result.status === 200) {
-          // Membaca key 'data' dari response php pencegat terapis yang baru
           setCommDetail(result.data);
         }
       } catch (error) {
@@ -93,7 +102,7 @@ export default function Report() {
     };
 
     fetchCommDetail();
-  }, [selectedTherapistId, activeFilter, startDate, endDate]);
+  }, [selectedTherapistId, activeFilter, startDate, endDate, userId]);
 
   // ==========================================
   // STATE & EFFECT UNTUK MODAL DETAIL TRANSAKSI
@@ -133,6 +142,7 @@ export default function Report() {
   // EFFECT UNTUK FETCH DATA REPORT UTAMA
   // ==========================================
   useEffect(() => {
+    if (!userId) return;
     if (activeFilter === 'Custom' && (!startDate || !endDate)) return;
 
     const fetchReports = async () => {
@@ -141,7 +151,7 @@ export default function Report() {
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || FALLBACK_BASE_URL;
 
-        let url = `${baseUrl}/reports.php?filter=${activeFilter}`;
+        let url = `${baseUrl}/therapist_report.php?filter=${activeFilter}&user_id=${userId}`;
         if (activeFilter === 'Custom') {
           url += `&start=${startDate}&end=${endDate}`;
         }
@@ -169,7 +179,7 @@ export default function Report() {
       }
     };
     fetchReports();
-  }, [activeFilter, startDate, endDate]);
+  }, [activeFilter, startDate, endDate, userId]);
 
   const formatRupiah = (angka: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(angka));
@@ -177,15 +187,12 @@ export default function Report() {
 
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-  const uniqueTherapists = Array.from(new Set(reservations.map(r => r.nama_terapis)));
-
   const filteredReservations = reservations.filter(res => {
     const matchSearch = res.nama_anak.toLowerCase().includes(searchQuery.toLowerCase()) ||
       `#TRX-${res.trx_id}`.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchTherapist = filterTherapist === 'All' || res.nama_terapis === filterTherapist;
     const matchStatus = filterStatus === 'All' || res.status_jadwal === filterStatus;
 
-    return matchSearch && matchTherapist && matchStatus;
+    return matchSearch && matchStatus;
   });
 
   return (
@@ -193,8 +200,8 @@ export default function Report() {
       {/* Header & Export */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">Financial & Activity Reports</h1>
-          <p className="text-on-surface-variant mt-1">Overview of clinic revenue, reservations, and staff performance.</p>
+          <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">Laporan Kerja & Komisi</h1>
+          <p className="text-on-surface-variant mt-1">Ikhtisar pendapatan komisi, reservasi pasien, dan kinerja pelayanan Anda.</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto">
           <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 border-2 border-primary-container text-primary-container font-bold rounded-full hover:bg-primary-container/10 transition-all text-sm">
@@ -271,17 +278,46 @@ export default function Report() {
       ) : !errorMsg && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* 1. KOTAK OMZET */}
+            {/* 1. KOTAK OMZET & KOMISI GRAFIK */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2 bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-surface-container-high shadow-sm relative overflow-hidden flex flex-col h-full">
               <div className="absolute top-0 left-0 w-2 h-full bg-primary-container" />
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Komisi Therapist</h3>
-                  <p className="text-sm text-on-surface-variant">Revenue summary based on selected filter</p>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Keuangan Saya</h3>
+                  <p className="text-sm text-on-surface-variant">Ikhtisar omzet layanan dan komisi bersih Anda</p>
                 </div>
                 <div className="p-2 bg-primary-container/10 text-primary-container rounded-2xl"><Landmark className="w-6 h-6" /></div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container">
+                <div>
+                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total Omzet Layanan (Gross)</span>
+                  <h2 className="text-2xl font-black text-primary-container tracking-tight mt-1">{formatRupiah(totalOmzet)}</h2>
+                </div>
+                <div className="pt-4 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-surface-container-high">
+                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                    Komisi Terverifikasi (Net)
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  </span>
+                  <h2 className="text-2xl font-black text-emerald-600 tracking-tight mt-1">{formatRupiah(totalBersih)}</h2>
+                </div>
+              </div>
+
+              <div className="h-64 h-full min-h-[250px]">
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <Tooltip formatter={(value: number) => formatRupiah(value)} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} cursor={{ fill: 'var(--color-surface-container)', radius: 8 }} />
+                      <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                        {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill="var(--color-primary-container)" fillOpacity={index === chartData.length - 1 ? 1 : 0.4} />)}
+                      </Bar>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--color-on-surface-variant)' }} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-on-surface-variant font-bold text-sm">Tidak ada data transaksi.</div>
+                )}
+              </div>
             </motion.div>
 
             {/* 2. KOTAK STATUS RESERVASI */}
@@ -289,7 +325,7 @@ export default function Report() {
               <div className="absolute top-0 left-0 w-2 h-full bg-tertiary-container" />
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Total Pelayanan</h3>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Status Pelayanan Saya</h3>
                   <p className="text-sm text-on-surface-variant">Total {totalReservasi} Pasien</p>
                 </div>
                 <div className="p-2 bg-tertiary-container/10 text-tertiary rounded-2xl"><PieIcon className="w-6 h-6" /></div>
@@ -327,10 +363,78 @@ export default function Report() {
               </div>
             </motion.div>
 
-            {/* 3. KOTAK KOMISI TERAPIS */}
-            
+            {/* 3. KOTAK RINGKASAN PERFORMA SAYA */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-2 bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-surface-container-high shadow-sm relative overflow-hidden flex flex-col">
+              <div className="absolute top-0 left-0 w-2 h-full bg-secondary-container" />
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Ringkasan Performa Saya</h3>
+                  <p className="text-sm text-on-surface-variant">Detail perolehan komisi dan total sesi pelayanan Anda</p>
+                </div>
+                <div className="p-2 bg-secondary-container/20 text-secondary rounded-2xl"><Users className="w-6 h-6" /></div>
+              </div>
+              <div>
+                {therapists.length > 0 ? (
+                  therapists.map((t) => (
+                    <div
+                      key={t.id_therapist}
+                      onClick={() => setSelectedTherapistId(t.id_therapist)}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-2xl bg-surface-container-low border border-surface-container hover:border-secondary/40 hover:bg-surface-container transition-all cursor-pointer group gap-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-lg group-hover:scale-105 transition-transform">
+                          {getInitials(t.nama_terapis || '')}
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-on-surface text-base group-hover:text-secondary transition-colors">
+                            {t.nama_terapis}
+                          </h4>
+                          <p className="text-sm text-on-surface-variant mt-1">
+                            {t.total_sesi} Sesi Selesai (Periode Ini)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-4 sm:pt-0 border-surface-container">
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs text-on-surface-variant font-bold">Total Komisi Terkumpul</p>
+                          <p className="text-xl font-black text-secondary mt-1">
+                            {formatRupiah(t.total_komisi)}
+                          </p>
+                        </div>
+                        <button className="flex items-center justify-center p-2.5 bg-secondary-container text-on-secondary-container rounded-xl group-hover:bg-secondary group-hover:text-on-secondary transition-all">
+                          <ArrowUpRight className="w-5 h-5 transition-transform transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-on-surface-variant font-bold text-sm">Belum ada data performa.</div>
+                )}
+              </div>
+            </motion.div>
 
             {/* 4. KOTAK LAYANAN TERLARIS */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-surface-container-high shadow-sm relative overflow-hidden flex flex-col">
+              <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Layanan Terlaris Saya</h3>
+                  <p className="text-sm text-on-surface-variant">Layanan yang paling sering Anda berikan</p>
+                </div>
+                <div className="p-2 bg-primary/10 text-primary rounded-2xl"><Activity className="w-6 h-6" /></div>
+              </div>
+              <div className="space-y-3 flex-1">
+                {topServices.length > 0 ? topServices.map((service, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border-b border-surface-container last:border-0">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-black text-surface-container-highest">{index + 1}</span>
+                      <span className="font-bold text-sm text-on-surface">{service.name}</span>
+                    </div>
+                    <span className="px-3 py-1 bg-surface-container-high rounded-full text-xs font-bold">{service.total_booked}x</span>
+                  </div>
+                )) : <p className="text-sm font-bold text-on-surface-variant">Belum ada data layanan.</p>}
+              </div>
+            </motion.div>
 
           </div>
 
@@ -346,8 +450,8 @@ export default function Report() {
             <div className="p-6 md:p-8 border-b border-surface-container">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Daftar Transaksi</h3>
-                  <p className="text-sm text-on-surface-variant">Tabel riwayat reservasi yang terfilter</p>
+                  <h3 className="text-xl font-bold text-on-surface tracking-tight">Daftar Transaksi Saya</h3>
+                  <p className="text-sm text-on-surface-variant">Tabel riwayat reservasi pelayanan Anda yang terfilter</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -360,20 +464,6 @@ export default function Report() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full sm:w-64 pl-10 pr-4 py-2 bg-surface-container-low border border-surface-container rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none"
                     />
-                  </div>
-
-                  <div className="relative">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                    <select
-                      value={filterTherapist}
-                      onChange={(e) => setFilterTherapist(e.target.value)}
-                      className="w-full sm:w-auto appearance-none pl-10 pr-8 py-2 bg-surface-container-low border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary outline-none cursor-pointer"
-                    >
-                      <option value="All">Semua Terapis</option>
-                      {uniqueTherapists.map(name => (
-                        <option key={name as string} value={name as string}>{name as string}</option>
-                      ))}
-                    </select>
                   </div>
 
                   <div className="relative">
@@ -400,11 +490,10 @@ export default function Report() {
                   <tr className="bg-surface-container-low">
                     <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container whitespace-nowrap">ID / Date</th>
                     <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container whitespace-nowrap">Patient</th>
-                    <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container whitespace-nowrap">Therapist</th>
                     <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container whitespace-nowrap">Payment Method</th>
                     <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container whitespace-nowrap">Status</th>
                     <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container text-right whitespace-nowrap">Total Gross</th>
-                    <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container text-right whitespace-nowrap">Total Net</th>
+                    <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container text-right whitespace-nowrap">My Commission</th>
                     <th className="p-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-container text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
@@ -415,7 +504,6 @@ export default function Report() {
                       const jam = new Date(res.waktu_reservasi).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                       const hargaKotor = parseFloat(res.total_harga_kunjungan) || 0;
                       const komisiTerapis = parseFloat(res.total_komisi_kunjungan) || 0;
-                      const totalBersih = hargaKotor - komisiTerapis;
 
                       return (
                         <tr key={res.trx_id} className="hover:bg-surface-container-lowest/50 transition-colors group">
@@ -424,7 +512,6 @@ export default function Report() {
                             <p className="text-xs text-on-surface-variant mt-0.5">{tgl} • {jam}</p>
                           </td>
                           <td className="p-4 border-b border-surface-container font-bold text-sm text-on-surface">{res.nama_anak}</td>
-                          <td className="p-4 border-b border-surface-container text-sm text-on-surface-variant">{res.nama_terapis}</td>
                           <td className="p-4 border-b border-surface-container">
                             <p className="text-sm font-bold">{res.metode_bayar_admin}</p>
                             <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-0.5", res.status_pembayaran === 'Verified' ? "text-tertiary" : "text-error")}>
@@ -437,10 +524,10 @@ export default function Report() {
                             </span>
                           </td>
                           <td className="p-4 border-b border-surface-container text-right font-black text-primary-container">
-                            {formatRupiah(res.total_harga_kunjungan)}
+                            {formatRupiah(hargaKotor)}
                           </td>
                           <td className="p-4 border-b border-surface-container text-right font-black text-emerald-600">
-                            {formatRupiah(totalBersih)}
+                            {formatRupiah(komisiTerapis)}
                           </td>
                           <td className="p-4 border-b border-surface-container text-center">
                             <button
@@ -692,7 +779,7 @@ export default function Report() {
             >
               <div className="sticky top-0 z-10 bg-surface-container-lowest/90 backdrop-blur-md px-6 py-4 border-b border-surface-container flex items-center justify-between">
                 <h2 className="text-xl font-black text-on-surface tracking-tight flex items-center gap-2">
-                  <Banknote className="w-6 h-6 text-secondary" /> Rincian Komisi
+                  <Banknote className="w-6 h-6 text-secondary" /> Rincian Komisi Saya
                 </h2>
                 <button
                   onClick={() => setSelectedTherapistId(null)}
@@ -714,7 +801,7 @@ export default function Report() {
                   <div className="space-y-6">
                     <div className="flex items-center gap-4 p-4 bg-secondary-container/10 rounded-2xl border border-secondary/20">
                       <div className="w-14 h-14 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-xl">
-                        {getInitials(commDetail.nama_terapis)}
+                        {getInitials(commDetail.nama_terapis || '')}
                       </div>
                       <div>
                         <h3 className="font-bold text-lg text-on-surface">{commDetail.nama_terapis}</h3>
@@ -726,7 +813,7 @@ export default function Report() {
                       <div className="p-4 bg-surface-container border-b border-surface-container">
                         <h4 className="font-bold text-sm text-on-surface">Riwayat Perolehan Komisi</h4>
                       </div>
-                      <div className="divide-y divide-surface-container">
+                      <div className="divide-y divide-surface-container text-left">
                         {commDetail.riwayat && commDetail.riwayat.length > 0 ? (
                           commDetail.riwayat.map((riw: any, i: number) => (
                             <div key={i} className="p-4 flex justify-between items-center hover:bg-surface-container-lowest/50 transition-colors">

@@ -124,7 +124,6 @@ export default function Reports() {
 
     fetchDetail();
   }, [selectedTrxId]);
-
   // ==========================================
   // EFFECT UNTUK FETCH DATA REPORT UTAMA
   // ==========================================
@@ -365,7 +364,7 @@ export default function Reports() {
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
     {therapists.length > 0 ? therapists.map((t) => (
       <div
-        key={t.id_therapist || t.id} // Gunakan ID sebagai key yang lebih aman daripada nama
+        key={t.id_therapist || t.id} 
         onClick={() => setSelectedTherapistId(t.id_therapist || t.id)}
         className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low border border-surface-container hover:border-secondary/40 hover:bg-surface-container transition-all cursor-pointer group"
       >
