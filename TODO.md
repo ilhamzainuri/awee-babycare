@@ -3,15 +3,15 @@
 //perbaikan pada dashboard therapist untuk menampilkan history pelayanan yang bisa di edit(suhu, bb dll)
 //Perbaiki tampilan jadwal pada dashboard admin PENGAWASAN JADWAL REALTIME -
 //pada dashboard ADMIN tambahkan widget pendapatan bersih yang akan terhitung setelah di verifikasi oleh admin -- DONE
-//HALAMAN THERAPIST PERBAIKAN PADA LAPORAN, NOTIFICATION - 
+//HALAMAN THERAPIST PERBAIKAN PADA LAPORAN, NOTIFICATION -
 //UBAH DATA AKUN USER DAN DATA PRIBADI THERAPIST
+//EXPORT LAPORAN DALAM FORMAT PDF dan excel
 
+frontend\src\pages\AdminSchedules.tsx DATA UPDATE BELUM TERSIMPAN
 
 FITUR EDIT APPOINTMENT PADA DASHBOARD ADMIN (ngedit waktu jika klien minta re-schedule)
 FITUR CRUD USER OLEH ADMIN
-EXPORT LAPORAN & GRAFIK DALAM FORMAT PDF
+
 Halaman login verifikasi angka, lihat password
-
-
 
 SETELAH PROGRAM JADI SEMUA WAJIB REFACTOR
