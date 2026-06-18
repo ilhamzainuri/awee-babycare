@@ -12,14 +12,14 @@ import {
   CalendarPlus,
   Settings,
   LogOut,
-  User, // Import icon User untuk fallback gambar
+  User,
   CheckCircle2,
   FileEdit,
   Trash2,
   RefreshCw,
   Activity,
   Calendar1,
-  
+
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -32,12 +32,13 @@ interface LayoutProps {
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Calendar1, label: 'Schedules', path: '/admin-schedule'},
+  { icon: Calendar1, label: 'Schedules', path: '/admin-schedule' },
   { icon: Database, label: 'Master Data', path: '/master-data' },
   { icon: ShieldCheck, label: 'Verify', path: '/verify' },
   { icon: BarChart3, label: 'Reports', path: '/reports' },
+  { icon: User, label: 'Add User', path: '/add-user' },
   { icon: History, label: 'Audit Log', path: '/audit-log' },
-  { icon: Settings, label: 'Settings', path: '/settings' }, 
+  { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
 // Helper untuk format UI berdasarkan jenis Aksi
@@ -149,7 +150,7 @@ export default function Layout({ children }: LayoutProps) {
     };
 
     fetchRecentLogs();
-    
+
     // Polling setiap 30 detik
     const interval = setInterval(fetchRecentLogs, 30000);
     return () => clearInterval(interval);
@@ -247,7 +248,7 @@ export default function Layout({ children }: LayoutProps) {
 
           <div className="flex items-center gap-4">
             <div className="relative">
-              <button 
+              <button
                 onClick={() => {
                   setIsNotificationOpen(!isNotificationOpen);
                   setHasNewNotifications(false); // Hilangkan tanda notifikasi saat dibuka
@@ -264,11 +265,11 @@ export default function Layout({ children }: LayoutProps) {
                 {isNotificationOpen && (
                   <>
                     {/* Transparent Click-away Backdrop */}
-                    <div 
-                      className="fixed inset-0 z-40" 
+                    <div
+                      className="fixed inset-0 z-40"
                       onClick={() => setIsNotificationOpen(false)}
                     />
-                    
+
                     {/* Dropdown Card */}
                     <motion.div
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -294,10 +295,10 @@ export default function Layout({ children }: LayoutProps) {
                           recentLogs.map((log) => {
                             const config = getUiConfig(log.aksi, log.nama_tabel);
                             const Icon = config.icon;
-                            
+
                             // Hitung waktu relatif atau sederhana
                             const logTime = new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                            
+
                             return (
                               <NavLink
                                 key={log.id}
@@ -340,12 +341,12 @@ export default function Layout({ children }: LayoutProps) {
                 )}
               </AnimatePresence>
             </div>
-            
+
             <NavLink to="/settings">
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-surface-container-highest cursor-pointer hover:opacity-80 transition-all flex items-center justify-center bg-surface-container-high">
-                  {/* Render Foto User di Header */}
-                  <ProfileImage />
-                </div>
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-surface-container-highest cursor-pointer hover:opacity-80 transition-all flex items-center justify-center bg-surface-container-high">
+                {/* Render Foto User di Header */}
+                <ProfileImage />
+              </div>
             </NavLink>
           </div>
         </header>
@@ -365,19 +366,26 @@ export default function Layout({ children }: LayoutProps) {
         </NavLink>
 
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-surface-container-lowest border-t border-surface-container flex items-center justify-around px-2 z-40 overflow-x-auto">
-          {navItems.filter(item => item.label !== 'Settings').map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => cn(
-                "flex flex-col items-center gap-1 p-2 transition-all min-w-[64px]",
-                isActive ? "text-primary-container font-bold" : "text-on-surface-variant"
-              )}
-            >
-              <item.icon className={cn("w-6 h-6", location.pathname === item.path ? "fill-primary-container/20" : "")} />
-              <span className="text-[10px] uppercase font-bold tracking-wider">{item.label.split(' ')[0]}</span>
-            </NavLink>
-          ))}
+          {navItems
+            .filter(
+              item =>
+                item.label !== 'Settings' &&
+      item.label !== 'Audit Log' &&
+      item.label !== 'Add User'
+            )
+            .map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => cn(
+                  "flex flex-col items-center gap-1 p-2 transition-all min-w-[64px]",
+                  isActive ? "text-primary-container font-bold" : "text-on-surface-variant"
+                )}
+              >
+                <item.icon className={cn("w-6 h-6", location.pathname === item.path ? "fill-primary-container/20" : "")} />
+                <span className="text-[10px] uppercase font-bold tracking-wider">{item.label.split(' ')[0]}</span>
+              </NavLink>
+            ))}
           <NavLink
             to="/reservation"
             className={({ isActive }) => cn(
@@ -423,7 +431,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                 </div>
               </div>
-              
+
               <nav className="flex-1 px-4 flex flex-col gap-2 overflow-y-auto pb-8">
                 {navItems.map((item) => (
                   <NavLink

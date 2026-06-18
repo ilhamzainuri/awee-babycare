@@ -14,6 +14,7 @@ import AuditLog from './pages/AuditLog';
 import Reservation from './pages/Reservation';
 import Settings from './pages/Settings';
 import AdminSchedules from './pages/AdminSchedules';
+import UserAdd from './pages/AddUser';
 
 // Import Halaman Public
 import Login from './pages/Login';
@@ -128,6 +129,7 @@ export default function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/audit-log" element={<AuditLog />} />
                   <Route path="/reservation" element={<Reservation />} />
+                  <Route path="/add-user" element={<UserAdd />} />
                   <Route path="/settings" element={<Settings />} />
 
                   {/* Catch-all jika route admin tidak ditemukan */}
