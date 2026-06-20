@@ -6,6 +6,7 @@ import {
 import { cn } from '@/lib/utils';
 // Catatan: Jika error, ubah kembali ke 'motion/react' sesuai versi Framer Motion Anda
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const FALLBACK_BASE_URL = 'http://localhost/awee-babycare/backend/api';
 
@@ -101,9 +102,13 @@ export default function AdminSchedules() {
 
   const submitReschedule = async () => {
     if (!editForm.date || !editForm.time) {
-      alert("Tanggal dan waktu tidak boleh kosong.");
+      // Mengganti alert biasa dengan toast.error
+      toast.error("Tanggal dan waktu tidak boleh kosong.");
       return;
     }
+
+    // Opsional: Kamu bisa memunculkan toast loading jika prosesnya agak lama
+    // const loadingToast = toast.loading("Menyimpan perubahan jadwal...");
 
     setIsUpdating(true);
     try {
@@ -119,17 +124,20 @@ export default function AdminSchedules() {
       });
 
       const result = await response.json();
+      
       if (result.status === 200) {
-        // PERBAIKAN: Update state lokal secara optimis agar UI langsung berubah
+        
+        // --- NOTIFIKASI SUKSES YANG MENARIK ---
+        // Jika pakai loadingToast di atas, ganti jadi: toast.success(result.message, { id: loadingToast });
+        toast.success(result.message || "Jadwal berhasil diperbarui!");
+        
         const newWaktuReservasi = `${editForm.date} ${editForm.time}:00`;
 
         // 1. Update data pada state jadwal utama
         setSchedules(prev => {
-          // Jika dipindah ke tanggal lain, hilangkan dari layar hari ini
           if (editForm.date !== activeDate) {
             return prev.filter(s => s.id !== selectedSchedule.id);
           }
-          // Jika masih di hari yang sama, update datanya
           return prev.map(s => s.id === selectedSchedule.id ? {
             ...s,
             waktu_reservasi: newWaktuReservasi,
@@ -149,11 +157,13 @@ export default function AdminSchedules() {
         throw new Error(result.message);
       }
     } catch (error: any) {
-      alert(`Gagal merubah jadwal: ${error.message}`);
+      // Mengganti alert error
+      // Jika pakai loadingToast di atas, ganti jadi: toast.error(`Gagal: ${error.message}`, { id: loadingToast });
+      toast.error(`Gagal merubah jadwal: ${error.message}`);
     } finally {
       setIsUpdating(false);
     }
-  };
+};
 
   return (
     <div className="space-y-8 pb-12 relative text-left">
