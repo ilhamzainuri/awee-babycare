@@ -119,7 +119,6 @@ try {
     // ==========================================
     // BAGIAN 2: UPDATE TABEL THERAPISTS
     // ==========================================
-    // Jika data dari frontend ada, dan user ini memiliki relasi di tabel therapists
     if (isset($_POST['nama_terapis']) && isset($_POST['no_whatsapp']) && !empty($data_lama['therapist_id'])) {
         
         $nama_terapis = trim($_POST['nama_terapis']);
