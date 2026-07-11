@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 01, 2026 at 08:21 AM
+-- Generation Time: Jul 11, 2026 at 02:50 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -30,7 +30,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `appointments` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `id_therapist` bigint(20) UNSIGNED NOT NULL,
-  `nama_anak` varchar(150) NOT NULL,
+  `nama_pasien` varchar(150) DEFAULT NULL COMMENT 'Isi dengan "-" jika treatment ibu',
   `usia_saat_ini` varchar(50) DEFAULT NULL COMMENT 'Disimpan dalam string, misal: 12 Bulan',
   `bb_saat_ini` varchar(20) DEFAULT NULL COMMENT 'Berat badan saat kunjungan',
   `bb_real_terapis` varchar(20) DEFAULT NULL,
@@ -53,9 +53,14 @@ CREATE TABLE `appointments` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `waktu_mulai_layanan` datetime DEFAULT NULL,
   `waktu_selesai_layanan` datetime DEFAULT NULL,
-  `suhu_anak` varchar(20) DEFAULT NULL,
+  `suhu_pasien` varchar(20) DEFAULT NULL,
   `catatan_terapis` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `appointments`
+--
+
 
 -- --------------------------------------------------------
 
@@ -75,6 +80,11 @@ CREATE TABLE `appointment_details` (
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `appointment_details`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -92,6 +102,11 @@ CREATE TABLE `audit_logs` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `audit_logs`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -108,7 +123,9 @@ CREATE TABLE `kategori` (
 --
 
 INSERT INTO `kategori` (`id_kategori`, `nama_kategori`) VALUES
-(1, 'Moms Treatment Outlet');
+(1, 'Moms Treatment Outlet'),
+(2, 'Moms Treatment Homecare'),
+(3, 'Baby and Kids Outlet');
 
 -- --------------------------------------------------------
 
@@ -128,6 +145,15 @@ CREATE TABLE `services` (
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `services`
+--
+
+INSERT INTO `services` (`id`, `kategori_id`, `nama_layanan`, `type_layanan`, `harga_saat_ini`, `persentase_komisi`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(2, 1, 'Pijat laktasi+Oksitosin', '', 140000.00, 40.00, '2026-07-11 12:07:06', '2026-07-11 12:07:06', NULL),
+(3, 2, 'Pijat laktasi+Oksitosin', '', 150000.00, 50.00, '2026-07-11 12:07:25', '2026-07-11 12:07:25', NULL),
+(4, 3, 'Baby Massage Immune Booster U 0-2 Tahu', '', 55000.00, 30.00, '2026-07-11 12:09:09', '2026-07-11 12:09:09', NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -144,6 +170,13 @@ CREATE TABLE `therapists` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `therapists`
+--
+
+INSERT INTO `therapists` (`id`, `user_id`, `nama_terapis`, `no_whatsapp`, `status_aktif`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 2, 'Karina Wati', '085563244', 1, '2026-07-11 12:10:42', '2026-07-11 12:10:42', NULL);
 
 -- --------------------------------------------------------
 
@@ -167,7 +200,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `foto`, `role`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'admin', 'admin', NULL, 'admin', '2026-06-24 09:28:58', '2026-06-24 09:28:58', NULL);
+(1, 'admin', 'admin', NULL, 'admin', '2026-06-24 09:28:58', '2026-06-24 09:28:58', NULL),
+(2, 'karin', 'karin', NULL, 'therapist', '2026-07-11 12:09:50', '2026-07-11 12:09:50', NULL);
 
 --
 -- Indexes for dumped tables
@@ -230,43 +264,43 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `appointment_details`
 --
 ALTER TABLE `appointment_details`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `kategori`
 --
 ALTER TABLE `kategori`
-  MODIFY `id_kategori` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_kategori` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `services`
 --
 ALTER TABLE `services`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `therapists`
 --
 ALTER TABLE `therapists`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables

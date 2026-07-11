@@ -102,8 +102,9 @@ export default function TransactionDetail() {
             </div>
             <div className="space-y-4">
               <div>
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nama Anak</p>
-                <p className="font-bold text-on-surface text-lg">{data.nama_anak} <span className="text-sm font-medium text-on-surface-variant">({data.jenis_kelamin})</span></p>
+                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nama Pasien</p>
+                <p className="font-bold text-on-surface text-lg">{data.nama_pasien
+                  } <span className="text-sm font-medium text-on-surface-variant">({data.jenis_kelamin})</span></p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

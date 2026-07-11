@@ -48,7 +48,7 @@ $sql = "
         al.aksi, 
         al.data_baru, 
         al.created_at, 
-        app.nama_anak 
+        app.nama_pasien 
     FROM audit_logs al
     JOIN appointments app ON al.record_id = app.id
     WHERE al.nama_tabel = 'appointments' 
@@ -66,23 +66,23 @@ $notifications = [];
 
 while ($row = $logs->fetch_assoc()) {
     $type = 'data_update';
-    $message = "Perubahan data pada reservasi " . $row['nama_anak'];
+    $message = "Perubahan data pada reservasi " . $row['nama_pasien'];
     
     // Parse JSON dari column data_baru di audit_logs
     $data_baru = json_decode($row['data_baru'], true);
 
     if ($row['aksi'] === 'create') {
         $type = 'reservation';
-        $message = "Reservasi baru masuk untuk anak " . $row['nama_anak'];
+        $message = "Reservasi baru masuk untuk Pasien " . $row['nama_pasien'];
     } elseif ($row['aksi'] === 'update') {
         
         // Deteksi perubahan dari field JSON yang ada di tabel audit_logs Anda
         if (isset($data_baru['Status'])) {
             $type = 'status_change';
-            $message = "Status layanan " . $row['nama_anak'] . " berubah menjadi " . $data_baru['Status'];
+            $message = "Status layanan " . $row['nama_pasien'] . " berubah menjadi " . $data_baru['Status'];
         } elseif (isset($data_baru['status_pembayaran'])) {
             $type = 'data_update';
-            $message = "Status pembayaran " . $row['nama_anak'] . " berubah menjadi " . $data_baru['status_pembayaran'];
+            $message = "Status pembayaran " . $row['nama_pasien'] . " berubah menjadi " . $data_baru['status_pembayaran'];
         }
     }
 

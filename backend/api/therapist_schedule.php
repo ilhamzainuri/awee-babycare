@@ -33,12 +33,12 @@ try {
     $query = "
         SELECT 
             id, 
-            nama_anak, 
+            nama_pasien, 
             usia_saat_ini, 
             bb_saat_ini, 
             bb_real_terapis, 
             jenis_kelamin, 
-            suhu_anak, 
+            suhu_Pasien, 
             waktu_reservasi, 
             waktu_mulai_layanan, 
             waktu_selesai_layanan, 

@@ -189,7 +189,7 @@ export default function TherapistReport() {
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
   const filteredReservations = reservations.filter(res => {
-    const matchSearch = res.nama_anak.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchSearch = res.nama_pasien.toLowerCase().includes(searchQuery.toLowerCase()) ||
       `#TRX-${res.trx_id}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchStatus = filterStatus === 'All' || res.status_jadwal === filterStatus;
 
@@ -208,7 +208,7 @@ export default function TherapistReport() {
         return {
           "ID Transaksi": `TRX-${res.trx_id}`,
           "Waktu": `${tgl} ${jam}`,
-          "Nama Pasien": res.nama_anak,
+          "Nama Pasien": res.nama_pasien,
           "Nama Terapis": res.nama_terapis,
           "Metode Bayar": res.metode_bayar_admin,
           "Status Pembayaran": res.status_pembayaran,
@@ -592,7 +592,7 @@ export default function TherapistReport() {
                             <p className="font-bold text-sm text-on-surface">#TRX-{res.trx_id}</p>
                             <p className="text-xs text-on-surface-variant mt-0.5">{tgl} • {jam}</p>
                           </td>
-                          <td className="p-4 border-b border-surface-container font-bold text-sm text-on-surface">{res.nama_anak}</td>
+                          <td className="p-4 border-b border-surface-container font-bold text-sm text-on-surface">{res.nama_pasien}</td>
                           <td className="p-4 border-b border-surface-container">
                             <p className="text-sm font-bold">{res.metode_bayar_admin}</p>
                             <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-0.5", res.status_pembayaran === 'Verified' ? "text-tertiary" : "text-error")}>
@@ -690,7 +690,7 @@ export default function TherapistReport() {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-on-surface-variant text-xs block mb-1">Nama Lengkap</span>
-                            <span className="font-bold text-on-surface">{trxDetail.nama_anak}</span>
+                            <span className="font-bold text-on-surface">{trxDetail.nama_pasien}</span>
                           </div>
                           <div>
                             <span className="text-on-surface-variant text-xs block mb-1">Jenis Kelamin</span>
@@ -900,7 +900,7 @@ export default function TherapistReport() {
                             <div key={i} className="p-4 flex justify-between items-center hover:bg-surface-container-lowest/50 transition-colors">
                               <div>
                                 <p className="font-bold text-sm text-on-surface">#TRX-{riw.id_appointment}</p>
-                                <p className="text-xs text-on-surface-variant mt-1">{riw.waktu_reservasi} • {riw.nama_anak}</p>
+                                <p className="text-xs text-on-surface-variant mt-1">{riw.waktu_reservasi} • {riw.nama_pasien}</p>
                               </div>
                               <div className="text-right">
                                 <p className="font-black text-secondary">{formatRupiah(riw.komisi_didapat)}</p>

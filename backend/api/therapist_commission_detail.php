@@ -28,7 +28,7 @@ try {
     $sql = "SELECT 
                 id AS trx_id, 
                 waktu_reservasi, 
-                nama_anak AS patient, 
+                nama_pasien AS patient, 
                 total_harga_kunjungan AS total_biaya,
                 total_komisi_kunjungan AS commission
             FROM appointments 

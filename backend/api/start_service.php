@@ -23,7 +23,7 @@ try {
 
     $appointment_id = (int)$input['appointment_id'];
     $user_id = (int)$input['user_id'];
-    $suhu_anak = $input['suhu_anak'] ?? null;
+    $suhu_Pasien = $input['suhu_Pasien'] ?? null;
     $bb_real_terapis = $input['bb_real_terapis'] ?? null;
     $waktu_mulai = date('Y-m-d H:i:s');
 
@@ -36,10 +36,10 @@ try {
 
     $conn->beginTransaction();
 
-    $stmtUpdate = $conn->prepare("UPDATE appointments SET status_jadwal = 'Diproses', waktu_mulai_layanan = COALESCE(waktu_mulai_layanan, :waktu), suhu_anak = :suhu, bb_real_terapis = :bb WHERE id = :id AND status_jadwal IN ('Menunggu', 'Pending', 'Diproses')");
+    $stmtUpdate = $conn->prepare("UPDATE appointments SET status_jadwal = 'Diproses', waktu_mulai_layanan = COALESCE(waktu_mulai_layanan, :waktu), suhu_Pasien = :suhu, bb_real_terapis = :bb WHERE id = :id AND status_jadwal IN ('Menunggu', 'Pending', 'Diproses')");
     $stmtUpdate->execute([
         ':waktu' => $waktu_mulai, 
-        ':suhu' => $suhu_anak, 
+        ':suhu' => $suhu_Pasien, 
         ':bb' => $bb_real_terapis, 
         ':id' => $appointment_id
     ]);
@@ -52,7 +52,7 @@ try {
             json_encode([
                 "Status" => "Diproses", 
                 "Waktu Mulai" => $waktu_mulai,
-                "Suhu Anak" => $suhu_anak,
+                "Suhu Pasien" => $suhu_Pasien,
                 "BB Real" => $bb_real_terapis
             ])
         ]);

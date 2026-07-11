@@ -178,14 +178,14 @@ export default function SubmitReport() {
                 <div>
                   <h4 className="text-sm font-black text-on-surface mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-primary"/> A. Catatan Pelayanan</h4>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-on-surface-variant">Catatan / Perkembangan Anak</label>
+                    <label className="text-sm font-bold text-on-surface-variant">Catatan / Perkembangan pasien</label>
                     <textarea 
                       required 
                       rows={4} 
                       value={reportData.catatan_terapis} 
                       onChange={e => setReportData({...reportData, catatan_terapis: e.target.value})} 
                       className="w-full bg-surface-container-lowest border border-surface-container px-4 py-3 rounded-xl text-base focus:ring-2 focus:ring-primary/50 outline-none transition-all resize-none shadow-sm" 
-                      placeholder="Ceritakan bagaimana kondisi dan respon anak saat dilayani..."
+                      placeholder="Ceritakan bagaimana kondisi dan respon pasien saat dilayani..."
                     ></textarea>
                   </div>
                 </div>

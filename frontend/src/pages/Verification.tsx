@@ -32,7 +32,7 @@ interface TaskData {
 
 interface AppointmentDetail {
   id: number;
-  nama_anak: string;
+  nama_pasien: string;
   usia_saat_ini: string;
   bb_saat_ini: string;
   jenis_kelamin: 'Laki-laki' | 'Perempuan';
@@ -188,7 +188,7 @@ export default function Verification() {
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama anak atau nama terapis..."
+            placeholder="Cari nama Pasien atau nama terapis..."
             className="w-full pl-10 pr-4 py-3 bg-surface-container-low border-none rounded-xl text-sm focus:ring-2 focus:ring-primary-container transition-all outline-none"
           />
         </div>
@@ -278,7 +278,7 @@ export default function Verification() {
                   <div>
                     <h3 className="font-bold text-base">Perhatian! Terdapat {mismatchCount} transaksi Mismatch</h3>
                     <p className="text-sm opacity-90 mt-0.5">
-                      Ada perbedaan antara metode pembayaran yang direncanakan Admin dengan aktual dari Terapis.
+                      Ada perbedaan antara metode pembayaran yang direncPasienan Admin dengan aktual dari Terapis.
                     </p>
                   </div>
                 </div>
@@ -300,7 +300,7 @@ export default function Verification() {
                   <thead>
                     <tr className="bg-surface-container-low text-on-surface-variant text-sm tracking-wide border-b border-surface-container">
                       <th className="p-5 font-bold">Tanggal</th>
-                      <th className="p-5 font-bold">Nama Anak</th>
+                      <th className="p-5 font-bold">Nama Pasien</th>
                       <th className="p-5 font-bold">Terapis</th>
                       <th className="p-5 font-bold">Rencana (Admin)</th>
                       <th className="p-5 font-bold">Aktual (Terapis)</th>
@@ -414,15 +414,15 @@ export default function Verification() {
               </div>
 
               <div className="p-6 overflow-y-auto space-y-6 text-sm text-on-surface">
-                {/* 1. Informasi Anak / Pasien */}
+                {/* 1. Informasi Pasien / Pasien */}
                 <div className="bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container space-y-3">
                   <h3 className="font-bold flex items-center gap-2 text-primary border-b border-surface-container pb-1.5">
-                    <User className="w-4 h-4" /> Informasi Anak & Orang Tua
+                    <User className="w-4 h-4" /> Informasi Pasien & Orang Tua
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-bold text-outline uppercase tracking-wider">Nama Anak</p>
-                      <p className="font-semibold text-base text-on-surface">{selectedAppointment.nama_anak}</p>
+                      <p className="text-xs font-bold text-outline uppercase tracking-wider">Nama Pasien</p>
+                      <p className="font-semibold text-base text-on-surface">{selectedAppointment.nama_pasien}</p>
                     </div>
                     <div>
                       <p className="text-xs font-bold text-outline uppercase tracking-wider">Jenis Kelamin</p>

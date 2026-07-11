@@ -15,7 +15,7 @@ export default function StartService() {
 
   const [isStartingService, setIsStartingService] = useState(false);
   const [startData, setStartData] = useState({
-    suhu_anak: '',
+    suhu_pasien: '',
     bb_real_terapis: ''
   });
 
@@ -30,7 +30,7 @@ export default function StartService() {
 
         const response = await fetch(`${baseUrl}/therapist_dashboard.php?user_id=${user.id}`);
         const result = await response.json();
-        
+
         if (result.status === 200 && result.data.schedules) {
           // Hanya ambil jadwal yang Pending atau On Process
           const validSchedules = result.data.schedules.filter((s: any) => s.status === 'Pending' || s.status === 'On Process');
@@ -43,7 +43,7 @@ export default function StartService() {
             const matched = validSchedules.find((s: any) => s.id === initialDetail.id);
             if (matched) {
               setStartData({
-                suhu_anak: matched.suhu_anak || '',
+                suhu_pasien: matched.suhu_pasien || '',
                 bb_real_terapis: matched.bb_real_terapis || ''
               });
             }
@@ -65,17 +65,17 @@ export default function StartService() {
   const handleScheduleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     setSelectedScheduleId(id === '' ? '' : Number(id));
-    
+
     if (id !== '') {
       const matched = schedules.find(s => s.id === Number(id));
       if (matched) {
         setStartData({
-          suhu_anak: matched.suhu_anak || '',
+          suhu_pasien: matched.suhu_pasien || '',
           bb_real_terapis: matched.bb_real_terapis || ''
         });
       }
     } else {
-      setStartData({ suhu_anak: '', bb_real_terapis: '' });
+      setStartData({ suhu_pasien: '', bb_real_terapis: '' });
     }
   };
 
@@ -90,21 +90,21 @@ export default function StartService() {
     try {
       const sessionStr = localStorage.getItem('user_session');
       const user = sessionStr ? JSON.parse(sessionStr) : null;
-      
+
       const res = await fetch(`${baseUrl}/start_service.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          appointment_id: selectedScheduleId, 
+        body: JSON.stringify({
+          appointment_id: selectedScheduleId,
           user_id: user?.id,
-          suhu_anak: startData.suhu_anak,
+          suhu_pasien: startData.suhu_pasien,
           bb_real_terapis: startData.bb_real_terapis
         })
       });
       const data = await res.json();
       if (data.status === 200) {
         alert("Data klinis berhasil disimpan.");
-        navigate('/therapist', { replace: true });
+        navigate('/therapist/submit-report', { replace: true });
       } else {
         alert(data.message);
       }
@@ -126,14 +126,14 @@ export default function StartService() {
       </button>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-3xl shadow-sm border border-surface-container overflow-hidden">
-        
+
         <div className="p-6 border-b border-surface-container bg-surface-container-low flex justify-between items-center">
-          <h2 className="font-black text-xl flex items-center gap-2 text-primary"><Activity className="w-6 h-6"/> Pemeriksaan Klinis</h2>
+          <h2 className="font-black text-xl flex items-center gap-2 text-primary"><Activity className="w-6 h-6" /> Pemeriksaan Klinis</h2>
         </div>
 
         <form onSubmit={submitStartService} className="flex flex-col">
           <div className="p-6 space-y-6">
-            
+
             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
               <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
                 Silakan pilih jadwal dan masukkan data pemeriksaan klinis terbaru. Form ini juga dapat digunakan untuk memperbarui data (revisi typo) jika status sudah <strong className="text-primary">On Process</strong>.
@@ -148,8 +148,8 @@ export default function StartService() {
                   Tidak ada jadwal Pending atau On Process hari ini.
                 </div>
               ) : (
-                <select 
-                  value={selectedScheduleId} 
+                <select
+                  value={selectedScheduleId}
                   onChange={handleScheduleChange}
                   className="w-full bg-surface-container-lowest border border-surface-container px-4 py-3 rounded-xl text-base font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-sm cursor-pointer"
                   required
@@ -168,27 +168,27 @@ export default function StartService() {
             {selectedScheduleId !== '' && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-2">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-bold text-on-surface flex items-center gap-2"><Thermometer className="w-4 h-4 text-primary"/> Suhu Tubuh Aktual (°C)</label>
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    required 
-                    value={startData.suhu_anak} 
-                    onChange={e => setStartData({...startData, suhu_anak: e.target.value})} 
-                    className="w-full bg-surface-container-lowest border border-surface-container px-4 py-3 rounded-xl text-base focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-sm" 
+                  <label className="text-sm font-bold text-on-surface flex items-center gap-2"><Thermometer className="w-4 h-4 text-primary" /> Suhu Tubuh Aktual (°C)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={startData.suhu_pasien}
+                    onChange={e => setStartData({ ...startData, suhu_pasien: e.target.value })}
+                    className="w-full bg-surface-container-lowest border border-surface-container px-4 py-3 rounded-xl text-base focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-sm"
                     placeholder="Misal: 36.5"
                   />
                 </div>
-                
+
                 <div className="space-y-1.5">
-                  <label className="text-sm font-bold text-on-surface flex items-center gap-2"><Scale className="w-4 h-4 text-primary"/> Berat Badan Aktual (kg)</label>
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    required 
-                    value={startData.bb_real_terapis} 
-                    onChange={e => setStartData({...startData, bb_real_terapis: e.target.value})} 
-                    className="w-full bg-surface-container-lowest border border-surface-container px-4 py-3 rounded-xl text-base focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-sm" 
+                  <label className="text-sm font-bold text-on-surface flex items-center gap-2"><Scale className="w-4 h-4 text-primary" /> Berat Badan Aktual (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={startData.bb_real_terapis}
+                    onChange={e => setStartData({ ...startData, bb_real_terapis: e.target.value })}
+                    className="w-full bg-surface-container-lowest border border-surface-container px-4 py-3 rounded-xl text-base focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-sm"
                     placeholder="Misal: 4.5"
                   />
                 </div>
@@ -198,9 +198,9 @@ export default function StartService() {
           </div>
 
           <div className="p-6 border-t border-surface-container bg-surface-container-low">
-            <button 
-              type="submit" 
-              disabled={isStartingService || schedules.length === 0 || selectedScheduleId === ''} 
+            <button
+              type="submit"
+              disabled={isStartingService || schedules.length === 0 || selectedScheduleId === ''}
               className={cn(
                 "w-full text-white text-base font-black py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg",
                 (isStartingService || schedules.length === 0 || selectedScheduleId === '') ? "bg-surface-container-highest cursor-not-allowed shadow-none" : "bg-primary hover:bg-primary/90 shadow-primary/30"
@@ -209,7 +209,7 @@ export default function StartService() {
               {isStartingService ? (
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
               ) : (
-                <><Check className="w-6 h-6"/> Simpan Data Klinis</>
+                <><Check className="w-6 h-6" /> Simpan Data Klinis</>
               )}
             </button>
           </div>

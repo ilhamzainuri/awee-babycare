@@ -48,7 +48,7 @@ try {
             else {
                 $sql = "SELECT 
                             a.id, 
-                            a.nama_anak AS patient, 
+                            a.nama_pasien AS patient, 
                             t.nama_terapis AS therapist, 
                             a.metode_bayar_admin AS plan_method, 
                             COALESCE(a.metode_bayar_terapis, 'Belum Input') AS actual_method,
@@ -80,7 +80,7 @@ try {
 
                 // 1. Ambil data lama sebelum diverifikasi
                 // Kita ambil data krusial yang berkaitan dengan rekonsiliasi pembayaran
-                $old_stmt = $conn->prepare("SELECT id, nama_anak, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, total_bersih, status_pembayaran FROM appointments WHERE id = ?");
+                $old_stmt = $conn->prepare("SELECT id, nama_pasien, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, total_bersih, status_pembayaran FROM appointments WHERE id = ?");
                 $old_stmt->execute([$id_target]);
                 $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 

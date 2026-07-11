@@ -176,7 +176,7 @@ export default function AllSchedulesPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <h3 className="font-bold text-on-surface text-base truncate">{item.nama_anak}</h3>
+                  <h3 className="font-bold text-on-surface text-base truncate">{item.nama_pasien}</h3>
                   <span
                     className={cn(
                       'text-[9px] font-black uppercase px-2 py-0.5 rounded-full border',
@@ -219,7 +219,7 @@ export default function AllSchedulesPage() {
                   onClick={() =>
                     setSelectedDetail({
                       id: item.id,
-                      childName: item.nama_anak,
+                      childName: item.nama_pasien,
                       usia: item.usia_saat_ini,
                       bb: item.bb_saat_ini,
                       address: item.alamat_lengkap,
@@ -271,9 +271,9 @@ export default function AllSchedulesPage() {
 
               {/* Modal Body */}
               <div className="p-6 space-y-5 overflow-y-auto flex-1">
-                {/* Info Anak */}
+                {/* Info pasien */}
                 <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl">
-                  <h4 className="text-xs font-black text-primary uppercase tracking-wider mb-3">Informasi Anak</h4>
+                  <h4 className="text-xs font-black text-primary uppercase tracking-wider mb-3">Informasi pasien</h4>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-0.5">Nama Pasien</p>

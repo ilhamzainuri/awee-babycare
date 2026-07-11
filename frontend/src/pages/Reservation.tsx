@@ -12,6 +12,7 @@ export default function Reservation() {
   // Master Data States (untuk Dropdown)
   const [therapists, setTherapists] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   
   // UI States
   const [isLoading, setIsLoading] = useState(false);
@@ -19,29 +20,33 @@ export default function Reservation() {
 
   // Form State
   const [formData, setFormData] = useState({
-    nama_anak: '', usia_saat_ini: '', bb_saat_ini: '', jenis_kelamin: 'Laki-laki',
+    nama_pasien: '', usia_saat_ini: '', bb_saat_ini: '', jenis_kelamin: 'Laki-laki',
     no_hp_ortu: '', link_shareloc: '', alamat_lengkap: '', keluhan_awal: '',
     id_therapist: '', waktu_reservasi: '', metode_bayar_admin: 'Cash'
   });
 
   // Array untuk Multi-Service / Treatments
   const [treatments, setTreatments] = useState([{ id: Date.now(), id_service: '' }]);
+  const [globalKategoriId, setGlobalKategoriId] = useState<string>('');
 
   // Ambil Data Master saat komponen dimuat
   useEffect(() => {
     const fetchMasterData = async () => {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || FALLBACK_BASE_URL;
       try {
-        const [resTherapists, resServices] = await Promise.all([
+        const [resTherapists, resServices, resCategories] = await Promise.all([
           fetch(`${baseUrl}/therapists.php`),
-          fetch(`${baseUrl}/services.php`)
+          fetch(`${baseUrl}/services.php`),
+          fetch(`${baseUrl}/categories.php`)
         ]);
         
         const dataT = await resTherapists.json();
         const dataS = await resServices.json();
+        const dataC = await resCategories.json();
 
         if (dataT.status === 200) setTherapists(dataT.data.filter((t: any) => t.status_aktif === 1)); // Hanya ambil terapis On-Duty
         if (dataS.status === 200) setServices(dataS.data);
+        if (dataC.status === 200) setCategories(dataC.data);
       } catch (error) {
         console.error("Gagal mengambil master data", error);
       }
@@ -65,6 +70,11 @@ export default function Reservation() {
   };
   const updateTreatment = (id: number, id_service: string) => {
     setTreatments(treatments.map(t => t.id === id ? { ...t, id_service } : t));
+  };
+  const handleGlobalKategoriChange = (value: string) => {
+    setGlobalKategoriId(value);
+    // Reset all treatments' selected service
+    setTreatments(treatments.map(t => ({ ...t, id_service: '' })));
   };
 
   // Submit Handler
@@ -111,11 +121,12 @@ export default function Reservation() {
         setMessage({ type: 'success', text: result.message });
         // Reset Form setelah sukses
         setFormData({
-          nama_anak: '', usia_saat_ini: '', bb_saat_ini: '', jenis_kelamin: 'Laki-laki',
+          nama_pasien: '', usia_saat_ini: '', bb_saat_ini: '', jenis_kelamin: '',
           no_hp_ortu: '', link_shareloc: '', alamat_lengkap: '', keluhan_awal: '',
           id_therapist: '', waktu_reservasi: '', metode_bayar_admin: 'Cash'
         });
         setTreatments([{ id: Date.now(), id_service: '' }]);
+        setGlobalKategoriId('');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setMessage({ type: 'error', text: result.message });
@@ -150,9 +161,10 @@ export default function Reservation() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Nama Anak</label>
-              <input required name="nama_anak" value={formData.nama_anak} onChange={handleInputChange} type="text" placeholder="Nama Lengkap Anak" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Nama Pasien</label>
+              <input name="nama_pasien" value={formData.nama_pasien} onChange={handleInputChange} type="text" placeholder="Nama Lengkap Pasien (Kosongkan jika treatment Ibu)" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
             </div>
 
             <div className="space-y-2">
@@ -241,31 +253,50 @@ export default function Reservation() {
             <h2 className="text-xl font-bold text-tertiary">Layanan Treatment</h2>
           </div>
 
-          <div className="space-y-4">
-             <AnimatePresence mode="popLayout">
-                {treatments.map((t, index) => (
-                  <motion.div layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} key={t.id} className="p-4 md:p-6 bg-surface-container-low rounded-[2rem] border border-surface-container relative group transition-all">
-                     <button type="button" onClick={() => removeTreatment(t.id)} className="absolute top-4 right-4 p-2 text-on-surface-variant hover:text-error hover:bg-error-container/30 rounded-full transition-all md:opacity-0 group-hover:opacity-100">
-                        <X className="w-4 h-4" />
-                     </button>
+          <div className="space-y-6">
+              {/* Dropdown Kategori Layanan Global */}
+              <div className="space-y-2 max-w-xs">
+                 <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Pilih Kategori (Reservasi)</label>
+                 <div className="relative">
+                    <select required value={globalKategoriId} onChange={(e) => handleGlobalKategoriChange(e.target.value)} className="w-full appearance-none px-4 py-3 bg-surface-container border border-surface-container-highest rounded-xl text-sm font-bold focus:ring-2 focus:ring-tertiary outline-none cursor-pointer">
+                       <option value="">-- Pilih Kategori --</option>
+                       {categories.map(c => (
+                          <option key={c.id} value={c.id}>{c.nama_kategori}</option>
+                       ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+                 </div>
+              </div>
 
-                     <div className="pr-8 space-y-2">
-                        <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Pilih Layanan {index + 1}</label>
-                        <div className="relative">
-                           <select required value={t.id_service} onChange={(e) => updateTreatment(t.id, e.target.value)} className="w-full appearance-none px-4 py-3 bg-surface-container-lowest border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-tertiary outline-none cursor-pointer">
-                              <option value="" disabled>Pilih Layanan...</option>
-                              {services.map(s => (
-                                 <option key={s.id} value={s.id}>
-                                    {s.nama_layanan} - Rp {Number(s.harga_saat_ini).toLocaleString('id-ID')}
-                                 </option>
-                              ))}
-                           </select>
-                           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
-                        </div>
-                     </div>
-                  </motion.div>
-                ))}
-             </AnimatePresence>
+              <AnimatePresence mode="popLayout">
+                 {treatments.map((t, index) => (
+                    <motion.div layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} key={t.id} className="p-4 md:p-6 bg-surface-container-low rounded-[2rem] border border-surface-container relative group transition-all">
+                       <button type="button" onClick={() => removeTreatment(t.id)} className="absolute top-4 right-4 p-2 text-on-surface-variant hover:text-error hover:bg-error-container/30 rounded-full transition-all md:opacity-0 group-hover:opacity-100">
+                          <X className="w-4 h-4" />
+                       </button>
+ 
+                       <div className="pr-8 space-y-2">
+                          <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Pilih Layanan {index + 1}</label>
+                          <div className="relative">
+                             <select required value={t.id_service} onChange={(e) => updateTreatment(t.id, e.target.value)} disabled={!globalKategoriId} className="w-full appearance-none px-4 py-3 bg-surface-container-lowest border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-tertiary outline-none cursor-pointer disabled:opacity-50">
+                                <option value="" disabled>
+                                   {globalKategoriId ? "Pilih Layanan..." : "Silakan Pilih Kategori Terlebih Dahulu"}
+                                </option>
+                                {services
+                                   .filter(s => s.kategori_id !== null && s.kategori_id.toString() === globalKategoriId)
+                                   .map(s => (
+                                     <option key={s.id} value={s.id}>
+                                        {s.nama_layanan} - Rp {Number(s.harga_saat_ini).toLocaleString('id-ID')}
+                                     </option>
+                                  ))
+                               }
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+                         </div>
+                      </div>
+                   </motion.div>
+                 ))}
+              </AnimatePresence>
 
              <button type="button" onClick={addTreatment} className="w-full py-4 border-2 border-dashed border-tertiary/30 text-tertiary font-black rounded-3xl hover:bg-tertiary-container/10 hover:border-tertiary transition-all flex items-center justify-center gap-2 text-sm tracking-widest">
                 <Plus className="w-5 h-5" /> TAMBAH LAYANAN (MULTI-ORDER)

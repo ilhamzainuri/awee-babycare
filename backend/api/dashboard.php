@@ -37,7 +37,7 @@ try {
                     a.id, 
                     t.nama_terapis AS therapist, 
                     'Klinik Bidan & Anak' AS specialty, 
-                    a.nama_anak AS patient, 
+                    a.nama_pasien AS patient, 
                     a.alamat_lengkap AS room, 
                     DATE_FORMAT(a.waktu_reservasi, '%H:%i') AS time, 
                     a.status_jadwal AS status,
@@ -111,7 +111,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
     // BAGIAN 2: MENGAMBIL DATA WARNING / ALERTS
     // ==========================================
     $stmt = $conn->query("
-        SELECT id, nama_anak, metode_bayar_admin, metode_bayar_terapis, waktu_reservasi 
+        SELECT id, nama_pasien, metode_bayar_admin, metode_bayar_terapis, waktu_reservasi 
         FROM appointments 
         WHERE metode_bayar_admin != metode_bayar_terapis 
         AND metode_bayar_terapis IS NOT NULL
@@ -126,7 +126,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         foreach ($alerts_db as $alert) {
             $alerts[] = [
                 'id' => $alert['id'],
-                'title' => $alert['nama_anak'] . ' - Mismatch',
+                'title' => $alert['nama_pasien'] . ' - Mismatch',
                 'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
                 'description' => "Terdeteksi selisih metode pembayaran pada #TRX-{$alert['id']}. Rencana awal: {$alert['metode_bayar_admin']}, Fakta lapangan: {$alert['metode_bayar_terapis']}.",
                 'type' => 'error'

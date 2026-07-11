@@ -28,14 +28,14 @@ try {
     }
 
     if ($search_query !== '') {
-        $whereClause .= " AND (a.nama_anak LIKE :searchQuery OR t.nama_terapis LIKE :searchQuery OR a.id = :searchId)";
+        $whereClause .= " AND (a.nama_pasien LIKE :searchQuery OR t.nama_terapis LIKE :searchQuery OR a.id = :searchId)";
         $params[':searchQuery'] = "%" . $search_query . "%";
         $params[':searchId'] = (int)$search_query;
     }
 
     $sql = "SELECT 
                 a.id, 
-                a.nama_anak, 
+                a.nama_pasien, 
                 a.usia_saat_ini, 
                 a.bb_saat_ini, 
                 a.bb_real_terapis,

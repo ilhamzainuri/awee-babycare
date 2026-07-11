@@ -37,7 +37,7 @@ try {
             $id_therapist = (int)$input['id_therapist'];
 
             $stmtCheckOverlap = $conn->prepare("
-                SELECT waktu_reservasi, nama_anak 
+                SELECT waktu_reservasi, nama_pasien 
                 FROM appointments 
                 WHERE id_therapist = :id_therapist 
                   AND status_jadwal != 'Dibatalkan' 
@@ -57,7 +57,7 @@ try {
                 http_response_code(400);
                 echo json_encode([
                     "status" => 400,
-                    "message" => "Gagal: Terapis tersebut sudah memiliki jadwal lain pada jam " . date('H:i', strtotime($overlap['waktu_reservasi'])) . " (" . $overlap['nama_anak'] . "). Mohon pilih waktu lain dengan selisih minimal 1 jam."
+                    "message" => "Gagal: Terapis tersebut sudah memiliki jadwal lain pada jam " . date('H:i', strtotime($overlap['waktu_reservasi'])) . " (" . $overlap['nama_pasien'] . "). Mohon pilih waktu lain dengan selisih minimal 1 jam."
                 ]);
                 exit();
             }
@@ -67,14 +67,14 @@ try {
             // 1. Simpan Header
             $stmtHeader = $conn->prepare("
                 INSERT INTO appointments (
-                    id_therapist, nama_anak, usia_saat_ini, bb_saat_ini, jenis_kelamin, 
+                    id_therapist, nama_pasien, usia_saat_ini, bb_saat_ini, jenis_kelamin, 
                     alamat_lengkap, link_shareloc, no_hp_ortu, keluhan_awal, 
                     waktu_reservasi, metode_bayar_admin
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmtHeader->execute([
-                $input['id_therapist'], $input['nama_anak'], $input['usia_saat_ini'], 
+                $input['id_therapist'], $input['nama_pasien'], $input['usia_saat_ini'], 
                 $input['bb_saat_ini'], $input['jenis_kelamin'], $input['alamat_lengkap'], 
                 $input['link_shareloc'], $input['no_hp_ortu'], $input['keluhan_awal'], 
                 $input['waktu_reservasi'], $input['metode_bayar_admin']
@@ -131,7 +131,7 @@ try {
             }
 
             $data_baru_log = [
-                "Nama Anak" => $input['nama_anak'],
+                "Nama Pasien" => $input['nama_pasien'],
                 "Usia" => $input['usia_saat_ini'],
                 "Berat Badan" => $input['bb_saat_ini'] . " kg",
                 "Jenis Kelamin" => $input['jenis_kelamin'],
@@ -157,7 +157,7 @@ try {
             $id_target = $input['id'];
             $user_id = isset($input['user_id']) ? $input['user_id'] : 1; 
 
-            $old_stmt = $conn->prepare("SELECT id, nama_anak, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, total_bersih, status_pembayaran FROM appointments WHERE id = ?");
+            $old_stmt = $conn->prepare("SELECT id, nama_pasien, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, total_bersih, status_pembayaran FROM appointments WHERE id = ?");
             $old_stmt->execute([$id_target]);
             $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -213,7 +213,7 @@ try {
 
             $therapist_id = $terapis['id'];
             $stmtSched = $conn->prepare("
-                SELECT a.id, a.nama_anak, a.usia_saat_ini, a.bb_saat_ini, a.waktu_reservasi, a.alamat_lengkap, a.status_jadwal,
+                SELECT a.id, a.nama_pasien, a.usia_saat_ini, a.bb_saat_ini, a.waktu_reservasi, a.alamat_lengkap, a.status_jadwal,
                        a.no_hp_ortu, a.link_shareloc, a.keluhan_awal, a.total_komisi_kunjungan,
                        (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                         FROM appointment_details ad 
@@ -258,7 +258,7 @@ try {
         // KONDISI 3: ADMIN AMBIL SEMUA DATA + WIDGET PENDAPATAN
         else {
             $sql = "SELECT 
-                        a.id, a.nama_anak AS patient, t.nama_terapis AS therapist, 
+                        a.id, a.nama_pasien AS patient, t.nama_terapis AS therapist, 
                         a.metode_bayar_admin AS plan_method, 
                         COALESCE(a.metode_bayar_terapis, 'Belum Input') AS actual_method,
                         a.waktu_reservasi AS appointment_date,

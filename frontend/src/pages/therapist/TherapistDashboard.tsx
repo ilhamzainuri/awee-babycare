@@ -388,7 +388,7 @@ const fetchTherapistData = async (start = '', end = '') => {
                       <div key={item.id} className="bg-surface-container-lowest border border-surface-container p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5">
-                            <h3 className="font-bold text-on-surface text-base truncate">{item.nama_anak}</h3>
+                            <h3 className="font-bold text-on-surface text-base truncate">{item.nama_pasien}</h3>
                             <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full border", item.status_jadwal === 'Menunggu' ? "bg-surface-container text-on-surface border-outline-variant" : item.status_jadwal === 'Diproses' ? "bg-warning-container/30 text-warning border-warning/20" : item.status_jadwal === 'Selesai' ? "bg-success-container/30 text-success border-success/20" : "bg-error-container/30 text-error border-error/20")}>{item.status_jadwal}</span>
                           </div>
                           <p className="text-xs text-on-surface-variant mb-2 line-clamp-1 font-medium flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> {item.rincian_layanan || 'Pemeriksaan Umum'}</p>
@@ -403,7 +403,7 @@ const fetchTherapistData = async (start = '', end = '') => {
                             <p className="text-sm font-black text-primary">{formatRupiah(item.total_komisi_kunjungan)}</p>
                           </div>
                           <button onClick={() => setSelectedDetail({
-                            id: item.id, childName: item.nama_anak, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), status: item.status_jadwal === 'Menunggu' ? 'Pending' : (item.status_jadwal === 'Diproses' ? 'On Process' : item.status_jadwal), phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
+                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), status: item.status_jadwal === 'Menunggu' ? 'Pending' : (item.status_jadwal === 'Diproses' ? 'On Process' : item.status_jadwal), phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
                           })} className="text-[11px] font-bold text-primary hover:underline self-end flex items-center gap-1">
                             Lihat Detail <ArrowRight className="w-3 h-3"/>
                           </button>
@@ -430,13 +430,13 @@ const fetchTherapistData = async (start = '', end = '') => {
               </div>
 
               <div className="p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
-                {/* Info Anak */}
+                {/* Info pasien */}
                 <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl">
-                  <h4 className="text-xs font-black text-primary uppercase tracking-wider mb-3">Informasi Anak</h4>
+                  <h4 className="text-xs font-black text-primary uppercase tracking-wider mb-3">Informasi pasien</h4>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-0.5">Nama Pasien</p>
-                      <p className="font-black text-lg text-on-surface">{selectedDetail.childName || selectedDetail.nama_anak}</p>
+                      <p className="font-black text-lg text-on-surface">{selectedDetail.childName || selectedDetail.nama_pasien}</p>
                     </div>
                     <div>
                       <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-0.5">Usia</p>

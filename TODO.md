@@ -9,11 +9,9 @@
 //FITUR CRUD USER OLEH ADMIN
 //Halaman login verifikasi angka, lihat password
 //FITUR EDIT APPOINTMENT PADA DASHBOARD ADMIN (ngedit waktu jika klien minta re-schedule)
-frontend\src\pages\AdminSchedules.tsx DATA UPDATE BELUM TERSIMPAN
+//frontend\src\pages\AdminSchedules.tsx DATA UPDATE BELUM TERSIMPAN
 
-
-
-
-
+Perbaikan input data services, tambahkan kategori saat menambah data layanan
+Perbaikan form reservasi, dropdown kategori dan dropdown layanan yang hanya menampilkan layanan berdasarkan kategori yang dipilih
 
 SETELAH PROGRAM JADI SEMUA WAJIB REFACTOR

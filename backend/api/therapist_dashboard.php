@@ -91,8 +91,8 @@ try {
     // BAGIAN 3: DAFTAR JADWAL KUNJUNGAN HARI INI KE DEPAN
     // ========================================================
     $stmtSched = $conn->prepare("
-        SELECT id, nama_anak, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
-               no_hp_ortu, link_shareloc, keluhan_awal, suhu_anak, bb_real_terapis,
+        SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+               no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
                (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                 FROM appointment_details ad 
                 JOIN services s ON ad.id_service = s.id 
@@ -111,7 +111,7 @@ try {
         $ui_status = ($row['status_jadwal'] === 'Diproses') ? 'On Process' : 'Pending';
         $schedules[] = [
             "id" => (int)$row['id'],
-            "childName" => $row['nama_anak'],
+            "childName" => $row['nama_pasien'],
             "usia" => $row['usia_saat_ini'],
             "bb" => $row['bb_saat_ini'],
             "time" => $row['waktu_reservasi'], 
@@ -128,7 +128,7 @@ try {
     // BAGIAN 4: RIWAYAT SINGKAT (5 TRANSAKSI TERAKHIR)
     // ========================================================
     $stmtHist = $conn->prepare("
-        SELECT a.id, a.nama_anak, a.waktu_reservasi, a.total_komisi_kunjungan,
+        SELECT a.id, a.nama_pasien, a.waktu_reservasi, a.total_komisi_kunjungan,
                (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                 FROM appointment_details ad 
                 JOIN services s ON ad.id_service = s.id 
@@ -152,7 +152,7 @@ try {
 
         $history[] = [
             "id" => (int)$row['id'],
-            "childName" => $row['nama_anak'],
+            "childName" => $row['nama_pasien'],
             "serviceName" => $row['nama_layanan'] ? $row['nama_layanan'] : 'Layanan Umum',
             "date" => $display_date,
             "commission" => (int)$row['total_komisi_kunjungan']

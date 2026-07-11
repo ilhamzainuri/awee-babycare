@@ -97,7 +97,7 @@ if (isset($_GET['therapist_id']) && !empty($_GET['therapist_id'])) {
             SELECT 
                 a.id as id_appointment,
                 a.waktu_reservasi,
-                a.nama_anak,
+                a.nama_pasien,
                 a.total_komisi_kunjungan as komisi_didapat,
                 a.status_jadwal
             FROM appointments a
@@ -224,7 +224,7 @@ try {
         SELECT 
             a.id as trx_id, 
             a.waktu_reservasi, 
-            a.nama_anak, 
+            a.nama_pasien, 
             t.nama_terapis, 
             a.metode_bayar_admin, 
             a.status_pembayaran, 

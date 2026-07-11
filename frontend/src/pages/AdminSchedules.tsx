@@ -20,6 +20,7 @@ const STATUS_COLORS: Record<string, { bg: string, text: string, border: string, 
 export default function AdminSchedules() {
   const [activeDate, setActiveDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterTherapist, setFilterTherapist] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -127,8 +128,7 @@ export default function AdminSchedules() {
       
       if (result.status === 200) {
         
-        // --- NOTIFIKASI SUKSES YANG MENARIK ---
-        // Jika pakai loadingToast di atas, ganti jadi: toast.success(result.message, { id: loadingToast });
+        // Notif
         toast.success(result.message || "Jadwal berhasil diperbarui!");
         
         const newWaktuReservasi = `${editForm.date} ${editForm.time}:00`;
@@ -213,12 +213,15 @@ export default function AdminSchedules() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline pointer-events-none" />
             <input
               type="text"
-              placeholder="Cari nama anak, terapis, atau ID TRX..."
+              placeholder="Cari nama Pasien, terapis, atau ID TRX..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border border-surface-container rounded-2xl text-sm focus:ring-2 focus:ring-primary-container outline-none transition-all"
             />
           </div>
+
+      
+
           <div className="relative">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline pointer-events-none" />
             <input
@@ -301,8 +304,8 @@ export default function AdminSchedules() {
 
                     <div className="space-y-4">
                       <div>
-                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Pasien Anak</span>
-                        <h4 className="font-black text-lg text-on-surface truncate mt-0.5">{item.nama_anak}</h4>
+                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Pasien</span>
+                        <h4 className="font-black text-lg text-on-surface truncate mt-0.5">{item.nama_pasien}</h4>
                         <p className="text-xs text-on-surface-variant font-semibold mt-0.5">Usia: {item.usia_saat_ini || '-'} • BB: {item.bb_saat_ini ? `${item.bb_saat_ini} kg` : '-'}</p>
                       </div>
 
@@ -466,8 +469,8 @@ export default function AdminSchedules() {
                       </div>
                       <div className="space-y-3">
                         <div>
-                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Nama Anak</span>
-                          <span className="font-black text-on-surface text-base">{selectedSchedule.nama_anak}</span>
+                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Nama Pasien</span>
+                          <span className="font-black text-on-surface text-base">{selectedSchedule.nama_pasien}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
