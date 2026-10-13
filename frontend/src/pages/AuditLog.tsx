@@ -13,12 +13,14 @@ import {
   ArrowRightCircle,
   RotateCcw,
   AlertCircle,
+  AlertTriangle,
   X,
   Check,
   ShieldCheck,
   Layers,
   Sparkles,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -37,6 +39,8 @@ interface AuditLogData {
   role: string;
   can_restore?: boolean;
   is_restored?: boolean;
+  is_permanently_deleted?: boolean;
+  days_remaining?: number | null;
 }
 
 interface MetaPagination {
@@ -101,6 +105,10 @@ export default function AuditLog() {
   // Restore Modal State
   const [restoreModalLog, setRestoreModalLog] = useState<AuditLogData | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+
+  // Permanent Delete Modal State
+  const [permanentDeleteLog, setPermanentDeleteLog] = useState<AuditLogData | null>(null);
+  const [isDeletingPermanently, setIsDeletingPermanently] = useState(false);
 
   // User session
   const currentUser = useMemo(() => {
@@ -188,6 +196,39 @@ export default function AuditLog() {
     }
   };
 
+  // Eksekusi Hapus Permanen
+  const handleConfirmPermanentDelete = async () => {
+    if (!permanentDeleteLog) return;
+    setIsDeletingPermanently(true);
+
+    try {
+      const response = await fetch(`${baseUrl}/permanent_delete.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audit_log_id: permanentDeleteLog.id,
+          user_id: currentUser?.id || 1
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.status !== 200) {
+        throw new Error(result.message || 'Gagal menghapus data secara permanen');
+      }
+
+      toast.success(result.message || 'Data berhasil dihapus permanen.');
+      setPermanentDeleteLog(null);
+
+      // Refresh logs
+      await fetchLogs(meta.limit, false);
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan saat menghapus permanen');
+    } finally {
+      setIsDeletingPermanently(false);
+    }
+  };
+
   // Client-side search & date filter
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
@@ -238,7 +279,7 @@ export default function AuditLog() {
             </span>
           </div>
           <p className="text-on-surface-variant text-sm font-medium">
-            Pantau seluruh aktivitas operasional klinik serta pulihkan (restore) data yang telah dihapus.
+            Pantau seluruh aktivitas operasional klinik, pulihkan data yang dihapus, atau lakukan pembersihan permanen.
           </p>
         </div>
 
@@ -287,6 +328,23 @@ export default function AuditLog() {
           );
         })}
       </div>
+
+      {/* Kebijakan Auto-Cleanup 30 Hari Banner (Khusus di Tab Data Dihapus) */}
+      {activeTab === 'delete' && (
+        <div className="flex items-start gap-3.5 p-4.5 bg-amber-500/10 border border-amber-500/30 rounded-3xl text-xs text-on-surface">
+          <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-black text-amber-900 dark:text-amber-300 text-sm">
+              Kebijakan Pembersihan Otomatis 30 Hari
+            </p>
+            <p className="text-on-surface-variant leading-relaxed text-xs">
+              Data yang telah dihapus akan disimpan selama <strong>30 hari</strong> untuk memberikan kesempatan pemulihan (restore). 
+              Jika tidak dipulihkan dalam 30 hari, sistem secara otomatis akan <strong>menghapusnya secara permanen</strong>. 
+              Anda juga dapat memilih tombol <strong>Hapus Permanen</strong> secara manual jika data sudah tidak lagi dibutuhkan.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Search & Date Filter Box */}
       <div className="bg-surface-container-lowest/80 backdrop-blur-xl border border-surface-container p-6 rounded-3xl shadow-xl space-y-6">
@@ -474,21 +532,44 @@ export default function AuditLog() {
                       </div>
                     </div>
 
-                    {/* Tombol Restore atau Badge Status Pulih */}
+                    {/* Tombol Restore & Hapus Permanen atau Badge Status */}
                     {log.aksi === 'delete' && (
-                      <div className="shrink-0">
+                      <div className="shrink-0 flex flex-wrap items-center gap-2">
                         {log.can_restore ? (
-                          <button
-                            onClick={() => setRestoreModalLog(log)}
-                            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl font-bold text-xs transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Pulihkan Data</span>
-                          </button>
+                          <>
+                            {/* Badge Sisa Hari Auto-Cleanup 30 Hari */}
+                            {log.days_remaining !== null && log.days_remaining !== undefined && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/25">
+                                <Clock className="w-3 h-3" />
+                                {log.days_remaining} hari tersisa
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setRestoreModalLog(log)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl font-bold text-xs transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                              title="Pulihkan data kembali ke sistem"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Pulihkan</span>
+                            </button>
+                            <button
+                              onClick={() => setPermanentDeleteLog(log)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-error/10 hover:bg-error/20 text-error border border-error/30 rounded-xl font-bold text-xs transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                              title="Hapus permanen dari database"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus Permanen</span>
+                            </button>
+                          </>
                         ) : log.is_restored ? (
                           <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl font-bold text-xs">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Sudah Dipulihkan</span>
+                          </span>
+                        ) : log.is_permanently_deleted ? (
+                          <span className="flex items-center gap-1.5 px-3 py-1 bg-surface-container text-on-surface-variant/70 border border-surface-container rounded-xl font-bold text-xs">
+                            <Trash2 className="w-3.5 h-3.5 opacity-60" />
+                            <span>Dihapus Permanen</span>
                           </span>
                         ) : null}
                       </div>
@@ -507,6 +588,14 @@ export default function AuditLog() {
                         (#ID:{log.record_id})
                       </span>
                     </p>
+
+                    {/* Hint sisa waktu 30 hari di subtitle */}
+                    {log.aksi === 'delete' && log.can_restore && log.days_remaining !== null && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Otomatis dihapus permanen dalam {log.days_remaining} hari jika tidak dipulihkan.
+                      </p>
+                    )}
                   </div>
 
                   {/* Render Data Perubahan (Update) */}
@@ -666,6 +755,114 @@ export default function AuditLog() {
                     <>
                       <RotateCcw className="w-4 h-4" />
                       <span>Ya, Pulihkan Sekarang</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL KONFIRMASI HAPUS PERMANEN */}
+      <AnimatePresence>
+        {permanentDeleteLog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-surface-container-lowest border border-error/30 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6"
+            >
+              {/* Header Modal */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-error/10 border border-error/20 flex items-center justify-center text-error">
+                    <Trash2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-on-surface">Hapus Secara Permanen</h3>
+                    <p className="text-xs text-error font-bold">Tindakan ini tidak dapat dibatalkan!</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPermanentDeleteLog(null)}
+                  disabled={isDeletingPermanently}
+                  className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Rincian Data */}
+              <div className="p-4 bg-surface-container-low rounded-2xl border border-surface-container space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-on-surface-variant font-bold uppercase tracking-wider">Tabel Data</span>
+                  <span className="capitalize font-black text-error px-2 py-0.5 bg-error/10 rounded-lg">{permanentDeleteLog.nama_tabel}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-on-surface-variant font-bold uppercase tracking-wider">ID Record</span>
+                  <span className="font-mono font-bold text-on-surface">#{permanentDeleteLog.record_id}</span>
+                </div>
+
+                {/* Preview Snapshot Data */}
+                {permanentDeleteLog.data_lama && (() => {
+                  try {
+                    const parsed = JSON.parse(permanentDeleteLog.data_lama);
+                    return (
+                      <div className="pt-2 border-t border-surface-container space-y-1.5">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Rincian Data yang Dihapus:</p>
+                        <div className="space-y-1 text-xs max-h-36 overflow-y-auto pr-1">
+                          {Object.entries(parsed).map(([k, v]) => (
+                            k !== 'deleted_at' && k !== 'id' && v !== null && (
+                              <div key={k} className="flex justify-between gap-2">
+                                <span className="text-on-surface-variant capitalize text-[11px]">{k.replace(/_/g, ' ')}:</span>
+                                <span className="font-semibold text-on-surface truncate max-w-[220px]" title={String(v)}>{String(v)}</span>
+                              </div>
+                            )
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  } catch {
+                    return null;
+                  }
+                })()}
+              </div>
+
+              {/* Peringatan Bahaya */}
+              <div className="flex items-start gap-2.5 p-3.5 bg-error/10 border border-error/30 rounded-2xl text-xs text-error font-medium">
+                <AlertTriangle className="w-4 h-4 text-error shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  Data ini akan <strong>dihapus seluruhnya dari database</strong>. Anda tidak akan dapat memulihkannya lagi di kemudian hari.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPermanentDeleteLog(null)}
+                  disabled={isDeletingPermanently}
+                  className="flex-1 py-3 px-4 border border-surface-container rounded-2xl text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPermanentDelete}
+                  disabled={isDeletingPermanently}
+                  className="flex-1 py-3 px-4 bg-error hover:bg-error/90 text-white rounded-2xl text-xs font-black shadow-lg shadow-error/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingPermanently ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Menghapus...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Ya, Hapus Permanen</span>
                     </>
                   )}
                 </button>

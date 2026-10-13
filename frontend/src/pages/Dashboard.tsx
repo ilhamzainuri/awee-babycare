@@ -7,10 +7,14 @@ import {
   AlertTriangle, 
   Coffee,
   Search,
-  TrendingUp
+  TrendingUp,
+  Trash2,
+  RotateCcw,
+  ArrowRight
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion'; // Ubah ke 'framer-motion' jika 'motion/react' tidak terinstall
+import { motion } from 'framer-motion';
 
 // Tipe Data
 interface ScheduleData {
@@ -68,6 +72,7 @@ const getLocalDateString = () => {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
 
   const [dailySummary, setDailySummary] = useState({
     omzet: 0,
@@ -297,28 +302,58 @@ export default function Dashboard() {
             {data.alerts.length === 0 ? (
               <p className="text-sm text-on-surface-variant italic">Tidak ada peringatan. Sistem berjalan normal.</p>
             ) : (
-              data.alerts.map((alert: any) => (
-                <motion.div
-                  whileHover={{ x: 4 }} key={alert.id}
-                  className={cn(
-                    "p-4 rounded-3xl border-l-[6px] shadow-sm bg-surface-container-lowest",
-                    alert.type === 'error' ? "border-l-error" : "border-l-secondary-container"
-                  )}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={cn("p-2 rounded-full", alert.type === 'error' ? "bg-error/10 text-error" : "bg-secondary-container/20 text-secondary")}>
-                      <AlertTriangle className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-on-surface text-sm">{alert.title}</h3>
-                        <span className="text-[10px] font-bold text-on-surface-variant uppercase">{alert.time}</span>
+              data.alerts.map((alert: any) => {
+                const isClickable = !!alert.link;
+                const isError = alert.type === 'error';
+                const isWarning = alert.type === 'warning';
+                const isInfo = alert.type === 'info';
+
+                return (
+                  <motion.div
+                    whileHover={{ x: isClickable ? 4 : 0 }}
+                    key={alert.id}
+                    onClick={() => {
+                      if (alert.link) navigate(alert.link);
+                    }}
+                    className={cn(
+                      "p-4 rounded-3xl border-l-[6px] shadow-sm bg-surface-container-lowest transition-all",
+                      isClickable && "cursor-pointer hover:shadow-md",
+                      isError && "border-l-error",
+                      isWarning && "border-l-amber-500",
+                      isInfo && "border-l-emerald-500",
+                      !isError && !isWarning && !isInfo && "border-l-secondary-container"
+                    )}
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className={cn(
+                        "p-2.5 rounded-2xl shrink-0 mt-0.5",
+                        isError && "bg-error/10 text-error",
+                        isWarning && "bg-amber-500/10 text-amber-500",
+                        isInfo && "bg-emerald-500/10 text-emerald-600",
+                        !isError && !isWarning && !isInfo && "bg-secondary-container/20 text-secondary"
+                      )}>
+                        {isError && <AlertTriangle className="w-4 h-4" />}
+                        {isWarning && <Trash2 className="w-4 h-4" />}
+                        {isInfo && <RotateCcw className="w-4 h-4" />}
+                        {!isError && !isWarning && !isInfo && <AlertTriangle className="w-4 h-4" />}
                       </div>
-                      <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{alert.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2 mb-1">
+                          <h3 className="font-bold text-on-surface text-sm truncate">{alert.title}</h3>
+                          <span className="text-[10px] font-bold text-on-surface-variant uppercase shrink-0">{alert.time}</span>
+                        </div>
+                        <p className="text-xs text-on-surface-variant leading-relaxed">{alert.description}</p>
+                        {isClickable && (
+                          <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-primary">
+                            <span>Buka di {alert.link === '/audit-log' ? 'Audit Log' : 'Verifikasi'}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))
+                  </motion.div>
+                );
+              })
             )}
           </div>
         </section>

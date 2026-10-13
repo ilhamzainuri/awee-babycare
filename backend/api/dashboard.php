@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 ini_set('display_errors', 0);
 
 // 2. Panggil koneksi database
-require_once '../config/koneksi.php';
+require_once __DIR__ . '/../config/koneksi.php';
 
 // Gunakan tanggal server hari ini sebagai fallback default
 $hari_ini = date('Y-m-d');
@@ -125,13 +125,71 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
     if ($alerts_db) {
         foreach ($alerts_db as $alert) {
             $alerts[] = [
-                'id' => $alert['id'],
-                'title' => $alert['nama_pasien'] . ' - Mismatch',
+                'id' => 'mismatch-' . $alert['id'],
+                'title' => $alert['nama_pasien'] . ' - Mismatch Pembayaran',
                 'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
-                'description' => "Terdeteksi selisih metode pembayaran pada #TRX-{$alert['id']}. Rencana awal: {$alert['metode_bayar_admin']}, Fakta lapangan: {$alert['metode_bayar_terapis']}.",
-                'type' => 'error'
+                'description' => "Terdeteksi selisih metode bayar pada #TRX-{$alert['id']}. Rencana awal: {$alert['metode_bayar_admin']}, Fakta lapangan: {$alert['metode_bayar_terapis']}.",
+                'type' => 'error',
+                'link' => '/verify'
             ];
         }
+    }
+
+    // Ambil peringatan dari Audit Log (Data terhapus & pemulihan data)
+    try {
+        $stmtAudit = $conn->query("
+            SELECT al.id, al.aksi, al.nama_tabel, al.record_id, al.data_lama, al.created_at,
+                   COALESCE(u.username, 'System') AS user
+            FROM audit_logs al
+            LEFT JOIN users u ON al.user_id = u.id
+            WHERE al.aksi IN ('delete', 'restore')
+            ORDER BY al.created_at DESC
+            LIMIT 5
+        ");
+        $auditLogs = $stmtAudit->fetchAll(PDO::FETCH_ASSOC);
+
+        $allowed_tables = ['therapists', 'services', 'appointments', 'users'];
+
+        foreach ($auditLogs as $al) {
+            $namaEntitas = '';
+            if (!empty($al['data_lama'])) {
+                $parsed = json_decode($al['data_lama'], true);
+                if (is_array($parsed)) {
+                    $namaEntitas = $parsed['nama_layanan'] ?? $parsed['nama_terapis'] ?? $parsed['nama_pasien'] ?? $parsed['username'] ?? '';
+                }
+            }
+            $entityLabel = $namaEntitas ? " \"$namaEntitas\"" : "";
+
+            if ($al['aksi'] === 'delete' && in_array($al['nama_tabel'], $allowed_tables)) {
+                $tbl = $al['nama_tabel'];
+                $chk = $conn->prepare("SELECT id, deleted_at FROM `$tbl` WHERE id = ? LIMIT 1");
+                $chk->execute([$al['record_id']]);
+                $rec = $chk->fetch(PDO::FETCH_ASSOC);
+
+                // Tampilkan sebagai warning jika data masih soft-deleted (belum di-restore)
+                if ($rec && $rec['deleted_at'] !== null) {
+                    $alerts[] = [
+                        'id' => 'audit-del-' . $al['id'],
+                        'title' => ucfirst($al['nama_tabel']) . ' Dihapus' . ($entityLabel ? ": $namaEntitas" : ""),
+                        'time' => date('h:i A', strtotime($al['created_at'])),
+                        'description' => "{$al['user']} menghapus {$al['nama_tabel']}{$entityLabel} (#ID:{$al['record_id']}). Dapat dipulihkan di menu Audit Log.",
+                        'type' => 'warning',
+                        'link' => '/audit-log'
+                    ];
+                }
+            } elseif ($al['aksi'] === 'restore') {
+                $alerts[] = [
+                    'id' => 'audit-res-' . $al['id'],
+                    'title' => ucfirst($al['nama_tabel']) . ' Dipulihkan' . ($entityLabel ? ": $namaEntitas" : ""),
+                    'time' => date('h:i A', strtotime($al['created_at'])),
+                    'description' => "{$al['user']} memulihkan data {$al['nama_tabel']}{$entityLabel} (#ID:{$al['record_id']}).",
+                    'type' => 'info',
+                    'link' => '/audit-log'
+                ];
+            }
+        }
+    } catch (Exception $e) {
+        // Ignore if error querying audit_logs
     }
 
     // ==========================================

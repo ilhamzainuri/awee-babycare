@@ -17,6 +17,7 @@ import {
   FileEdit,
   Trash2,
   RefreshCw,
+  RotateCcw,
   Activity,
   Calendar1,
 
@@ -42,42 +43,58 @@ const navItems = [
 ];
 
 // Helper untuk format UI berdasarkan jenis Aksi
-const getUiConfig = (aksi: string, tabel: string) => {
+const getUiConfig = (aksi: string, tabel: string, dataLama?: string | null, dataBaru?: string | null) => {
+  let entityName = '';
+  try {
+    const raw = dataLama || dataBaru;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      entityName = parsed.nama_layanan || parsed.nama_terapis || parsed.nama_pasien || parsed.username || '';
+    }
+  } catch {}
+
+  const entitySuffix = entityName ? ` "${entityName}"` : '';
+
   switch (aksi) {
     case 'create':
       return {
         action: `Input ${tabel}`,
         icon: CheckCircle2,
-        color: "bg-tertiary-container/10 text-tertiary",
-        descriptionPrefix: "Menambahkan data baru di tabel"
+        color: "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20",
+        title: `Tambah ${tabel}`,
+        subtitle: `Data baru${entitySuffix} ditambahkan`
       };
     case 'update':
       return {
         action: `Update ${tabel}`,
         icon: FileEdit,
-        color: "bg-secondary-container/20 text-secondary",
-        descriptionPrefix: "Memperbarui data di tabel"
+        color: "bg-blue-500/10 text-blue-600 border border-blue-500/20",
+        title: `Update ${tabel}`,
+        subtitle: `Perubahan data${entitySuffix}`
       };
     case 'delete':
       return {
         action: `Hapus ${tabel}`,
         icon: Trash2,
-        color: "bg-error-container/20 text-error",
-        descriptionPrefix: "Menghapus data di tabel"
+        color: "bg-error/10 text-error border border-error/20",
+        title: `Hapus ${tabel}`,
+        subtitle: `Data${entitySuffix} dihapus`
       };
     case 'restore':
       return {
         action: `Restore ${tabel}`,
-        icon: RefreshCw,
-        color: "bg-primary-container/20 text-primary",
-        descriptionPrefix: "Mengembalikan data yang dihapus di tabel"
+        icon: RotateCcw,
+        color: "bg-primary/10 text-primary border border-primary/20",
+        title: `Restore ${tabel}`,
+        subtitle: `Data${entitySuffix} dipulihkan`
       };
     default:
       return {
         action: `Aktivitas ${tabel}`,
         icon: Activity,
-        color: "bg-surface-container text-on-surface",
-        descriptionPrefix: "Aktivitas pada tabel"
+        color: "bg-surface-container text-on-surface border border-surface-container",
+        title: `Aktivitas ${tabel}`,
+        subtitle: `Aktivitas pada ${tabel}`
       };
   }
 };
@@ -253,11 +270,11 @@ export default function Layout({ children }: LayoutProps) {
                   setIsNotificationOpen(!isNotificationOpen);
                   setHasNewNotifications(false); // Hilangkan tanda notifikasi saat dibuka
                 }}
-                className="relative p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all"
+                className="relative p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all cursor-pointer"
               >
-                <Bell className="w-6 h-6" />
-                {hasNewNotifications && (
-                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface-container-lowest animate-pulse" />
+                <Bell className="w-5 h-5" />
+                {hasNewNotifications && recentLogs.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest animate-pulse" />
                 )}
               </button>
 
@@ -275,25 +292,28 @@ export default function Layout({ children }: LayoutProps) {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-surface-container rounded-3xl shadow-2xl z-50 overflow-hidden"
+                      className="absolute right-0 mt-2 w-80 sm:w-88 bg-surface-container-lowest border border-surface-container rounded-3xl shadow-2xl z-50 overflow-hidden"
                     >
                       {/* Header Dropdown */}
-                      <div className="p-4 border-b border-surface-container flex items-center justify-between bg-surface-container-low">
-                        <span className="font-extrabold text-sm text-on-surface">Notifikasi Aktivitas</span>
-                        <span className="text-[10px] bg-primary-container/10 text-primary-container font-black px-2 py-0.5 rounded-full">
-                          LENGKAP
+                      <div className="p-4 border-b border-surface-container flex items-center justify-between bg-surface-container-low/80">
+                        <div className="flex items-center gap-2">
+                          <Bell className="w-4 h-4 text-primary" />
+                          <span className="font-extrabold text-xs text-on-surface uppercase tracking-wider">Notifikasi Aktivitas</span>
+                        </div>
+                        <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
+                          {recentLogs.length} Terbaru
                         </span>
                       </div>
 
                       {/* List Item Dropdown */}
-                      <div className="max-h-[320px] overflow-y-auto divide-y divide-surface-container">
+                      <div className="max-h-[320px] overflow-y-auto divide-y divide-surface-container/60">
                         {recentLogs.length === 0 ? (
                           <div className="p-8 text-center text-xs text-on-surface-variant font-medium">
                             Belum ada aktivitas terbaru.
                           </div>
                         ) : (
                           recentLogs.map((log) => {
-                            const config = getUiConfig(log.aksi, log.nama_tabel);
+                            const config = getUiConfig(log.aksi, log.nama_tabel, log.data_lama, log.data_baru);
                             const Icon = config.icon;
 
                             // Hitung waktu relatif atau sederhana
@@ -304,23 +324,26 @@ export default function Layout({ children }: LayoutProps) {
                                 key={log.id}
                                 to="/audit-log"
                                 onClick={() => setIsNotificationOpen(false)}
-                                className="flex gap-3 p-4 hover:bg-surface-container-low transition-all text-left"
+                                className="flex items-start gap-3 p-3.5 hover:bg-surface-container-low transition-all text-left group"
                               >
-                                <div className={cn("w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs", config.color)}>
-                                  <Icon className="w-4 h-4" />
+                                <div className={cn("w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-xs mt-0.5", config.color)}>
+                                  <Icon className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                                    <span className="text-xs font-black text-on-surface capitalize truncate">
-                                      {log.user}
+                                  <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                                    <span className="text-xs font-bold text-on-surface truncate group-hover:text-primary transition-colors">
+                                      {config.title}
                                     </span>
-                                    <span className="text-[9px] font-bold text-on-surface-variant shrink-0">
+                                    <span className="text-[9px] font-semibold text-on-surface-variant shrink-0">
                                       {logTime}
                                     </span>
                                   </div>
-                                  <p className="text-[11px] text-on-surface-variant font-medium leading-normal line-clamp-2">
-                                    {config.descriptionPrefix} <span className="font-bold capitalize">{log.nama_tabel}</span> (#ID:{log.record_id})
+                                  <p className="text-[11px] text-on-surface-variant truncate font-medium">
+                                    {config.subtitle}
                                   </p>
+                                  <span className="text-[9px] text-on-surface-variant/70 font-medium">
+                                    Oleh <strong className="font-semibold text-on-surface-variant">{log.user}</strong>
+                                  </span>
                                 </div>
                               </NavLink>
                             );
@@ -332,9 +355,9 @@ export default function Layout({ children }: LayoutProps) {
                       <NavLink
                         to="/audit-log"
                         onClick={() => setIsNotificationOpen(false)}
-                        className="block w-full py-3.5 bg-surface-container text-center text-xs font-bold text-primary hover:bg-surface-container-high transition-all border-t border-surface-container"
+                        className="block w-full py-3 bg-surface-container text-center text-xs font-bold text-primary hover:bg-surface-container-high transition-all border-t border-surface-container"
                       >
-                        Lihat Seluruh Audit Log
+                        Buka Semua Audit Log →
                       </NavLink>
                     </motion.div>
                   </>
