@@ -25,9 +25,10 @@ export default function Reservation() {
     id_therapist: '', waktu_reservasi: '', metode_bayar_admin: 'Cash'
   });
 
-  // Array untuk Multi-Service / Treatments
-  const [treatments, setTreatments] = useState([{ id: Date.now(), id_service: '' }]);
-  const [globalKategoriId, setGlobalKategoriId] = useState<string>('');
+  // Array untuk Multi-Service / Treatments (setiap item memiliki kategori dan layanan tersendiri)
+  const [treatments, setTreatments] = useState<{ id: number; kategori_id: string; id_service: string }[]>([
+    { id: Date.now(), kategori_id: '', id_service: '' }
+  ]);
 
   // Ambil Data Master saat komponen dimuat
   useEffect(() => {
@@ -64,17 +65,15 @@ export default function Reservation() {
   };
 
   // Treatment Handlers
-  const addTreatment = () => setTreatments([...treatments, { id: Date.now(), id_service: '' }]);
+  const addTreatment = () => setTreatments([...treatments, { id: Date.now(), kategori_id: '', id_service: '' }]);
   const removeTreatment = (id: number) => {
     if (treatments.length > 1) setTreatments(treatments.filter(t => t.id !== id));
   };
-  const updateTreatment = (id: number, id_service: string) => {
-    setTreatments(treatments.map(t => t.id === id ? { ...t, id_service } : t));
+  const updateTreatmentCategory = (id: number, kategori_id: string) => {
+    setTreatments(treatments.map(t => t.id === id ? { ...t, kategori_id, id_service: '' } : t));
   };
-  const handleGlobalKategoriChange = (value: string) => {
-    setGlobalKategoriId(value);
-    // Reset all treatments' selected service
-    setTreatments(treatments.map(t => ({ ...t, id_service: '' })));
+  const updateTreatmentService = (id: number, id_service: string) => {
+    setTreatments(treatments.map(t => t.id === id ? { ...t, id_service } : t));
   };
 
   // Submit Handler
@@ -121,12 +120,11 @@ export default function Reservation() {
         setMessage({ type: 'success', text: result.message });
         // Reset Form setelah sukses
         setFormData({
-          nama_pasien: '', usia_saat_ini: '', bb_saat_ini: '', jenis_kelamin: '',
+          nama_pasien: '', usia_saat_ini: '', bb_saat_ini: '', jenis_kelamin: 'Laki-laki',
           no_hp_ortu: '', link_shareloc: '', alamat_lengkap: '', keluhan_awal: '',
           id_therapist: '', waktu_reservasi: '', metode_bayar_admin: 'Cash'
         });
-        setTreatments([{ id: Date.now(), id_service: '' }]);
-        setGlobalKategoriId('');
+        setTreatments([{ id: Date.now(), kategori_id: '', id_service: '' }]);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setMessage({ type: 'error', text: result.message });
@@ -254,47 +252,52 @@ export default function Reservation() {
           </div>
 
           <div className="space-y-6">
-              {/* Dropdown Kategori Layanan Global */}
-              <div className="space-y-2 max-w-xs">
-                 <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Pilih Kategori (Reservasi)</label>
-                 <div className="relative">
-                    <select required value={globalKategoriId} onChange={(e) => handleGlobalKategoriChange(e.target.value)} className="w-full appearance-none px-4 py-3 bg-surface-container border border-surface-container-highest rounded-xl text-sm font-bold focus:ring-2 focus:ring-tertiary outline-none cursor-pointer">
-                       <option value="">-- Pilih Kategori --</option>
-                       {categories.map(c => (
-                          <option key={c.id} value={c.id}>{c.nama_kategori}</option>
-                       ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
-                 </div>
-              </div>
-
               <AnimatePresence mode="popLayout">
                  {treatments.map((t, index) => (
                     <motion.div layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} key={t.id} className="p-4 md:p-6 bg-surface-container-low rounded-[2rem] border border-surface-container relative group transition-all">
-                       <button type="button" onClick={() => removeTreatment(t.id)} className="absolute top-4 right-4 p-2 text-on-surface-variant hover:text-error hover:bg-error-container/30 rounded-full transition-all md:opacity-0 group-hover:opacity-100">
-                          <X className="w-4 h-4" />
-                       </button>
+                       {treatments.length > 1 && (
+                         <button type="button" onClick={() => removeTreatment(t.id)} className="absolute top-4 right-4 p-2 text-on-surface-variant hover:text-error hover:bg-error-container/30 rounded-full transition-all md:opacity-0 group-hover:opacity-100" title="Hapus Layanan">
+                            <X className="w-4 h-4" />
+                         </button>
+                       )}
  
-                       <div className="pr-8 space-y-2">
-                          <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Pilih Layanan {index + 1}</label>
-                          <div className="relative">
-                             <select required value={t.id_service} onChange={(e) => updateTreatment(t.id, e.target.value)} disabled={!globalKategoriId} className="w-full appearance-none px-4 py-3 bg-surface-container-lowest border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-tertiary outline-none cursor-pointer disabled:opacity-50">
-                                <option value="" disabled>
-                                   {globalKategoriId ? "Pilih Layanan..." : "Silakan Pilih Kategori Terlebih Dahulu"}
-                                </option>
-                                {services
-                                   .filter(s => s.kategori_id !== null && s.kategori_id.toString() === globalKategoriId)
-                                   .map(s => (
-                                     <option key={s.id} value={s.id}>
-                                        {s.nama_layanan} - Rp {Number(s.harga_saat_ini).toLocaleString('id-ID')}
-                                     </option>
-                                  ))
-                               }
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
-                         </div>
-                      </div>
-                   </motion.div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-6 sm:pr-8">
+                          {/* Dropdown Kategori per Item */}
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Kategori Layanan {index + 1}</label>
+                             <div className="relative">
+                                <select required value={t.kategori_id} onChange={(e) => updateTreatmentCategory(t.id, e.target.value)} className="w-full appearance-none px-4 py-3 bg-surface-container-lowest border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-tertiary outline-none cursor-pointer">
+                                   <option value="">-- Pilih Kategori --</option>
+                                   {categories.map(c => (
+                                      <option key={c.id} value={c.id}>{c.nama_kategori}</option>
+                                   ))}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+                             </div>
+                          </div>
+
+                          {/* Dropdown Layanan per Item */}
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Pilih Layanan {index + 1}</label>
+                             <div className="relative">
+                                <select required value={t.id_service} onChange={(e) => updateTreatmentService(t.id, e.target.value)} disabled={!t.kategori_id} className="w-full appearance-none px-4 py-3 bg-surface-container-lowest border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-tertiary outline-none cursor-pointer disabled:opacity-50">
+                                   <option value="" disabled>
+                                      {t.kategori_id ? "Pilih Layanan..." : "Pilih Kategori Terlebih Dahulu"}
+                                   </option>
+                                   {services
+                                      .filter(s => s.kategori_id !== null && s.kategori_id.toString() === t.kategori_id)
+                                      .map(s => (
+                                         <option key={s.id} value={s.id}>
+                                            {s.nama_layanan} - Rp {Number(s.harga_saat_ini).toLocaleString('id-ID')}
+                                         </option>
+                                      ))
+                                   }
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+                             </div>
+                          </div>
+                       </div>
+                    </motion.div>
                  ))}
               </AnimatePresence>
 
