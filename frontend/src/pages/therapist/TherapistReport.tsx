@@ -266,15 +266,56 @@ export default function TherapistReport() {
       });
     };
 
+  // Helper untuk detail waktu / periode berdasarkan filter
+  const getPeriodLabel = () => {
+    const now = new Date();
+    switch (activeFilter) {
+      case 'Daily':
+        return now.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+      case 'Weekly': {
+        const startWeek = new Date(now);
+        startWeek.setDate(now.getDate() - 7);
+        const startStr = startWeek.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        const endStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        return `${startStr} - ${endStr} (7 Hari Terakhir)`;
+      }
+      case 'Monthly':
+        return now.toLocaleDateString('id-ID', {
+          month: 'long',
+          year: 'numeric'
+        });
+      case 'Yearly':
+        return `Tahun ${now.getFullYear()}`;
+      case 'Custom': {
+        if (!startDate || !endDate) return 'Rentang Kustom';
+        const s = new Date(startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        const e = new Date(endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        return `${s} - ${e}`;
+      }
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12 relative">
       {/* Header & Export */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
-                <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">Financial & Activity Reports</h1>
-                <p className="text-on-surface-variant mt-1">Overview of clinic revenue, reservations, and staff performance.</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+        <div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">Financial & Activity Reports</h1>
+            <span className="px-3.5 py-1 bg-primary-container/20 text-primary-container border border-primary-container/30 text-xs font-black rounded-full flex items-center gap-1.5 shadow-sm">
+              <Calendar className="w-3.5 h-3.5" /> {getPeriodLabel()}
+            </span>
+          </div>
+          <p className="text-on-surface-variant mt-1">Overview of clinic revenue, reservations, and staff performance for periode <strong className="text-on-surface">{getPeriodLabel()}</strong>.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                 {/* Tombol Export Excel */}
                 <button
                   onClick={handleExportExcel}
@@ -364,7 +405,9 @@ export default function TherapistReport() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-on-surface tracking-tight">Laporan Keuangan Saya</h3>
-                  <p className="text-sm text-on-surface-variant">Ikhtisar omzet layanan dan komisi bersih Anda</p>
+                  <p className="text-sm text-on-surface-variant flex items-center gap-1.5 mt-0.5">
+                    Periode: <span className="font-bold text-primary-container">{getPeriodLabel()}</span>
+                  </p>
                 </div>
                 <div className="p-2 bg-primary-container/10 text-primary-container rounded-2xl"><Landmark className="w-6 h-6" /></div>
               </div>

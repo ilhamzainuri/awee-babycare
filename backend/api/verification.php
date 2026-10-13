@@ -21,11 +21,12 @@ try {
                             a.*, 
                             t.nama_terapis AS therapist,
                             t.no_whatsapp AS therapist_phone,
-                            s.nama_layanan AS service_name
+                            (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ')
+                             FROM appointment_details ad
+                             JOIN services s ON ad.id_service = s.id
+                             WHERE ad.id_appointment = a.id AND ad.deleted_at IS NULL) AS service_name
                         FROM appointments a
                         JOIN therapists t ON a.id_therapist = t.id
-                        LEFT JOIN appointment_details ad ON a.id = ad.id_appointment
-                        LEFT JOIN services s ON ad.id_service = s.id
                         WHERE a.id = ? LIMIT 1";
                 
                 $stmt = $conn->prepare($sql);

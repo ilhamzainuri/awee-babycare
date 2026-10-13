@@ -441,19 +441,30 @@ export default function Verification() {
 
                 {/* 2. Layanan & Penugasan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container space-y-2">
+                  <div className="bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container space-y-2 min-w-0">
                     <h3 className="font-bold flex items-center gap-2 text-secondary">
-                      <Layers className="w-4 h-4" /> Layanan Medis
+                      <Layers className="w-4 h-4 shrink-0" /> Layanan Medis
                     </h3>
-                    <p className="text-base font-bold text-on-surface bg-surface-container px-3 py-1.5 rounded-xl w-max">
-                      {selectedAppointment.service_name || 'Tidak diketahui'}
-                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {selectedAppointment.service_name ? (
+                        selectedAppointment.service_name.split('+').map((srv, idx) => (
+                          <span
+                            key={idx}
+                            className="text-sm font-bold text-on-surface bg-surface-container px-3 py-1.5 rounded-xl border border-surface-container-high/60 inline-block break-words max-w-full"
+                          >
+                            {srv.trim()}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm font-semibold text-on-surface-variant">Tidak diketahui</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container space-y-2">
+                  <div className="bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container space-y-2 min-w-0">
                     <h3 className="font-bold flex items-center gap-2 text-secondary">
-                      <User className="w-4 h-4" /> Terapis Bertugas
+                      <User className="w-4 h-4 shrink-0" /> Terapis Bertugas
                     </h3>
-                    <p className="text-base font-bold text-on-surface">{selectedAppointment.therapist}</p>
+                    <p className="text-base font-bold text-on-surface break-words pt-1">{selectedAppointment.therapist}</p>
                   </div>
                 </div>
 
