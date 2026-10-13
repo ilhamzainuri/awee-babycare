@@ -42,11 +42,13 @@ interface ActiveSchedule {
   address: string;
   raw_address?: string;
   jenis_layanan?: string;
-  status: 'Pending' | 'Confirmed' | 'On Process';
+  status: 'Pending' | 'Confirmed' | 'On Process' | 'Selesai' | 'Dibatalkan' | string;
+  status_db?: string;
   phone?: string;
   mapLink?: string;
   complaint?: string;
   waktu_reservasi?: string;
+  waktu_reservasi_raw?: string;
   usia?: string;
   bb?: string;
   services?: string;
@@ -74,18 +76,22 @@ export default function TherapistDashboard() {
 
   // State Modal Semua Jadwal
   const [isAllSchedulesOpen, setIsAllSchedulesOpen] = useState(false);
-    const [allSchedules, setAllSchedules] = useState<any[]>([]);
-    const [isLoadingAll, setIsLoadingAll] = useState(false);
-    const [scheduleTab, setScheduleTab] = useState<'upcoming' | 'all'>('upcoming'); 
-    const [selectedDetail, setSelectedDetail] = useState<any>(null);
-  
-    const navigate = useNavigate();
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost/awee-babycare/backend/api';
-    const apiUrl = `${baseUrl}/therapist_dashboard.php`;
+  const [allSchedules, setAllSchedules] = useState<any[]>([]);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+  const [scheduleTab, setScheduleTab] = useState<'upcoming' | 'all'>('upcoming'); 
+  const [selectedDetail, setSelectedDetail] = useState<any>(null);
+
+  // State Filter Tanggal Jadwal (Default Hari Ini)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [activeDate, setActiveDate] = useState<string>(todayStr);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+
+  const navigate = useNavigate();
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost/awee-babycare/backend/api';
+  const apiUrl = `${baseUrl}/therapist_dashboard.php`;
 
   // 1. Fetch Dashboard Utama
-  
-const fetchTherapistData = async (start = '', end = '') => {
+  const fetchTherapistData = async (start = '', end = '', targetDate = activeDate) => {
     try {
       if (!start && !end) setIsLoading(true);
       setError(null);
@@ -95,7 +101,7 @@ const fetchTherapistData = async (start = '', end = '') => {
       const user = JSON.parse(sessionStr);
       if (!user.id) throw new Error('ID User tidak valid di dalam sesi.');
 
-      let url = `${apiUrl}?user_id=${user.id}`;
+      let url = `${apiUrl}?user_id=${user.id}&date=${targetDate}`;
       if (start && end) {
         url += `&start_date=${start}&end_date=${end}`;
       }
@@ -114,6 +120,7 @@ const fetchTherapistData = async (start = '', end = '') => {
       setError(err.message);
     } finally {
       setIsLoading(false);
+      setIsLoadingSchedules(false);
     }
   };
 
@@ -122,10 +129,21 @@ const fetchTherapistData = async (start = '', end = '') => {
   }, [apiUrl]);
 
   useEffect(() => {
-      if (commissionRange === 'custom' && customStartDate && customEndDate) {
-        fetchTherapistData(customStartDate, customEndDate);
-      }
-    }, [customStartDate, customEndDate, commissionRange]);
+    if (activeDate) {
+      setIsLoadingSchedules(true);
+      fetchTherapistData(
+        commissionRange === 'custom' ? customStartDate : '',
+        commissionRange === 'custom' ? customEndDate : '',
+        activeDate
+      );
+    }
+  }, [activeDate]);
+
+  useEffect(() => {
+    if (commissionRange === 'custom' && customStartDate && customEndDate) {
+      fetchTherapistData(customStartDate, customEndDate, activeDate);
+    }
+  }, [customStartDate, customEndDate, commissionRange]);
     
   // 2. Fetch Semua Jadwal
   useEffect(() => {
@@ -193,6 +211,33 @@ const fetchTherapistData = async (start = '', end = '') => {
 
   const openReportModal = () => {
     navigate('/therapist/submit-report', { state: { selectedDetail } });
+  };
+
+  // Cek apakah jadwal sudah bisa dimulai (±60 menit sebelum waktu reservasi)
+  const canStartSchedule = (detail: ActiveSchedule | null): boolean => {
+    if (!detail) return false;
+    const rawTime = detail.waktu_reservasi_raw || detail.time;
+    if (!rawTime) return true;
+    const scheduleTime = new Date(rawTime.replace(' ', 'T'));
+    const now = new Date();
+    const diffMinutes = (scheduleTime.getTime() - now.getTime()) / 60000;
+    // Bisa dimulai jika waktunya sudah lewat atau dalam 60 menit ke depan
+    return diffMinutes <= 60;
+  };
+
+  const getStartBlockMessage = (detail: ActiveSchedule | null): string => {
+    if (!detail) return '';
+    const rawTime = detail.waktu_reservasi_raw || detail.time;
+    if (!rawTime) return '';
+    const scheduleTime = new Date(rawTime.replace(' ', 'T'));
+    const now = new Date();
+    const diffMinutes = Math.ceil((scheduleTime.getTime() - now.getTime()) / 60000);
+    if (diffMinutes > 60) {
+      const jam = Math.floor(diffMinutes / 60);
+      const mnt = diffMinutes % 60;
+      return `Layanan baru bisa dimulai ${jam > 0 ? jam + ' jam ' : ''}${mnt > 0 ? mnt + ' menit ' : ''}lagi (terjadwal: ${scheduleTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})`;
+    }
+    return '';
   };
 
   if (isLoading) return <div className="flex h-64 items-center justify-center"><div className="text-on-surface-variant font-bold animate-pulse text-sm">Menyelaraskan Tugas Hari Ini...</div></div>;
@@ -280,27 +325,73 @@ const fetchTherapistData = async (start = '', end = '') => {
       {/* MAIN CONTENT SPLIT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* DAFTAR JADWAL HARI INI */}
+        {/* DAFTAR JADWAL BERDASARKAN TANGGAL */}
         <section className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-black text-on-surface">Jadwal Kunjungan Hari Ini</h2>
+              <div>
+                <h2 className="text-lg font-black text-on-surface">
+                  {activeDate === todayStr ? 'Jadwal Kunjungan Hari Ini' : 'Jadwal Kunjungan'}
+                </h2>
+                <p className="text-[11px] text-on-surface-variant font-bold">
+                  {new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </p>
+              </div>
             </div>
-            <button onClick={() => setIsAllSchedulesOpen(true)} className="text-[11px] text-primary font-bold hover:underline flex items-center gap-1 bg-primary/5 px-3 py-1.5 rounded-full transition-all">
-              Semua Jadwal <ChevronRight className="w-3 h-3" />
-            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Filter Tanggal Seperti Admin */}
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+                <input
+                  type="date"
+                  value={activeDate}
+                  onChange={(e) => setActiveDate(e.target.value)}
+                  className="pl-9 pr-3 py-1.5 bg-surface-container-lowest border border-surface-container rounded-xl text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary outline-none cursor-pointer shadow-sm hover:border-primary/40 transition-all"
+                  title="Pilih Tanggal Jadwal"
+                />
+              </div>
+
+              {activeDate !== todayStr && (
+                <button
+                  onClick={() => setActiveDate(todayStr)}
+                  className="text-[11px] text-primary font-bold bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl transition-all"
+                >
+                  Hari Ini
+                </button>
+              )}
+
+              <button onClick={() => setIsAllSchedulesOpen(true)} className="text-[11px] text-primary font-bold hover:underline flex items-center gap-1 bg-primary/5 px-3 py-1.5 rounded-full transition-all shrink-0">
+                Semua Jadwal <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {schedules.length === 0 ? (
+            {isLoadingSchedules ? (
+              <div className="col-span-2 bg-surface-container-lowest border border-surface-container p-8 text-center rounded-3xl text-sm text-on-surface-variant animate-pulse font-bold">
+                Memuat jadwal untuk tanggal terpilih...
+              </div>
+            ) : schedules.length === 0 ? (
               <div className="col-span-2 bg-surface-container-lowest border border-dashed border-surface-container p-8 text-center rounded-3xl text-sm text-on-surface-variant italic">
-                Tidak ada jadwal kunjungan tersisa untuk hari ini.
+                Tidak ada jadwal kunjungan untuk tanggal {new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
               </div>
             ) : (
               schedules.map((schedule, index) => (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05 }} key={schedule.id} className="bg-surface-container-lowest border border-surface-container rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                  <div className={cn("absolute top-0 left-0 right-0 h-1.5", schedule.status === 'On Process' && "bg-warning", schedule.status === 'Confirmed' && "bg-primary", schedule.status === 'Pending' && "bg-outline")} />
+                  <div className={cn("absolute top-0 left-0 right-0 h-1.5",
+                    schedule.status === 'On Process' && "bg-warning",
+                    schedule.status === 'Confirmed' && "bg-primary",
+                    schedule.status === 'Pending' && "bg-outline",
+                    schedule.status === 'Selesai' && "bg-emerald-500",
+                    schedule.status === 'Dibatalkan' && "bg-red-400"
+                  )} />
                   <div>
                     <div className="flex justify-between items-start mb-3">
                       <span className="text-[10px] font-extrabold text-on-surface-variant tracking-wide bg-surface-container px-2 py-1 rounded-md flex items-center gap-1"><Clock className="w-3 h-3" /> {schedule.time}</span>
@@ -317,7 +408,14 @@ const fetchTherapistData = async (start = '', end = '') => {
                             {schedule.jenis_layanan}
                           </span>
                         )}
-                        <span className={cn("text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md", schedule.status === 'On Process' && "bg-warning-container/30 text-warning", schedule.status === 'Confirmed' && "bg-primary-container/20 text-primary", schedule.status === 'Pending' && "bg-surface-container text-on-surface-variant")}>
+                        <span className={cn(
+                          "text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md",
+                          schedule.status === 'On Process' && "bg-warning-container/30 text-warning",
+                          schedule.status === 'Confirmed' && "bg-primary-container/20 text-primary",
+                          schedule.status === 'Pending' && "bg-surface-container text-on-surface-variant",
+                          schedule.status === 'Selesai' && "bg-emerald-100 text-emerald-700",
+                          schedule.status === 'Dibatalkan' && "bg-red-100 text-red-600"
+                        )}>
                           {schedule.status}
                         </span>
                       </div>
@@ -545,10 +643,39 @@ const fetchTherapistData = async (start = '', end = '') => {
 
               {/* Action Buttons Terapis */}
               <div className="p-5 border-t border-surface-container bg-surface-container-low rounded-b-3xl shrink-0 flex flex-col gap-3">
-                {selectedDetail.status === 'Pending' || selectedDetail.status === 'Menunggu' ? (
-                  <button onClick={openStartModal} className="w-full bg-primary hover:bg-primary/90 text-on-primary text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30">
-                    <Activity className="w-5 h-5"/> Mulai Layanan Sekarang
-                  </button>
+                {selectedDetail.status === 'Selesai' || selectedDetail.status_db === 'Selesai' ? (
+                  <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl text-center flex flex-col items-center gap-1.5">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                    <p className="text-sm font-bold text-emerald-700">Layanan Telah Selesai</p>
+                    <p className="text-xs text-emerald-600/80">Laporan sudah dikirim untuk jadwal ini.</p>
+                  </div>
+                ) : selectedDetail.status === 'Dibatalkan' || selectedDetail.status_db === 'Dibatalkan' ? (
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-2xl text-center">
+                    <p className="text-sm font-bold text-red-600">Reservasi Dibatalkan</p>
+                  </div>
+                ) : selectedDetail.status === 'Pending' || selectedDetail.status === 'Menunggu' ? (
+                  <>
+                    {!canStartSchedule(selectedDetail) && (
+                      <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-xs font-semibold text-amber-700">{getStartBlockMessage(selectedDetail)}</p>
+                      </div>
+                    )}
+                    <button
+                      onClick={canStartSchedule(selectedDetail) ? openStartModal : undefined}
+                      disabled={!canStartSchedule(selectedDetail)}
+                      title={!canStartSchedule(selectedDetail) ? getStartBlockMessage(selectedDetail) : ''}
+                      className={cn(
+                        "w-full text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2",
+                        canStartSchedule(selectedDetail)
+                          ? "bg-primary hover:bg-primary/90 text-on-primary shadow-lg shadow-primary/30 active:scale-[0.98]"
+                          : "bg-on-surface/10 text-on-surface/30 cursor-not-allowed"
+                      )}
+                    >
+                      <Activity className="w-5 h-5"/>
+                      {canStartSchedule(selectedDetail) ? 'Mulai Layanan Sekarang' : 'Belum Saatnya Dimulai'}
+                    </button>
+                  </>
                 ) : selectedDetail.status === 'On Process' || selectedDetail.status === 'Diproses' ? (
                   <button onClick={openReportModal} className="w-full bg-success hover:bg-success/90 text-on-primary text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-success/30">
                     <CheckCircle2 className="w-5 h-5"/> Isi Laporan Selesai

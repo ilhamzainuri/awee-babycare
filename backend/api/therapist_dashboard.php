@@ -21,6 +21,7 @@ if (!isset($_GET['user_id']) || empty($_GET['user_id'])) {
 }
 
 $user_id = (int)$_GET['user_id'];
+$filter_date = isset($_GET['date']) && !empty($_GET['date']) ? $_GET['date'] : date('Y-m-d');
 $hari_ini = date('Y-m-d');
 
 try {
@@ -88,32 +89,61 @@ try {
     }
 
     // ========================================================
-    // BAGIAN 3: DAFTAR JADWAL KUNJUNGAN HARI INI KE DEPAN
-    // ========================================================
-    $stmtSched = $conn->prepare("
-        SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
-               no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
-               (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
-                FROM appointment_details ad 
-                JOIN services s ON ad.id_service = s.id 
-                WHERE ad.id_appointment = appointments.id) as rincian_layanan,
-               (SELECT GROUP_CONCAT(DISTINCT k.nama_kategori SEPARATOR ' + ')
-                FROM appointment_details ad
-                JOIN services s ON ad.id_service = s.id
-                LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
-                WHERE ad.id_appointment = appointments.id) as kategori_layanan
-        FROM appointments 
-        WHERE id_therapist = :id 
-          AND DATE(waktu_reservasi) >= :hari_ini
-          AND status_jadwal NOT IN ('Selesai', 'Dibatalkan')
-          AND deleted_at IS NULL
-        ORDER BY waktu_reservasi ASC
-    ");
-    $stmtSched->execute([':id' => $therapist_id, ':hari_ini' => $hari_ini]);
+    // Jika mode all_on_process, ambil semua jadwal On Process tanpa filter tanggal
+    $all_on_process = isset($_GET['all_on_process']) && $_GET['all_on_process'] == '1';
+
+    if ($all_on_process) {
+        $stmtSched = $conn->prepare("
+            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+                   no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
+                   (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
+                    FROM appointment_details ad 
+                    JOIN services s ON ad.id_service = s.id 
+                    WHERE ad.id_appointment = appointments.id) as rincian_layanan,
+                   (SELECT GROUP_CONCAT(DISTINCT k.nama_kategori SEPARATOR ' + ')
+                    FROM appointment_details ad
+                    JOIN services s ON ad.id_service = s.id
+                    LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
+                    WHERE ad.id_appointment = appointments.id) as kategori_layanan
+            FROM appointments 
+            WHERE id_therapist = :id 
+              AND status_jadwal = 'Diproses'
+              AND deleted_at IS NULL
+            ORDER BY waktu_reservasi ASC
+        ");
+        $stmtSched->execute([':id' => $therapist_id]);
+    } else {
+        $stmtSched = $conn->prepare("
+            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+                   no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
+                   (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
+                    FROM appointment_details ad 
+                    JOIN services s ON ad.id_service = s.id 
+                    WHERE ad.id_appointment = appointments.id) as rincian_layanan,
+                   (SELECT GROUP_CONCAT(DISTINCT k.nama_kategori SEPARATOR ' + ')
+                    FROM appointment_details ad
+                    JOIN services s ON ad.id_service = s.id
+                    LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
+                    WHERE ad.id_appointment = appointments.id) as kategori_layanan
+            FROM appointments 
+            WHERE id_therapist = :id 
+              AND DATE(waktu_reservasi) = :filter_date
+              AND deleted_at IS NULL
+            ORDER BY waktu_reservasi ASC
+        ");
+        $stmtSched->execute([':id' => $therapist_id, ':filter_date' => $filter_date]);
+    }
     
     $schedules = [];
     while ($row = $stmtSched->fetch(PDO::FETCH_ASSOC)) {
-        $ui_status = ($row['status_jadwal'] === 'Diproses') ? 'On Process' : 'Pending';
+        // Peta semua status DB ke label UI
+        $status_map = [
+            'Menunggu'   => 'Pending',
+            'Diproses'   => 'On Process',
+            'Selesai'    => 'Selesai',
+            'Dibatalkan' => 'Dibatalkan',
+        ];
+        $ui_status = $status_map[$row['status_jadwal']] ?? 'Pending';
 
         $kat_str = strtolower($row['kategori_layanan'] ?? '');
         $has_outlet = (strpos($kat_str, 'outlet') !== false);
@@ -146,7 +176,9 @@ try {
             "phone" => $row['no_hp_ortu'],
             "mapLink" => $row['link_shareloc'],
             "complaint" => $row['keluhan_awal'],
-            "services" => $row['rincian_layanan']
+            "services"             => $row['rincian_layanan'],
+            "waktu_reservasi_raw" => $row['waktu_reservasi'],
+            "status_db"           => $row['status_jadwal']
         ];
     }
 

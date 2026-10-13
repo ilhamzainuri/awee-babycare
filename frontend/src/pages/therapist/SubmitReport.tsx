@@ -30,11 +30,12 @@ export default function SubmitReport() {
         if (!sessionStr) throw new Error('Sesi tidak valid');
         const user = JSON.parse(sessionStr);
 
-        const response = await fetch(`${baseUrl}/therapist_dashboard.php?user_id=${user.id}`);
+        // Gunakan mode all_on_process=1 agar semua jadwal berstatus On Process lintas tanggal terambil
+        const response = await fetch(`${baseUrl}/therapist_dashboard.php?user_id=${user.id}&all_on_process=1`);
         const result = await response.json();
         
         if (result.status === 200 && result.data.schedules) {
-          // Laporan Selesai hanya untuk jadwal yang sedang On Process
+          // Backend sudah filter Diproses, frontend hanya perlu filter status On Process
           const validSchedules = result.data.schedules.filter((s: any) => s.status === 'On Process');
           setSchedules(validSchedules);
 
@@ -243,19 +244,28 @@ export default function SubmitReport() {
 
           </div>
 
-          <div className="p-6 border-t border-surface-container bg-surface-container-low">
+          <div className="p-6 border-t border-surface-container bg-surface-container-low space-y-3">
+            {(schedules.length === 0 || selectedScheduleId === '') && !isSubmittingReport && (
+              <p className="text-xs text-center text-on-surface-variant font-medium bg-surface-container px-4 py-2.5 rounded-xl border border-surface-container-high">
+                {schedules.length === 0
+                  ? 'Tidak ada jadwal aktif — tombol tidak tersedia.'
+                  : 'Pilih jadwal pasien terlebih dahulu untuk mengaktifkan tombol.'}
+              </p>
+            )}
             <button 
               type="submit" 
               disabled={isSubmittingReport || schedules.length === 0 || selectedScheduleId === ''} 
               className={cn(
-                "w-full text-white text-base font-black py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg",
-                (isSubmittingReport || schedules.length === 0 || selectedScheduleId === '') ? "bg-surface-container-highest cursor-not-allowed shadow-none" : "bg-success hover:bg-success/90 shadow-success/30"
+                "w-full font-black py-4 px-4 rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 text-sm",
+                (isSubmittingReport || schedules.length === 0 || selectedScheduleId === '')
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-[#16a34a] text-white hover:bg-[#15803d] active:scale-[0.98] shadow-lg hover:shadow-xl"
               )}
             >
               {isSubmittingReport ? (
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               ) : (
-                <><Check className="w-6 h-6"/> Kirim Laporan & Selesai</>
+                <><Check className="w-5 h-5"/> Kirim Laporan &amp; Selesai</>
               )}
             </button>
           </div>
