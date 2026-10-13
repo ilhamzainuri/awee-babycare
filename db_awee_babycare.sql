@@ -137,7 +137,6 @@ CREATE TABLE `services` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `kategori_id` bigint(10) NOT NULL,
   `nama_layanan` varchar(150) NOT NULL,
-  `type_layanan` enum('On Klinik','Homecare') DEFAULT NULL,
   `harga_saat_ini` decimal(12,2) NOT NULL,
   `persentase_komisi` decimal(5,2) NOT NULL COMMENT 'Format persentase misal 50.00 untuk 50%',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -149,10 +148,10 @@ CREATE TABLE `services` (
 -- Dumping data for table `services`
 --
 
-INSERT INTO `services` (`id`, `kategori_id`, `nama_layanan`, `type_layanan`, `harga_saat_ini`, `persentase_komisi`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(2, 1, 'Pijat laktasi+Oksitosin', '', 140000.00, 40.00, '2026-07-11 12:07:06', '2026-07-11 12:07:06', NULL),
-(3, 2, 'Pijat laktasi+Oksitosin', '', 150000.00, 50.00, '2026-07-11 12:07:25', '2026-07-11 12:07:25', NULL),
-(4, 3, 'Baby Massage Immune Booster U 0-2 Tahu', '', 55000.00, 30.00, '2026-07-11 12:09:09', '2026-07-11 12:09:09', NULL);
+INSERT INTO `services` (`id`, `kategori_id`, `nama_layanan`, `harga_saat_ini`, `persentase_komisi`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(2, 1, 'Pijat laktasi+Oksitosin', 140000.00, 40.00, '2026-07-11 12:07:06', '2026-07-11 12:07:06', NULL),
+(3, 2, 'Pijat laktasi+Oksitosin', 150000.00, 50.00, '2026-07-11 12:07:25', '2026-07-11 12:07:25', NULL),
+(4, 3, 'Baby Massage Immune Booster U 0-2 Tahu', 55000.00, 30.00, '2026-07-11 12:09:09', '2026-07-11 12:09:09', NULL);
 
 -- --------------------------------------------------------
 

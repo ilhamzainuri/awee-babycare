@@ -48,7 +48,7 @@ export default function MasterData() {
 
   // 🟢 Form State Dinamis (Ditambah kategori_id, nama_kategori)
   const [formData, setFormData] = useState({
-    nama_layanan: '', kategori_id: '', type_layanan: '', harga_saat_ini: '', persentase_komisi: '',
+    nama_layanan: '', kategori_id: '', harga_saat_ini: '', persentase_komisi: '',
     user_id: '', nama_terapis: '', no_whatsapp: '', status_aktif: '1',
     nama_kategori: ''
   });
@@ -165,7 +165,6 @@ export default function MasterData() {
       setFormData({
         nama_layanan: data.nama_layanan || '',
         kategori_id: data.kategori_id ? data.kategori_id.toString() : '',
-        type_layanan: data.type_layanan || '',
         harga_saat_ini: data.harga_saat_ini || '',
         persentase_komisi: data.persentase_komisi || '',
         user_id: data.user_id ? data.user_id.toString() : '', // 🟢 Mapping user_id
@@ -178,7 +177,6 @@ export default function MasterData() {
       setFormData({
         nama_layanan: '',
         kategori_id: '',
-        type_layanan: '',
         harga_saat_ini: '',
         persentase_komisi: '',
         user_id: '',

@@ -6,7 +6,7 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { http_response_code(200); exit(); }
 ini_set('display_errors', 0);
-require_once '../config/koneksi.php';
+require_once __DIR__ . '/../config/koneksi.php';
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -21,8 +21,8 @@ try {
 
         case 'POST': // CREATE
             // 1. Eksekusi query insert utama
-            $stmt = $conn->prepare("INSERT INTO services (kategori_id, nama_layanan, type_layanan, harga_saat_ini, persentase_komisi) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$input['kategori_id'], $input['nama_layanan'], $input['type_layanan'] ?? null, $input['harga_saat_ini'], $input['persentase_komisi']]);
+            $stmt = $conn->prepare("INSERT INTO services (kategori_id, nama_layanan, harga_saat_ini, persentase_komisi) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$input['kategori_id'], $input['nama_layanan'], $input['harga_saat_ini'], $input['persentase_komisi']]);
             
             // 2. Dapatkan ID layanan baru
             $new_record_id = $conn->lastInsertId();
@@ -31,7 +31,6 @@ try {
             $data_log_baru = [
                 "kategori_id" => $input['kategori_id'],
                 "nama_layanan" => $input['nama_layanan'],
-                "type_layanan" => $input['type_layanan'] ?? null,
                 "harga_saat_ini" => $input['harga_saat_ini'],
                 "persentase_komisi" => $input['persentase_komisi']
             ];
@@ -51,19 +50,18 @@ try {
             $id_target = $_GET['id'];
 
             // 1. Ambil data lama sebelum diubah
-            $old_stmt = $conn->prepare("SELECT kategori_id, nama_layanan, type_layanan, harga_saat_ini, persentase_komisi FROM services WHERE id = ?");
+            $old_stmt = $conn->prepare("SELECT kategori_id, nama_layanan, harga_saat_ini, persentase_komisi FROM services WHERE id = ?");
             $old_stmt->execute([$id_target]);
             $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 
             // 2. Eksekusi query update utama
-            $stmt = $conn->prepare("UPDATE services SET kategori_id=?, nama_layanan=?, type_layanan=?, harga_saat_ini=?, persentase_komisi=? WHERE id=?");
-            $stmt->execute([$input['kategori_id'], $input['nama_layanan'], $input['type_layanan'] ?? null, $input['harga_saat_ini'], $input['persentase_komisi'], $id_target]);
+            $stmt = $conn->prepare("UPDATE services SET kategori_id=?, nama_layanan=?, harga_saat_ini=?, persentase_komisi=? WHERE id=?");
+            $stmt->execute([$input['kategori_id'], $input['nama_layanan'], $input['harga_saat_ini'], $input['persentase_komisi'], $id_target]);
             
             // FILTER PAYLOAD: Pastikan hanya field layanan yang masuk log
             $data_log_baru = [
                 "kategori_id" => $input['kategori_id'],
                 "nama_layanan" => $input['nama_layanan'],
-                "type_layanan" => $input['type_layanan'] ?? null,
                 "harga_saat_ini" => $input['harga_saat_ini'],
                 "persentase_komisi" => $input['persentase_komisi']
             ];
@@ -84,7 +82,7 @@ try {
             $id_target = $_GET['id'];
 
             // 1. Ambil data lama sebelum dihapus
-            $old_stmt = $conn->prepare("SELECT kategori_id, nama_layanan, type_layanan, harga_saat_ini, persentase_komisi FROM services WHERE id = ?");
+            $old_stmt = $conn->prepare("SELECT kategori_id, nama_layanan, harga_saat_ini, persentase_komisi FROM services WHERE id = ?");
             $old_stmt->execute([$id_target]);
             $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 
