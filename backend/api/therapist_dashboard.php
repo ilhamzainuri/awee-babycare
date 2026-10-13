@@ -96,7 +96,12 @@ try {
                (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                 FROM appointment_details ad 
                 JOIN services s ON ad.id_service = s.id 
-                WHERE ad.id_appointment = appointments.id) as rincian_layanan
+                WHERE ad.id_appointment = appointments.id) as rincian_layanan,
+               (SELECT GROUP_CONCAT(DISTINCT k.nama_kategori SEPARATOR ' + ')
+                FROM appointment_details ad
+                JOIN services s ON ad.id_service = s.id
+                LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
+                WHERE ad.id_appointment = appointments.id) as kategori_layanan
         FROM appointments 
         WHERE id_therapist = :id 
           AND DATE(waktu_reservasi) >= :hari_ini
@@ -109,13 +114,34 @@ try {
     $schedules = [];
     while ($row = $stmtSched->fetch(PDO::FETCH_ASSOC)) {
         $ui_status = ($row['status_jadwal'] === 'Diproses') ? 'On Process' : 'Pending';
+
+        $kat_str = strtolower($row['kategori_layanan'] ?? '');
+        $has_outlet = (strpos($kat_str, 'outlet') !== false);
+        $has_homecare = (strpos($kat_str, 'homecare') !== false);
+
+        if ($has_outlet && $has_homecare) {
+            $jenis_layanan = 'Outlet & Homecare';
+            $lokasi_kunjungan = 'Outlet / ' . ($row['alamat_lengkap'] ?: 'Alamat Pasien');
+        } elseif ($has_outlet) {
+            $jenis_layanan = 'Outlet';
+            $lokasi_kunjungan = 'Outlet (Klinik)';
+        } elseif ($has_homecare) {
+            $jenis_layanan = 'Homecare';
+            $lokasi_kunjungan = $row['alamat_lengkap'] ?: 'Alamat Pasien (Homecare)';
+        } else {
+            $jenis_layanan = 'Homecare';
+            $lokasi_kunjungan = $row['alamat_lengkap'];
+        }
+
         $schedules[] = [
             "id" => (int)$row['id'],
             "childName" => $row['nama_pasien'],
             "usia" => $row['usia_saat_ini'],
             "bb" => $row['bb_saat_ini'],
             "time" => $row['waktu_reservasi'], 
-            "address" => $row['alamat_lengkap'],
+            "address" => $lokasi_kunjungan,
+            "raw_address" => $row['alamat_lengkap'],
+            "jenis_layanan" => $jenis_layanan,
             "status" => $ui_status,
             "phone" => $row['no_hp_ortu'],
             "mapLink" => $row['link_shareloc'],

@@ -64,13 +64,15 @@ try {
     $stmt->execute($params);
     $appointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Ambil detail layanan untuk masing-masing appointment
+    // Ambil detail layanan untuk masing-masing appointment beserta kategori layanannya
     $stmtDetail = $conn->prepare("
         SELECT 
             s.nama_layanan, 
-            ad.harga_snapshot 
+            ad.harga_snapshot,
+            k.nama_kategori
         FROM appointment_details ad
         JOIN services s ON ad.id_service = s.id
+        LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
         WHERE ad.id_appointment = :id_appointment AND ad.deleted_at IS NULL
     ");
 
@@ -81,8 +83,34 @@ try {
         
         $stmtDetail->execute([':id_appointment' => $app['id']]);
         $app['services'] = $stmtDetail->fetchAll(PDO::FETCH_ASSOC);
+        
+        $has_outlet = false;
+        $has_homecare = false;
         foreach ($app['services'] as &$s) {
             $s['harga_snapshot'] = (float)$s['harga_snapshot'];
+            $kat_nama = strtolower($s['nama_kategori'] ?? '');
+            if (strpos($kat_nama, 'outlet') !== false) {
+                $has_outlet = true;
+            }
+            if (strpos($kat_nama, 'homecare') !== false) {
+                $has_homecare = true;
+            }
+        }
+        unset($s);
+
+        // Tentukan jenis pelayanan
+        if ($has_outlet && $has_homecare) {
+            $app['jenis_layanan'] = 'Outlet & Homecare';
+            $app['lokasi_kunjungan'] = 'Outlet / ' . ($app['alamat_lengkap'] ?: 'Alamat Pasien');
+        } elseif ($has_outlet) {
+            $app['jenis_layanan'] = 'Outlet';
+            $app['lokasi_kunjungan'] = 'Outlet (Klinik)';
+        } elseif ($has_homecare) {
+            $app['jenis_layanan'] = 'Homecare';
+            $app['lokasi_kunjungan'] = $app['alamat_lengkap'] ?: 'Alamat Pasien (Homecare)';
+        } else {
+            $app['jenis_layanan'] = 'Homecare';
+            $app['lokasi_kunjungan'] = $app['alamat_lengkap'];
         }
     }
 

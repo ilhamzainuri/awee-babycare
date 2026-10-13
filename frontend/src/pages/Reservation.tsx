@@ -17,6 +17,7 @@ export default function Reservation() {
   // UI States
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -64,12 +65,60 @@ export default function Reservation() {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
+  // Helper: Deteksi tipe kategori ('outlet', 'homecare', atau 'other')
+  const getCategoryType = (katId: string): 'outlet' | 'homecare' | 'other' => {
+    const found = categories.find(c => c.id.toString() === katId.toString());
+    if (!found) return 'other';
+    const name = (found.nama_kategori || '').toLowerCase();
+    if (name.includes('outlet')) return 'outlet';
+    if (name.includes('homecare')) return 'homecare';
+    return 'other';
+  };
+
   // Treatment Handlers
   const addTreatment = () => setTreatments([...treatments, { id: Date.now(), kategori_id: '', id_service: '' }]);
   const removeTreatment = (id: number) => {
-    if (treatments.length > 1) setTreatments(treatments.filter(t => t.id !== id));
+    if (treatments.length > 1) {
+      const remaining = treatments.filter(t => t.id !== id);
+      setTreatments(remaining);
+      // Cek apakah sisa treatment masih punya konflik
+      const types = remaining.map(t => getCategoryType(t.kategori_id));
+      const hasOutlet = types.includes('outlet');
+      const hasHomecare = types.includes('homecare');
+      if (!hasOutlet || !hasHomecare) {
+        setCategoryError(null);
+      }
+    }
   };
   const updateTreatmentCategory = (id: number, kategori_id: string) => {
+    if (!kategori_id) {
+      setTreatments(treatments.map(t => t.id === id ? { ...t, kategori_id: '', id_service: '' } : t));
+      setCategoryError(null);
+      return;
+    }
+
+    const newType = getCategoryType(kategori_id);
+
+    // Cek apakah ada treatment lain yang sudah dipilih kategorinya
+    const otherSelected = treatments.filter(t => t.id !== id && t.kategori_id);
+    if (otherSelected.length > 0 && (newType === 'outlet' || newType === 'homecare')) {
+      const existingTypes = otherSelected.map(t => getCategoryType(t.kategori_id));
+      const hasConflict = existingTypes.some(t => (t === 'outlet' || t === 'homecare') && t !== newType);
+
+      if (hasConflict) {
+        const currentActiveType = existingTypes.find(t => t === 'outlet' || t === 'homecare');
+        const activeLabel = currentActiveType === 'outlet' ? 'Outlet' : 'Homecare';
+        const chosenLabel = newType === 'outlet' ? 'Outlet' : 'Homecare';
+
+        setCategoryError(
+          `Perhatian: Reservasi hanya dapat memilih 1 jenis layanan (${activeLabel}). Anda tidak dapat menambahkan layanan kategori ${chosenLabel} dalam satu reservasi yang sama.`
+        );
+        return;
+      }
+    }
+
+    // Jika tidak ada konflik, bersihkan categoryError
+    setCategoryError(null);
     setTreatments(treatments.map(t => t.id === id ? { ...t, kategori_id, id_service: '' } : t));
   };
   const updateTreatmentService = (id: number, id_service: string) => {
@@ -85,6 +134,19 @@ export default function Reservation() {
     // Validasi basic
     if (!formData.id_therapist || treatments.some(t => !t.id_service)) {
       setMessage({ type: 'error', text: 'Mohon lengkapi pilihan Terapis dan Layanan.' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Validasi konsistensi tipe layanan (Outlet vs Homecare)
+    const types = treatments.map(t => getCategoryType(t.kategori_id));
+    const hasOutlet = types.includes('outlet');
+    const hasHomecare = types.includes('homecare');
+    if (hasOutlet && hasHomecare) {
+      setMessage({
+        type: 'error',
+        text: 'Perhatian: Reservasi hanya dapat memilih 1 jenis layanan (Homecare saja atau Outlet saja). Tidak dapat menggabungkan layanan Outlet dan Homecare dalam satu reservasi.'
+      });
       setIsLoading(false);
       return;
     }
@@ -246,9 +308,29 @@ export default function Reservation() {
 
         {/* Treatment Details Dynamic Selection */}
         <motion.section className="bg-surface-container-lowest p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-surface-container-high space-y-8">
-          <div className="flex items-center gap-4 border-b border-surface-container pb-4">
-            <div className="p-3 bg-tertiary-container/10 text-tertiary rounded-2xl"><Stethoscope className="w-6 h-6" /></div>
-            <h2 className="text-xl font-bold text-tertiary">Layanan Treatment</h2>
+          <div className="flex items-center justify-between border-b border-surface-container pb-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-tertiary-container/10 text-tertiary rounded-2xl"><Stethoscope className="w-6 h-6" /></div>
+              <div>
+                <h2 className="text-xl font-bold text-tertiary">Layanan Treatment</h2>
+                <p className="text-xs text-on-surface-variant font-medium">Reservasi hanya dapat memilih 1 tipe lokasi layanan (Outlet saja atau Homecare saja).</p>
+              </div>
+            </div>
+            {(() => {
+              const types = treatments.map(t => getCategoryType(t.kategori_id)).filter(t => t === 'outlet' || t === 'homecare');
+              if (types.length > 0) {
+                const activeType = types[0];
+                return (
+                  <span className={cn(
+                    "text-xs font-black px-3 py-1 rounded-full border uppercase tracking-wider hidden sm:inline-block",
+                    activeType === 'outlet' ? "bg-blue-500/10 text-blue-600 border-blue-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                  )}>
+                    Tipe: {activeType === 'outlet' ? 'Outlet' : 'Homecare'}
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           <div className="space-y-6">
@@ -306,6 +388,26 @@ export default function Reservation() {
              </button>
           </div>
         </motion.section>
+
+        {/* Alert Error Khusus Pemilihan Layanan (Muncul Langsung di Bawah Card Layanan) */}
+        <AnimatePresence>
+          {categoryError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              className="p-5 rounded-3xl bg-error-container/25 text-error border border-error/30 flex items-start gap-3.5 shadow-sm"
+            >
+              <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-extrabold text-sm leading-snug">{categoryError}</p>
+                <p className="text-xs text-error/80 mt-1 font-medium">
+                  Silakan pilih kategori yang sejenis atau buat reservasi terpisah jika pasien membutuhkan kedua tipe pelayanan tersebut.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="pb-12">
            <button type="submit" disabled={isLoading} className="w-full py-5 bg-primary-container text-on-primary-container font-black rounded-[2rem] shadow-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-lg disabled:opacity-50">

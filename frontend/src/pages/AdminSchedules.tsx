@@ -320,7 +320,21 @@ export default function AdminSchedules() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">Layanan</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">Layanan</span>
+                          {item.jenis_layanan && (
+                            <span className={cn(
+                              "text-[10px] font-extrabold px-2 py-0.5 rounded-full border",
+                              item.jenis_layanan.toLowerCase().includes('outlet') && item.jenis_layanan.toLowerCase().includes('homecare')
+                                ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                                : item.jenis_layanan.toLowerCase().includes('outlet')
+                                ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                            )}>
+                              {item.jenis_layanan}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
                           {item.services && item.services.map((srv: any, idx: number) => (
                             <span key={idx} className="px-2.5 py-1 bg-tertiary-container/10 border border-tertiary/10 text-tertiary font-bold text-[10px] rounded-lg">
@@ -328,6 +342,11 @@ export default function AdminSchedules() {
                             </span>
                           ))}
                         </div>
+                      </div>
+
+                      <div className="flex items-start gap-1.5 text-xs text-on-surface-variant pt-1">
+                        <MapPin className="w-3.5 h-3.5 text-outline mt-0.5 shrink-0" />
+                        <span className="line-clamp-1 font-medium">{item.lokasi_kunjungan || item.alamat_lengkap}</span>
                       </div>
                     </div>
                   </div>
@@ -503,14 +522,37 @@ export default function AdminSchedules() {
 
                     {/* Lokasi & Keluhan */}
                     <div className="bg-surface-container-low p-5 rounded-2xl border border-surface-container">
-                      <div className="flex items-center gap-2 border-b border-surface-container pb-3 mb-4">
-                        <MapPin className="w-5 h-5 text-tertiary" />
-                        <h3 className="font-bold text-on-surface text-base">Lokasi & Keluhan</h3>
+                      <div className="flex items-center justify-between border-b border-surface-container pb-3 mb-4">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-5 h-5 text-tertiary" />
+                          <h3 className="font-bold text-on-surface text-base">Lokasi & Keluhan</h3>
+                        </div>
+                        {selectedSchedule.jenis_layanan && (
+                          <span className={cn(
+                            "text-xs font-black px-3 py-1 rounded-full border tracking-wide uppercase",
+                            selectedSchedule.jenis_layanan.toLowerCase().includes('outlet') && selectedSchedule.jenis_layanan.toLowerCase().includes('homecare')
+                              ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                              : selectedSchedule.jenis_layanan.toLowerCase().includes('outlet')
+                              ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                              : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                          )}>
+                            Pelayanan: {selectedSchedule.jenis_layanan}
+                          </span>
+                        )}
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block mb-1">Alamat Kunjungan</span>
-                          <p className="font-medium text-on-surface leading-relaxed text-sm">{selectedSchedule.alamat_lengkap}</p>
+                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block mb-1">
+                            Lokasi / Alamat Kunjungan
+                          </span>
+                          <p className="font-bold text-on-surface leading-relaxed text-sm bg-surface-container p-3 rounded-xl border border-surface-container-high/50">
+                            {selectedSchedule.lokasi_kunjungan || selectedSchedule.alamat_lengkap}
+                          </p>
+                          {selectedSchedule.jenis_layanan?.toLowerCase().includes('outlet') && selectedSchedule.alamat_lengkap && (
+                            <p className="text-[11px] text-on-surface-variant mt-1.5 italic">
+                              * Alamat domisili pasien: {selectedSchedule.alamat_lengkap}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block mb-1">Keluhan Awal</span>

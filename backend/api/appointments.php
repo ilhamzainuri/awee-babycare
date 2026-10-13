@@ -62,6 +62,37 @@ try {
                 exit();
             }
 
+            // Cek Konsistensi Jenis Layanan (Hanya boleh 1 jenis: Homecare atau Outlet)
+            $serviceIds = array_column($input['treatments'], 'id_service');
+            if (!empty($serviceIds)) {
+                $placeholders = implode(',', array_fill(0, count($serviceIds), '?'));
+                $stmtCheckType = $conn->prepare("
+                    SELECT DISTINCT k.nama_kategori 
+                    FROM services s 
+                    LEFT JOIN kategori k ON s.kategori_id = k.id_kategori 
+                    WHERE s.id IN ($placeholders)
+                ");
+                $stmtCheckType->execute($serviceIds);
+                $kategoriList = $stmtCheckType->fetchAll(PDO::FETCH_COLUMN);
+
+                $hasOutlet = false;
+                $hasHomecare = false;
+                foreach ($kategoriList as $kName) {
+                    $kLower = strtolower($kName ?? '');
+                    if (strpos($kLower, 'outlet') !== false) $hasOutlet = true;
+                    if (strpos($kLower, 'homecare') !== false) $hasHomecare = true;
+                }
+
+                if ($hasOutlet && $hasHomecare) {
+                    http_response_code(400);
+                    echo json_encode([
+                        "status" => 400,
+                        "message" => "Reservasi hanya dapat memilih 1 jenis layanan (Homecare saja atau Outlet saja). Tidak dapat menggabungkan layanan Outlet dan Homecare dalam satu reservasi."
+                    ]);
+                    exit();
+                }
+            }
+
             $conn->beginTransaction();
 
             // 1. Simpan Header
@@ -218,7 +249,12 @@ try {
                        (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                         FROM appointment_details ad 
                         JOIN services s ON ad.id_service = s.id 
-                        WHERE ad.id_appointment = a.id) as rincian_layanan
+                        WHERE ad.id_appointment = a.id) as rincian_layanan,
+                       (SELECT GROUP_CONCAT(DISTINCT k.nama_kategori SEPARATOR ' + ')
+                        FROM appointment_details ad
+                        JOIN services s ON ad.id_service = s.id
+                        LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
+                        WHERE ad.id_appointment = a.id) as kategori_layanan
                 FROM appointments a
                 WHERE a.id_therapist = :id 
                   AND a.deleted_at IS NULL
@@ -230,6 +266,25 @@ try {
             while ($row = $stmtSched->fetch(PDO::FETCH_ASSOC)) {
                 $row['id'] = (int)$row['id'];
                 $row['total_komisi_kunjungan'] = (int)$row['total_komisi_kunjungan'];
+
+                $kat_str = strtolower($row['kategori_layanan'] ?? '');
+                $has_outlet = (strpos($kat_str, 'outlet') !== false);
+                $has_homecare = (strpos($kat_str, 'homecare') !== false);
+
+                if ($has_outlet && $has_homecare) {
+                    $row['jenis_layanan'] = 'Outlet & Homecare';
+                    $row['lokasi_kunjungan'] = 'Outlet / ' . ($row['alamat_lengkap'] ?: 'Alamat Pasien');
+                } elseif ($has_outlet) {
+                    $row['jenis_layanan'] = 'Outlet';
+                    $row['lokasi_kunjungan'] = 'Outlet (Klinik)';
+                } elseif ($has_homecare) {
+                    $row['jenis_layanan'] = 'Homecare';
+                    $row['lokasi_kunjungan'] = $row['alamat_lengkap'] ?: 'Alamat Pasien (Homecare)';
+                } else {
+                    $row['jenis_layanan'] = 'Homecare';
+                    $row['lokasi_kunjungan'] = $row['alamat_lengkap'];
+                }
+
                 $schedules[] = $row;
             }
             

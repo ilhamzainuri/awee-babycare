@@ -40,6 +40,8 @@ interface ActiveSchedule {
   childName: string;
   time: string;
   address: string;
+  raw_address?: string;
+  jenis_layanan?: string;
   status: 'Pending' | 'Confirmed' | 'On Process';
   phone?: string;
   mapLink?: string;
@@ -302,9 +304,23 @@ const fetchTherapistData = async (start = '', end = '') => {
                   <div>
                     <div className="flex justify-between items-start mb-3">
                       <span className="text-[10px] font-extrabold text-on-surface-variant tracking-wide bg-surface-container px-2 py-1 rounded-md flex items-center gap-1"><Clock className="w-3 h-3" /> {schedule.time}</span>
-                      <span className={cn("text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md", schedule.status === 'On Process' && "bg-warning-container/30 text-warning", schedule.status === 'Confirmed' && "bg-primary-container/20 text-primary", schedule.status === 'Pending' && "bg-surface-container text-on-surface-variant")}>
-                        {schedule.status}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {schedule.jenis_layanan && (
+                          <span className={cn(
+                            "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border",
+                            schedule.jenis_layanan.toLowerCase().includes('outlet') && schedule.jenis_layanan.toLowerCase().includes('homecare')
+                              ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                              : schedule.jenis_layanan.toLowerCase().includes('outlet')
+                              ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                              : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                          )}>
+                            {schedule.jenis_layanan}
+                          </span>
+                        )}
+                        <span className={cn("text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md", schedule.status === 'On Process' && "bg-warning-container/30 text-warning", schedule.status === 'Confirmed' && "bg-primary-container/20 text-primary", schedule.status === 'Pending' && "bg-surface-container text-on-surface-variant")}>
+                          {schedule.status}
+                        </span>
+                      </div>
                     </div>
                     <h3 className="font-black text-base text-on-surface group-hover:text-primary transition-colors">{schedule.childName}</h3>
                     <div className="flex items-start gap-1.5 text-on-surface-variant text-xs mt-2 mb-4">
@@ -483,10 +499,33 @@ const fetchTherapistData = async (start = '', end = '') => {
                   </div>
                 </div>
 
-                {/* Alamat */}
+                {/* Alamat & Jenis Layanan */}
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1 flex items-center gap-1"><MapPin className="w-3 h-3"/> Alamat Lengkap Kunjungan</p>
-                  <p className="text-sm text-on-surface bg-surface-container-low p-3 rounded-xl border border-surface-container">{selectedDetail.address}</p>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] uppercase font-bold text-on-surface-variant flex items-center gap-1">
+                      <MapPin className="w-3 h-3"/> Lokasi / Alamat Kunjungan
+                    </p>
+                    {selectedDetail.jenis_layanan && (
+                      <span className={cn(
+                        "text-[10px] font-black uppercase px-2 py-0.5 rounded-full border",
+                        selectedDetail.jenis_layanan.toLowerCase().includes('outlet') && selectedDetail.jenis_layanan.toLowerCase().includes('homecare')
+                          ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                          : selectedDetail.jenis_layanan.toLowerCase().includes('outlet')
+                          ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                      )}>
+                        Pelayanan: {selectedDetail.jenis_layanan}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-on-surface bg-surface-container-low p-3 rounded-xl border border-surface-container">
+                    {selectedDetail.address}
+                  </p>
+                  {selectedDetail.jenis_layanan?.toLowerCase().includes('outlet') && selectedDetail.raw_address && (
+                    <p className="text-[11px] text-on-surface-variant mt-1.5 italic">
+                      * Alamat domisili pasien: {selectedDetail.raw_address}
+                    </p>
+                  )}
                   
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     {selectedDetail.mapLink && selectedDetail.mapLink !== '-' && (
