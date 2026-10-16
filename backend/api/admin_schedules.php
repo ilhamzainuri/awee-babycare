@@ -52,6 +52,7 @@ try {
                 a.status_pembayaran, 
                 a.total_harga_kunjungan,
                 a.total_komisi_kunjungan,
+                a.catatan_terapis,
                 t.nama_terapis,
                 t.id AS id_therapist,
                 UPPER(SUBSTRING(t.nama_terapis, 1, 2)) AS initials
