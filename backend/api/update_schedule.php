@@ -88,7 +88,7 @@ try {
             SELECT id FROM appointments 
             WHERE id_therapist = :id_therapist 
             AND id != :id_target
-            AND status_jadwal != 'Dibatalkan'
+            AND status_jadwal NOT IN ('Dibatalkan', 'Selesai')
             AND deleted_at IS NULL
             AND waktu_reservasi > DATE_SUB(:dt1, INTERVAL 1 HOUR)
             AND waktu_reservasi < DATE_ADD(:dt2, INTERVAL 1 HOUR)

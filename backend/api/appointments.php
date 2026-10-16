@@ -40,7 +40,7 @@ try {
                 SELECT waktu_reservasi, nama_pasien 
                 FROM appointments 
                 WHERE id_therapist = :id_therapist 
-                  AND status_jadwal != 'Dibatalkan' 
+                  AND status_jadwal NOT IN ('Dibatalkan', 'Selesai') 
                   AND deleted_at IS NULL 
                   AND waktu_reservasi > DATE_SUB(:waktu_reservasi_lower, INTERVAL 1 HOUR)
                   AND waktu_reservasi < DATE_ADD(:waktu_reservasi_upper, INTERVAL 1 HOUR)
