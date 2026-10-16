@@ -324,6 +324,7 @@ try {
                         END AS type
                     FROM appointments a
                     JOIN therapists t ON a.id_therapist = t.id
+                    WHERE a.deleted_at IS NULL AND a.status_jadwal != 'Dibatalkan'
                     ORDER BY a.waktu_reservasi DESC";
 
             $stmt = $conn->query($sql);

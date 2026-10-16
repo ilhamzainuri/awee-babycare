@@ -95,8 +95,8 @@ try {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $total_terapis = $row ? (int)$row['total'] : 0;
 
-    // KPI 4: Menunggu Verifikasi Pembayaran
-    $stmt = $conn->query("SELECT COUNT(id) as unverified FROM appointments WHERE status_pembayaran = 'Unverified' AND deleted_at IS NULL");
+    // KPI 4: Menunggu Verifikasi Pembayaran (Hanya yang tidak Dibatalkan)
+    $stmt = $conn->query("SELECT COUNT(id) as unverified FROM appointments WHERE status_pembayaran = 'Unverified' AND status_jadwal != 'Dibatalkan' AND deleted_at IS NULL");
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $menunggu_verifikasi = $row ? (int)$row['unverified'] : 0;
 
@@ -179,6 +179,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         FROM appointments 
         WHERE bukti_bayar_url IS NOT NULL 
         AND status_pembayaran = 'Unverified'
+        AND status_jadwal != 'Dibatalkan'
         AND deleted_at IS NULL
         ORDER BY waktu_reservasi DESC
         LIMIT 4

@@ -54,13 +54,17 @@ try {
                             a.metode_bayar_admin AS plan_method, 
                             COALESCE(a.metode_bayar_terapis, 'Belum Input') AS actual_method,
                             a.waktu_reservasi AS appointment_date,
+                            a.status_jadwal,
                             CASE 
                                 WHEN a.status_pembayaran = 'Verified' THEN 'verified'
-                                WHEN a.metode_bayar_terapis IS NOT NULL AND a.metode_bayar_admin != a.metode_bayar_terapis THEN 'mismatch'
+                                WHEN a.metode_bayar_terapis IS NULL OR a.metode_bayar_terapis = '' THEN 'waiting_therapist'
+                                WHEN a.metode_bayar_admin != a.metode_bayar_terapis THEN 'mismatch'
                                 ELSE 'pending'
                             END AS type
                         FROM appointments a
                         JOIN therapists t ON a.id_therapist = t.id
+                        WHERE a.deleted_at IS NULL
+                          AND a.status_jadwal != 'Dibatalkan'
                         ORDER BY a.waktu_reservasi DESC";
     
                 $stmt = $conn->query($sql);
@@ -81,11 +85,23 @@ try {
 
                 // 1. Ambil data lama sebelum diverifikasi
                 // Kita ambil data krusial yang berkaitan dengan rekonsiliasi pembayaran
-                $old_stmt = $conn->prepare("SELECT id, nama_pasien, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, total_bersih, status_pembayaran FROM appointments WHERE id = ?");
+                $old_stmt = $conn->prepare("SELECT id, nama_pasien, status_jadwal, metode_bayar_admin, metode_bayar_terapis, total_harga_kunjungan, total_komisi_kunjungan, total_bersih, status_pembayaran FROM appointments WHERE id = ?");
                 $old_stmt->execute([$id_target]);
                 $data_lama = $old_stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($data_lama) {
+                    if ($data_lama['status_jadwal'] === 'Dibatalkan') {
+                        http_response_code(400);
+                        echo json_encode(["status" => 400, "message" => "Jadwal ini telah dibatalkan dan tidak perlu diverifikasi"]);
+                        exit();
+                    }
+
+                    if (empty($data_lama['metode_bayar_terapis'])) {
+                        http_response_code(400);
+                        echo json_encode(["status" => 400, "message" => "Pembayaran belum dapat diverifikasi karena terapis belum menginput laporan / metode pembayaran dari lapangan."]);
+                        exit();
+                    }
+
                     // Hitung total bersih untuk keperluan log
                     $kalkulasi_bersih = $data_lama['total_harga_kunjungan'] - $data_lama['total_komisi_kunjungan'];
 

@@ -27,7 +27,8 @@ interface TaskData {
   plan_method: string;
   actual_method: string;
   appointment_date: string;
-  type: 'mismatch' | 'pending' | 'verified';
+  status_jadwal?: string;
+  type: 'mismatch' | 'pending' | 'verified' | 'waiting_therapist';
 }
 
 interface AppointmentDetail {
@@ -99,8 +100,12 @@ export default function Verification() {
     fetchTasks();
   }, [apiUrl]);
 
+  const activeTasks = useMemo(() => {
+    return tasks.filter(t => t.status_jadwal !== 'Dibatalkan');
+  }, [tasks]);
+
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    return activeTasks.filter((task) => {
       const matchesTab = activeTab === 'verified' 
         ? task.type === 'verified' 
         : task.type !== 'verified'; 
@@ -114,10 +119,10 @@ export default function Verification() {
 
       return matchesTab && matchesSearch && matchesDate && matchesMonth;
     });
-  }, [tasks, activeTab, searchQuery, filterDate, filterMonth]);
+  }, [activeTasks, activeTab, searchQuery, filterDate, filterMonth]);
 
-  const unverifiedCount = tasks.filter(t => t.type !== 'verified').length;
-  const verifiedCount = tasks.filter(t => t.type === 'verified').length;
+  const unverifiedCount = activeTasks.filter(t => t.type !== 'verified').length;
+  const verifiedCount = activeTasks.filter(t => t.type === 'verified').length;
   const mismatchCount = activeTab === 'unverified' 
     ? filteredTasks.filter(task => task.type === 'mismatch').length 
     : 0;
@@ -356,9 +361,14 @@ export default function Verification() {
                               <div className="flex items-center gap-2 text-error font-bold text-sm bg-error-container/30 w-max px-3 py-1.5 rounded-full">
                                 🔴 Mismatch
                               </div>
+                            ) : task.type === 'waiting_therapist' || !task.actual_method || task.actual_method === 'Belum Input' ? (
+                              <div className="flex items-center gap-1.5 text-amber-700 bg-amber-500/15 border border-amber-500/30 font-bold text-xs w-max px-3 py-1.5 rounded-full">
+                                <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                Menunggu Terapis
+                              </div>
                             ) : (
                               <div className="flex items-center gap-2 text-secondary font-bold text-sm bg-secondary-container/30 w-max px-3 py-1.5 rounded-full">
-                                🟡 Pending
+                                🟡 Siap Verifikasi
                               </div>
                             )}
                           </td>
@@ -372,12 +382,22 @@ export default function Verification() {
                                 Detail
                               </button>
                               {task.type !== 'verified' && (
-                                <button 
-                                  onClick={() => handleVerify(task.id)}
-                                  className="flex items-center gap-1.5 bg-primary-container text-on-primary-container font-bold px-5 py-2 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm"
-                                >
-                                  Verify
-                                </button>
+                                task.type === 'waiting_therapist' || !task.actual_method || task.actual_method === 'Belum Input' ? (
+                                  <button 
+                                    disabled
+                                    className="flex items-center gap-1.5 bg-surface-container text-on-surface-variant/50 font-bold px-3.5 py-2 rounded-xl text-xs cursor-not-allowed border border-surface-container-high"
+                                    title="Menunggu input metode pembayaran dari terapis di lapangan"
+                                  >
+                                    <Clock className="w-3.5 h-3.5" /> Belum Ada Input
+                                  </button>
+                                ) : (
+                                  <button 
+                                    onClick={() => handleVerify(task.id)}
+                                    className="flex items-center gap-1.5 bg-primary-container text-on-primary-container font-bold px-5 py-2 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm"
+                                  >
+                                    Verify
+                                  </button>
+                                )
                               )}
                             </div>
                           </td>
@@ -414,6 +434,28 @@ export default function Verification() {
               </div>
 
               <div className="p-6 overflow-y-auto space-y-6 text-sm text-on-surface">
+                {/* Alert jika jadwal dibatalkan */}
+                {selectedAppointment.status_jadwal === 'Dibatalkan' && (
+                  <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center gap-3 text-red-700">
+                    <AlertTriangle className="w-5 h-5 shrink-0 text-red-600" />
+                    <div>
+                      <p className="font-extrabold text-sm">Layanan Ini Telah Dibatalkan</p>
+                      <p className="text-xs text-red-600/80">Jadwal layanan ini telah dibatalkan, sehingga tidak memerlukan verifikasi pembayaran.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Alert jika belum ada input dari terapis */}
+                {!selectedAppointment.metode_bayar_terapis && selectedAppointment.status_jadwal !== 'Dibatalkan' && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center gap-3 text-amber-800">
+                    <Clock className="w-5 h-5 shrink-0 text-amber-600 animate-pulse" />
+                    <div>
+                      <p className="font-extrabold text-sm">Menunggu Input dari Terapis</p>
+                      <p className="text-xs text-amber-700/80">Terapis belum menginput metode pembayaran dari lapangan. Transaksi baru dapat disahkan & diverifikasi setelah laporan terapis diterima.</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* 1. Informasi Pasien / Pasien */}
                 <div className="bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container space-y-3">
                   <h3 className="font-bold flex items-center gap-2 text-primary border-b border-surface-container pb-1.5">
@@ -550,10 +592,16 @@ export default function Verification() {
                 <button onClick={() => setSelectedAppointment(null)} className="px-5 py-2.5 bg-surface-container text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm">
                   Tutup
                 </button>
-                {selectedAppointment.status_pembayaran !== 'Verified' && (
-                  <button onClick={() => handleVerify(selectedAppointment.id)} className="bg-primary-container text-on-primary-container font-bold px-6 py-2.5 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm">
-                    Sahkan & Verifikasi
-                  </button>
+                {selectedAppointment.status_pembayaran !== 'Verified' && selectedAppointment.status_jadwal !== 'Dibatalkan' && (
+                  selectedAppointment.metode_bayar_terapis ? (
+                    <button onClick={() => handleVerify(selectedAppointment.id)} className="bg-primary-container text-on-primary-container font-bold px-6 py-2.5 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm">
+                      Sahkan & Verifikasi
+                    </button>
+                  ) : (
+                    <button disabled className="bg-surface-container text-on-surface-variant/50 font-bold px-5 py-2.5 rounded-xl text-sm cursor-not-allowed border border-surface-container-high flex items-center gap-1.5" title="Terapis belum menginput metode bayar">
+                      <Clock className="w-4 h-4" /> Menunggu Input Terapis
+                    </button>
+                  )
                 )}
               </div>
             </motion.div>
