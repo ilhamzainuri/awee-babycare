@@ -15,10 +15,12 @@ import {
   FileText,
   Clock,
   ShieldCheck,
-  Receipt // <-- Icon tambahan untuk bukti bayar
+  Receipt,
+  Pencil // <-- Icon untuk tombol override
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import toast from 'react-hot-toast';
 
 interface TaskData {
   id: number;
@@ -43,6 +45,7 @@ interface AppointmentDetail {
   keluhan_awal: string | null;
   waktu_reservasi: string;
   status_jadwal: string;
+  status_pembayaran?: string;
   metode_bayar_admin: string;
   metode_bayar_terapis: string | null;
   total_harga_kunjungan: number;
@@ -73,10 +76,19 @@ export default function Verification() {
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
 
+  // State untuk modal override metode bayar terapis
+  const [overrideModal, setOverrideModal] = useState<{ id: number; patient: string } | null>(null);
+  const [overrideMethod, setOverrideMethod] = useState<string>('Cash');
+  const [overrideLoading, setOverrideLoading] = useState<boolean>(false);
+
   // BASE URL API
   const apiUrl = import.meta.env.VITE_API_BASE_URL 
     ? `${import.meta.env.VITE_API_BASE_URL}/verification.php` 
     : 'http://localhost/awee-babycare/backend/api/verification.php';
+
+  const overrideUrl = import.meta.env.VITE_API_BASE_URL
+    ? `${import.meta.env.VITE_API_BASE_URL}/override_payment_method.php`
+    : 'http://localhost/awee-babycare/backend/api/override_payment_method.php';
 
   // BASE URL UPLOADS (Mengubah /api menjadi /uploads/payments)
   const uploadUrl = import.meta.env.VITE_API_BASE_URL
@@ -121,8 +133,21 @@ export default function Verification() {
     });
   }, [activeTasks, activeTab, searchQuery, filterDate, filterMonth]);
 
+  const isTaskOverdue = (dateString?: string, type?: string, status_jadwal?: string) => {
+    if (type === 'verified') return false;
+    if (status_jadwal === 'Dibatalkan') return false;
+    if (!dateString) return false;
+    const appDate = new Date(dateString.replace(' ', 'T'));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const appDay = new Date(appDate);
+    appDay.setHours(0, 0, 0, 0);
+    return appDay < today;
+  };
+
   const unverifiedCount = activeTasks.filter(t => t.type !== 'verified').length;
   const verifiedCount = activeTasks.filter(t => t.type === 'verified').length;
+  const overdueCount = activeTasks.filter(t => isTaskOverdue(t.appointment_date, t.type, t.status_jadwal)).length;
   const mismatchCount = activeTab === 'unverified' 
     ? filteredTasks.filter(task => task.type === 'mismatch').length 
     : 0;
@@ -168,6 +193,43 @@ export default function Verification() {
     } catch (err) {
       console.error("Error verifying task:", err);
       alert("Terjadi kesalahan jaringan saat memverifikasi.");
+    }
+  };
+
+  const handleOverride = async () => {
+    if (!overrideModal) return;
+    setOverrideLoading(true);
+    try {
+      const response = await fetch(overrideUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appointment_id: overrideModal.id,
+          metode_bayar_terapis: overrideMethod,
+          user_id: 1
+        })
+      });
+      const result = await response.json();
+      if (result.status === 200) {
+        // Update state lokal: ubah type dari waiting_therapist → pending atau mismatch
+        setTasks(prev => prev.map(t => {
+          if (t.id !== overrideModal.id) return t;
+          const isMismatch = t.plan_method !== overrideMethod;
+          return {
+            ...t,
+            actual_method: overrideMethod,
+            type: isMismatch ? 'mismatch' : 'pending'
+          };
+        }));
+        toast.success(`Metode pembayaran berhasil diset ke "${overrideMethod}" oleh admin.`);
+        setOverrideModal(null);
+      } else {
+        toast.error(result.message || 'Gagal mengubah metode pembayaran.');
+      }
+    } catch (err) {
+      toast.error('Terjadi kesalahan jaringan.');
+    } finally {
+      setOverrideLoading(false);
     }
   };
 
@@ -236,6 +298,11 @@ export default function Verification() {
           {unverifiedCount > 0 && (
             <span className="bg-error text-white text-[10px] px-2 py-0.5 rounded-full ml-1">{unverifiedCount}</span>
           )}
+          {overdueCount > 0 && (
+            <span className="bg-red-100 text-red-700 border border-red-300 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1" title={`${overdueCount} transaksi terlambat`}>
+              {overdueCount} Terlambat
+            </span>
+          )}
         </button>
         
         <button 
@@ -283,7 +350,31 @@ export default function Verification() {
                   <div>
                     <h3 className="font-bold text-base">Perhatian! Terdapat {mismatchCount} transaksi Mismatch</h3>
                     <p className="text-sm opacity-90 mt-0.5">
-                      Ada perbedaan antara metode pembayaran yang direncPasienan Admin dengan aktual dari Terapis.
+                      Ada perbedaan antara metode pembayaran yang direncanakan Admin dengan aktual dari Terapis.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {overdueCount > 0 && activeTab === 'unverified' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-red-50 text-red-900 p-4 rounded-2xl flex items-start sm:items-center gap-4 border border-red-200 shadow-sm">
+                  <div className="bg-red-100 p-2 rounded-full shrink-0">
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-base flex items-center gap-2">
+                      <span>Peringatan! Terdapat {overdueCount} transaksi Terlambat</span>
+                      <span className="px-2 py-0.5 bg-red-200 text-red-800 text-[10px] font-extrabold rounded-full uppercase">Perlu Tindakan</span>
+                    </h3>
+                    <p className="text-sm text-red-700/90 mt-0.5">
+                      Jadwal kunjungan telah melewati tanggal yang ditentukan namun verifikasi belum selesai. Gunakan tombol <strong>Override</strong> jika ingin menetapkan metode bayar secara manual.
                     </p>
                   </div>
                 </div>
@@ -318,19 +409,42 @@ export default function Verification() {
                       const PlanIcon = getPaymentIcon(task.plan_method);
                       const ActualIcon = getPaymentIcon(task.actual_method);
                       const isMismatch = task.type === 'mismatch';
+                      const isOverdue = isTaskOverdue(task.appointment_date, task.type, task.status_jadwal);
 
                       return (
                         <motion.tr
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           key={task.id}
-                          className="border-b last:border-0 border-surface-container hover:bg-surface-container/30 transition-colors"
+                          className={cn(
+                            "border-b last:border-0 border-surface-container transition-colors",
+                            isOverdue && task.type !== 'verified' 
+                              ? "bg-red-50/40 hover:bg-red-50/70 border-l-4 border-l-red-500" 
+                              : "hover:bg-surface-container/30"
+                          )}
                         >
                           <td className="p-5 whitespace-nowrap text-sm text-on-surface-variant font-medium">
-                            {formatDateForTable(task.appointment_date)}
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className={cn(isOverdue && task.type !== 'verified' ? "font-bold text-red-950" : "")}>
+                                {formatDateForTable(task.appointment_date)}
+                              </span>
+                              {isOverdue && task.type !== 'verified' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-200 shadow-xs">
+                                  <AlertTriangle className="w-2.5 h-2.5 text-red-600 shrink-0" />
+                                  Terlambat
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-5">
-                            <span className="font-bold text-on-surface text-base">{task.patient}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-on-surface text-base">{task.patient}</span>
+                              {isOverdue && task.type !== 'verified' && (
+                                <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">
+                                  Terlambat
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-5">
                             <span className="px-3 py-1 bg-surface-container text-on-surface-variant rounded-lg text-xs font-bold uppercase tracking-wider">
@@ -358,17 +472,38 @@ export default function Verification() {
                                 🟢 Verified
                               </div>
                             ) : isMismatch ? (
-                              <div className="flex items-center gap-2 text-error font-bold text-sm bg-error-container/30 w-max px-3 py-1.5 rounded-full">
-                                🔴 Mismatch
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 text-error font-bold text-sm bg-error-container/30 w-max px-3 py-1.5 rounded-full">
+                                  🔴 Mismatch
+                                </div>
+                                {isOverdue && (
+                                  <span className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                                    <AlertTriangle className="w-2.5 h-2.5" /> Lewat Jadwal
+                                  </span>
+                                )}
                               </div>
                             ) : task.type === 'waiting_therapist' || !task.actual_method || task.actual_method === 'Belum Input' ? (
-                              <div className="flex items-center gap-1.5 text-amber-700 bg-amber-500/15 border border-amber-500/30 font-bold text-xs w-max px-3 py-1.5 rounded-full">
-                                <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                                Menunggu Terapis
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5 text-amber-700 bg-amber-500/15 border border-amber-500/30 font-bold text-xs w-max px-3 py-1.5 rounded-full">
+                                  <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                  Menunggu Terapis
+                                </div>
+                                {isOverdue && (
+                                  <span className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                                    <AlertTriangle className="w-2.5 h-2.5" /> Lewat Jadwal
+                                  </span>
+                                )}
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 text-secondary font-bold text-sm bg-secondary-container/30 w-max px-3 py-1.5 rounded-full">
-                                🟡 Siap Verifikasi
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 text-secondary font-bold text-sm bg-secondary-container/30 w-max px-3 py-1.5 rounded-full">
+                                  🟡 Siap Verifikasi
+                                </div>
+                                {isOverdue && (
+                                  <span className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                                    <AlertTriangle className="w-2.5 h-2.5" /> Lewat Jadwal
+                                  </span>
+                                )}
                               </div>
                             )}
                           </td>
@@ -383,13 +518,25 @@ export default function Verification() {
                               </button>
                               {task.type !== 'verified' && (
                                 task.type === 'waiting_therapist' || !task.actual_method || task.actual_method === 'Belum Input' ? (
-                                  <button 
-                                    disabled
-                                    className="flex items-center gap-1.5 bg-surface-container text-on-surface-variant/50 font-bold px-3.5 py-2 rounded-xl text-xs cursor-not-allowed border border-surface-container-high"
-                                    title="Menunggu input metode pembayaran dari terapis di lapangan"
-                                  >
-                                    <Clock className="w-3.5 h-3.5" /> Belum Ada Input
-                                  </button>
+                                  <>
+                                    <button 
+                                      disabled
+                                      className="flex items-center gap-1.5 bg-surface-container text-on-surface-variant/50 font-bold px-3.5 py-2 rounded-xl text-xs cursor-not-allowed border border-surface-container-high"
+                                      title="Menunggu input metode pembayaran dari terapis di lapangan"
+                                    >
+                                      <Clock className="w-3.5 h-3.5" /> Belum Ada Input
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setOverrideMethod('Cash');
+                                        setOverrideModal({ id: task.id, patient: task.patient });
+                                      }}
+                                      className="flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-amber-200 transition-all border border-amber-300"
+                                      title="Admin input metode bayar sebagai pengganti terapis"
+                                    >
+                                      <Pencil className="w-3 h-3" /> Override
+                                    </button>
+                                  </>
                                 ) : (
                                   <button 
                                     onClick={() => handleVerify(task.id)}
@@ -441,6 +588,22 @@ export default function Verification() {
                     <div>
                       <p className="font-extrabold text-sm">Layanan Ini Telah Dibatalkan</p>
                       <p className="text-xs text-red-600/80">Jadwal layanan ini telah dibatalkan, sehingga tidak memerlukan verifikasi pembayaran.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Alert jika jadwal terlambat */}
+                {selectedAppointment && isTaskOverdue(selectedAppointment.waktu_reservasi, selectedAppointment.status_pembayaran === 'Verified' ? 'verified' : '', selectedAppointment.status_jadwal) && (
+                  <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center gap-3 text-red-700">
+                    <AlertTriangle className="w-5 h-5 shrink-0 text-red-600" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-extrabold text-sm">Transaksi Terlambat (Melewati Jadwal)</p>
+                        <span className="text-[10px] bg-red-200 text-red-800 font-black px-2 py-0.5 rounded-full uppercase">Terlambat</span>
+                      </div>
+                      <p className="text-xs text-red-600/80 mt-0.5">
+                        Jadwal kunjungan pada {formatDateForTable(selectedAppointment.waktu_reservasi)} telah lewat, namun verifikasi pembayaran belum selesai.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -603,6 +766,83 @@ export default function Verification() {
                     </button>
                   )
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL OVERRIDE METODE BAYAR — Admin Input Pengganti Terapis */}
+      <AnimatePresence>
+        {overrideModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="absolute inset-0" onClick={() => setOverrideModal(null)} />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative z-10 w-full max-w-md bg-surface-container-lowest border border-surface-container rounded-3xl shadow-2xl overflow-hidden"
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-surface-container bg-amber-50 flex items-center gap-3">
+                <div className="p-2 bg-amber-100 rounded-full">
+                  <Pencil className="w-5 h-5 text-amber-700" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-amber-900">Override Metode Pembayaran</h2>
+                  <p className="text-xs text-amber-700 mt-0.5">Pasien: <span className="font-bold">{overrideModal.patient}</span></p>
+                </div>
+                <button onClick={() => setOverrideModal(null)} className="ml-auto p-1.5 text-amber-700 hover:bg-amber-100 rounded-full">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-5">
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    Terapis belum menginput metode pembayaran. Admin dapat mengisi data ini sebagai pengganti.
+                    Aksi ini akan dicatat di <span className="font-bold">Audit Log</span>.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-outline uppercase tracking-wider mb-2">
+                    Metode Pembayaran Aktual
+                  </label>
+                  <select
+                    value={overrideMethod}
+                    onChange={(e) => setOverrideMethod(e.target.value)}
+                    className="w-full px-4 py-3 bg-surface-container-low border border-surface-container rounded-xl text-sm font-bold text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition-all"
+                  >
+                    <option value="Cash">💵 Cash</option>
+                    <option value="Transfer Bank">🏦 Transfer Bank</option>
+                    <option value="QRIS">📱 QRIS</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-surface-container flex justify-end gap-3 bg-surface-container-low">
+                <button
+                  onClick={() => setOverrideModal(null)}
+                  className="px-5 py-2.5 bg-surface-container text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleOverride}
+                  disabled={overrideLoading}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-all text-sm shadow-sm disabled:opacity-60 flex items-center gap-2"
+                >
+                  {overrideLoading ? (
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Pencil className="w-4 h-4" />
+                  )}
+                  Simpan Override
+                </button>
               </div>
             </motion.div>
           </div>

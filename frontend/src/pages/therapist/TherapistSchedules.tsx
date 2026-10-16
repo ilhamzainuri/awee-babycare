@@ -14,7 +14,8 @@ import {
   MessageCircle,
   Info,
   ClipboardList,
-  DollarSign
+  DollarSign,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -74,13 +75,25 @@ export default function AllSchedulesPage() {
 
     return allSchedules.filter((item) => {
       const itemDate = new Date(item.waktu_reservasi.replace(' ', 'T'));
+      const isUpcoming = itemDate >= today && itemDate <= nextWeek;
+      // Jadwal Diproses yang melewati tanggal (overdue) tetap ditampilkan
+      // agar terapis bisa menyelesaikan laporan yang terlambat
+      const isOverdueInProgress =
+        item.status_jadwal === 'Diproses' && itemDate < today;
+
       return (
-        itemDate >= today &&
-        itemDate <= nextWeek &&
+        (isUpcoming || isOverdueInProgress) &&
         item.status_jadwal !== 'Selesai' &&
         item.status_jadwal !== 'Dibatalkan'
       );
     });
+  };
+
+  const isOverdueItem = (item: any) => {
+    const itemDate = new Date(item.waktu_reservasi.replace(' ', 'T'));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return item.status_jadwal === 'Diproses' && itemDate < today;
   };
 
   const displayedAllSchedules = getDisplayedSchedules();
@@ -168,16 +181,43 @@ export default function AllSchedulesPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {displayedAllSchedules.map((item, index) => (
+          {/* Banner peringatan jika ada jadwal terlambat */}
+          {scheduleTab === 'upcoming' && displayedAllSchedules.some(isOverdueItem) && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3"
+            >
+              <div className="p-1.5 bg-red-100 rounded-full shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-red-700">Ada Laporan yang Belum Diselesaikan!</p>
+                <p className="text-xs text-red-600/80 mt-0.5">
+                  Terdapat jadwal yang sudah melewati tanggal pelayanan namun laporannya belum diisi.
+                  Segera selesaikan agar pembayaran bisa diverifikasi admin.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {displayedAllSchedules.map((item, index) => {
+            const overdue = scheduleTab === 'upcoming' && isOverdueItem(item);
+            return (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04 }}
-              className="bg-surface-container-lowest border border-surface-container p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all"
+              className={cn(
+                "border p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all",
+                overdue
+                  ? "bg-red-50/50 border-red-300 shadow-sm shadow-red-100"
+                  : "bg-surface-container-lowest border-surface-container"
+              )}
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <h3 className="font-bold text-on-surface text-base truncate">{item.nama_pasien}</h3>
                   <span
                     className={cn(
@@ -185,14 +225,19 @@ export default function AllSchedulesPage() {
                       item.status_jadwal === 'Menunggu'
                         ? 'bg-surface-container text-on-surface border-outline-variant'
                         : item.status_jadwal === 'Diproses'
-                        ? 'bg-warning-container/30 text-warning border-warning/20'
-                        : item.status_jadwal === 'Selesai'
-                        ? 'bg-success-container/30 text-success border-success/20'
-                        : 'bg-error-container/30 text-error border-error/20'
+                          ? 'bg-warning-container/30 text-warning border-warning/20'
+                          : item.status_jadwal === 'Selesai'
+                            ? 'bg-success-container/30 text-success border-success/20'
+                            : 'bg-error-container/30 text-error border-error/20'
                     )}
                   >
                     {item.status_jadwal}
                   </span>
+                  {overdue && (
+                    <span className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border bg-red-100 text-red-700 border-red-300 animate-pulse">
+                      <AlertTriangle className="w-2.5 h-2.5" /> Terlambat
+                    </span>
+                  )}
                   {item.jenis_layanan && (
                     <span
                       className={cn(
@@ -260,7 +305,8 @@ export default function AllSchedulesPage() {
                 </button>
               </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       )}
 

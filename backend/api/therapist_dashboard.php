@@ -112,7 +112,8 @@ try {
             ORDER BY waktu_reservasi ASC
         ");
         $stmtSched->execute([':id' => $therapist_id]);
-    } else {
+    } elseif (isset($_GET['include_overdue']) && $_GET['include_overdue'] == '1') {
+        // Query khusus (misal dari Pemeriksaan Klinis / StartService): sertakan jadwal overdue yang masih Menunggu/Diproses
         $stmtSched = $conn->prepare("
             SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
                    no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
@@ -127,8 +128,35 @@ try {
                     WHERE ad.id_appointment = appointments.id) as kategori_layanan
             FROM appointments 
             WHERE id_therapist = :id 
-              AND DATE(waktu_reservasi) = :filter_date
               AND deleted_at IS NULL
+              AND (
+                DATE(waktu_reservasi) = :filter_date
+                OR (
+                  status_jadwal IN ('Menunggu', 'Diproses')
+                  AND DATE(waktu_reservasi) < :filter_date2
+                )
+              )
+            ORDER BY waktu_reservasi ASC
+        ");
+        $stmtSched->execute([':id' => $therapist_id, ':filter_date' => $filter_date, ':filter_date2' => $filter_date]);
+    } else {
+        // Query default dashboard terapis: HANYA jadwal pada tanggal terpilih (default hari ini), tidak menampilkan jadwal kemarin
+        $stmtSched = $conn->prepare("
+            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+                   no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
+                   (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
+                    FROM appointment_details ad 
+                    JOIN services s ON ad.id_service = s.id 
+                    WHERE ad.id_appointment = appointments.id) as rincian_layanan,
+                   (SELECT GROUP_CONCAT(DISTINCT k.nama_kategori SEPARATOR ' + ')
+                    FROM appointment_details ad
+                    JOIN services s ON ad.id_service = s.id
+                    LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
+                    WHERE ad.id_appointment = appointments.id) as kategori_layanan
+            FROM appointments 
+            WHERE id_therapist = :id 
+              AND deleted_at IS NULL
+              AND DATE(waktu_reservasi) = :filter_date
             ORDER BY waktu_reservasi ASC
         ");
         $stmtSched->execute([':id' => $therapist_id, ':filter_date' => $filter_date]);
@@ -178,7 +206,8 @@ try {
             "complaint" => $row['keluhan_awal'],
             "services"             => $row['rincian_layanan'],
             "waktu_reservasi_raw" => $row['waktu_reservasi'],
-            "status_db"           => $row['status_jadwal']
+            "status_db"           => $row['status_jadwal'],
+            "is_overdue"          => (date('Y-m-d', strtotime($row['waktu_reservasi'])) < $hari_ini) ? true : false
         ];
     }
 

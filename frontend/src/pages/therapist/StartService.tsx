@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Thermometer, Scale, Activity, Check, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Thermometer, Scale, Activity, Check, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +14,7 @@ export default function StartService() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isStartingService, setIsStartingService] = useState(false);
+  const [selectedIsOverdue, setSelectedIsOverdue] = useState(false);
   const [startData, setStartData] = useState({
     suhu_pasien: '',
     bb_real_terapis: ''
@@ -28,7 +29,7 @@ export default function StartService() {
         if (!sessionStr) throw new Error('Sesi tidak valid');
         const user = JSON.parse(sessionStr);
 
-        const response = await fetch(`${baseUrl}/therapist_dashboard.php?user_id=${user.id}`);
+        const response = await fetch(`${baseUrl}/therapist_dashboard.php?user_id=${user.id}&include_overdue=1`);
         const result = await response.json();
 
         if (result.status === 200 && result.data.schedules) {
@@ -46,6 +47,7 @@ export default function StartService() {
                 suhu_pasien: matched.suhu_pasien || '',
                 bb_real_terapis: matched.bb_real_terapis || ''
               });
+              setSelectedIsOverdue(!!matched.is_overdue);
             }
           } else if (validSchedules.length > 0) {
             // Biarkan kosong agar user memilih secara eksplisit
@@ -73,9 +75,11 @@ export default function StartService() {
           suhu_pasien: matched.suhu_pasien || '',
           bb_real_terapis: matched.bb_real_terapis || ''
         });
+        setSelectedIsOverdue(!!matched.is_overdue);
       }
     } else {
       setStartData({ suhu_pasien: '', bb_real_terapis: '' });
+      setSelectedIsOverdue(false);
     }
   };
 
@@ -157,12 +161,32 @@ export default function StartService() {
                   <option value="" disabled>-- Pilih Pasien --</option>
                   {schedules.map(s => (
                     <option key={s.id} value={s.id}>
-                      {s.childName} ({s.time}) - {s.status}
+                      {s.is_overdue ? '⚠️ [TERLAMBAT] ' : ''}{s.childName} ({s.time}) - {s.status}
                     </option>
                   ))}
                 </select>
               )}
             </div>
+
+            {/* Banner peringatan jika jadwal yang dipilih overdue */}
+            {selectedIsOverdue && selectedScheduleId !== '' && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-amber-50 border border-amber-300 rounded-2xl p-4 flex items-start gap-3"
+              >
+                <div className="p-1.5 bg-amber-100 rounded-full shrink-0 mt-0.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-amber-800">Jadwal Terlambat Diproses</p>
+                  <p className="text-xs text-amber-700/80 mt-0.5">
+                    Jadwal ini sudah melewati tanggal pelayanan. Anda masih bisa mengisi data klinis,
+                    namun segera selesaikan laporan agar pembayaran dapat diverifikasi admin.
+                  </p>
+                </div>
+              </motion.div>
+            )}
 
             {/* Form Inputs (Hanya tampil jika jadwal dipilih) */}
             {selectedScheduleId !== '' && (
