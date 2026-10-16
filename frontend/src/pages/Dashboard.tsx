@@ -10,7 +10,9 @@ import {
   TrendingUp,
   Trash2,
   RotateCcw,
-  ArrowRight
+  ArrowRight,
+  ShieldAlert,
+  CreditCard
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -291,7 +293,7 @@ export default function Dashboard() {
         <section className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-on-surface">Warning System</h2>
-            {data.alerts.length > 0 && (
+            {((data.kpis?.unverified ?? 0) > 0 || data.alerts.length > 0) && (
               <span className="px-3 py-1 bg-error-container text-on-error-container rounded-full text-[10px] font-bold uppercase tracking-wider">
                 Action Required
               </span>
@@ -299,11 +301,44 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-4">
-            {data.alerts.length === 0 ? (
+            {/* Callout Card Khusus: Menunggu Verifikasi Pembayaran */}
+            {(data.kpis?.unverified ?? 0) > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.01 }}
+                onClick={() => navigate('/verify')}
+                className="p-4 rounded-3xl bg-error/5 border-2 border-error/30 hover:border-error transition-all cursor-pointer shadow-sm relative overflow-hidden group"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-2xl bg-error text-white shrink-0 mt-0.5 shadow-sm">
+                    <ShieldAlert className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <h3 className="font-extrabold text-on-surface text-sm">Verifikasi Pembayaran</h3>
+                      <span className="px-2 py-0.5 bg-error text-white rounded-full text-[9px] font-black uppercase tracking-wider">
+                        {data.kpis.unverified} Tertunda
+                      </span>
+                    </div>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">
+                      Terdapat {data.kpis.unverified} transaksi yang menunggu pengecekan bukti & validasi pembayaran.
+                    </p>
+                    <div className="mt-2.5 flex items-center gap-1.5 text-xs font-black text-error group-hover:translate-x-1 transition-transform">
+                      <span>Buka Verifikasi Pembayaran</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {data.alerts.length === 0 && (data.kpis?.unverified ?? 0) === 0 ? (
               <p className="text-sm text-on-surface-variant italic">Tidak ada peringatan. Sistem berjalan normal.</p>
             ) : (
               data.alerts.map((alert: any) => {
                 const isClickable = !!alert.link;
+                const isPayment = alert.link === '/verify' || alert.category === 'payment';
                 const isError = alert.type === 'error';
                 const isWarning = alert.type === 'warning';
                 const isInfo = alert.type === 'info';
@@ -332,10 +367,17 @@ export default function Dashboard() {
                         isInfo && "bg-emerald-500/10 text-emerald-600",
                         !isError && !isWarning && !isInfo && "bg-secondary-container/20 text-secondary"
                       )}>
-                        {isError && <AlertTriangle className="w-4 h-4" />}
-                        {isWarning && <Trash2 className="w-4 h-4" />}
-                        {isInfo && <RotateCcw className="w-4 h-4" />}
-                        {!isError && !isWarning && !isInfo && <AlertTriangle className="w-4 h-4" />}
+                        {isPayment ? (
+                          <ShieldAlert className="w-4 h-4" />
+                        ) : isError ? (
+                          <AlertTriangle className="w-4 h-4" />
+                        ) : isWarning ? (
+                          <Trash2 className="w-4 h-4" />
+                        ) : isInfo ? (
+                          <RotateCcw className="w-4 h-4" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start gap-2 mb-1">
@@ -345,7 +387,13 @@ export default function Dashboard() {
                         <p className="text-xs text-on-surface-variant leading-relaxed">{alert.description}</p>
                         {isClickable && (
                           <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-primary">
-                            <span>Buka di {alert.link === '/audit-log' ? 'Audit Log' : 'Verifikasi'}</span>
+                            <span>
+                              {alert.link === '/verify'
+                                ? 'Buka di Verifikasi Pembayaran'
+                                : alert.link === '/audit-log'
+                                ? 'Buka di Audit Log'
+                                : 'Lihat Detail'}
+                            </span>
                             <ArrowRight className="w-3 h-3" />
                           </div>
                         )}
@@ -361,7 +409,15 @@ export default function Dashboard() {
         {/* ================= THERAPIST SCHEDULE ================= */}
         <section className="lg:col-span-2 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-on-surface">Therapist Schedule</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-on-surface">Therapist Schedule</h2>
+              <button 
+                onClick={() => navigate('/admin-schedule')}
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2.5 py-1 rounded-lg transition-all"
+              >
+                Kelola Jadwal <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
             
             <div className="flex gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-none">
@@ -426,11 +482,12 @@ export default function Dashboard() {
                         return (
                           <div 
                             key={item.id || idx}
+                            onClick={() => navigate('/admin-schedule')}
                             className={cn(
-                              "shrink-0 p-3.5 rounded-2xl border transition-all min-w-[170px] max-w-[210px] flex flex-col gap-1.5 justify-center relative overflow-hidden",
+                              "shrink-0 p-3.5 rounded-2xl border transition-all min-w-[170px] max-w-[210px] flex flex-col gap-1.5 justify-center relative overflow-hidden cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
                               statusStyle.card
                             )}
-                            title={`${item.patient || 'Pasien Umum'} - ${item.room}`}
+                            title={`${item.patient || 'Pasien Umum'} - ${item.room} (Klik untuk buka Detail & Reschedule di Jadwal Admin)`}
                           >
                             <div className="flex items-center justify-between gap-1.5">
                               <p className="text-xs font-black truncate">{item.patient || 'Pasien Umum'}</p>

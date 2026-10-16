@@ -110,28 +110,127 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
     // ==========================================
     // BAGIAN 2: MENGAMBIL DATA WARNING / ALERTS
     // ==========================================
-    $stmt = $conn->query("
-        SELECT id, nama_pasien, metode_bayar_admin, metode_bayar_terapis, waktu_reservasi 
+    $alerts = [];
+    $tracked_ids = [];
+
+    // 1. Alert Kritis: Mismatch Metode Bayar (Admin vs Lapangan)
+    $stmtMismatch = $conn->query("
+        SELECT id, nama_pasien, metode_bayar_admin, metode_bayar_terapis, waktu_reservasi, total_harga_kunjungan 
         FROM appointments 
         WHERE metode_bayar_admin != metode_bayar_terapis 
         AND metode_bayar_terapis IS NOT NULL
         AND status_pembayaran = 'Unverified'
+        AND status_jadwal != 'Dibatalkan'
         AND deleted_at IS NULL
+        ORDER BY waktu_reservasi DESC
+        LIMIT 4
     ");
-    
-    $alerts_db = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $alerts = [];
-    
-    if ($alerts_db) {
-        foreach ($alerts_db as $alert) {
+    $mismatches = $stmtMismatch->fetchAll(PDO::FETCH_ASSOC);
+
+    if ($mismatches) {
+        foreach ($mismatches as $alert) {
+            $tracked_ids[] = (int)$alert['id'];
+            $nominal = number_format($alert['total_harga_kunjungan'], 0, ',', '.');
             $alerts[] = [
                 'id' => 'mismatch-' . $alert['id'],
-                'title' => $alert['nama_pasien'] . ' - Mismatch Pembayaran',
+                'title' => $alert['nama_pasien'] . ' - Selisih Metode Bayar',
                 'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
-                'description' => "Terdeteksi selisih metode bayar pada #TRX-{$alert['id']}. Rencana awal: {$alert['metode_bayar_admin']}, Fakta lapangan: {$alert['metode_bayar_terapis']}.",
+                'description' => "Terdeteksi selisih metode bayar pada #TRX-{$alert['id']} (Rp {$nominal}). Rencana: {$alert['metode_bayar_admin']}, Lapangan: {$alert['metode_bayar_terapis']}.",
                 'type' => 'error',
+                'category' => 'payment',
                 'link' => '/verify'
             ];
+        }
+    }
+
+    // 2. Alert Mendesak: Layanan Sudah 'Selesai' Tetapi Pembayaran Masih 'Unverified'
+    $stmtSelesaiUnverified = $conn->query("
+        SELECT id, nama_pasien, waktu_reservasi, total_harga_kunjungan, metode_bayar_admin, metode_bayar_terapis 
+        FROM appointments 
+        WHERE status_jadwal = 'Selesai'
+        AND status_pembayaran = 'Unverified'
+        AND deleted_at IS NULL
+        ORDER BY waktu_reservasi DESC
+        LIMIT 4
+    ");
+    $selesaiUnverified = $stmtSelesaiUnverified->fetchAll(PDO::FETCH_ASSOC);
+
+    if ($selesaiUnverified) {
+        foreach ($selesaiUnverified as $alert) {
+            if (in_array((int)$alert['id'], $tracked_ids)) continue;
+            $tracked_ids[] = (int)$alert['id'];
+            $nominal = number_format($alert['total_harga_kunjungan'], 0, ',', '.');
+            $metode = $alert['metode_bayar_terapis'] ?: $alert['metode_bayar_admin'] ?: 'Transfer/Cash';
+            $alerts[] = [
+                'id' => 'urgent-unverified-' . $alert['id'],
+                'title' => $alert['nama_pasien'] . ' - Layanan Selesai Belum Verifikasi',
+                'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
+                'description' => "Layanan #TRX-{$alert['id']} (Rp {$nominal}) telah selesai, namun status pembayaran masih Unverified ({$metode}).",
+                'type' => 'error',
+                'category' => 'payment',
+                'link' => '/verify'
+            ];
+        }
+    }
+
+    // 3. Alert: Ada Bukti Transfer / Pembayaran Menunggu Validasi Admin
+    $stmtBukti = $conn->query("
+        SELECT id, nama_pasien, waktu_reservasi, total_harga_kunjungan, metode_bayar_admin 
+        FROM appointments 
+        WHERE bukti_bayar_url IS NOT NULL 
+        AND status_pembayaran = 'Unverified'
+        AND deleted_at IS NULL
+        ORDER BY waktu_reservasi DESC
+        LIMIT 4
+    ");
+    $buktiUnverified = $stmtBukti->fetchAll(PDO::FETCH_ASSOC);
+
+    if ($buktiUnverified) {
+        foreach ($buktiUnverified as $alert) {
+            if (in_array((int)$alert['id'], $tracked_ids)) continue;
+            $tracked_ids[] = (int)$alert['id'];
+            $nominal = number_format($alert['total_harga_kunjungan'], 0, ',', '.');
+            $alerts[] = [
+                'id' => 'bukti-unverified-' . $alert['id'],
+                'title' => $alert['nama_pasien'] . ' - Bukti Bayar Perlu Validasi',
+                'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
+                'description' => "Bukti pembayaran telah diunggah untuk #TRX-{$alert['id']} (Rp {$nominal}). Silakan verifikasi transaksi ini.",
+                'type' => 'warning',
+                'category' => 'payment',
+                'link' => '/verify'
+            ];
+        }
+    }
+
+    // 4. Alert Umum Pembayaran: Jika masih ada transaksi unverified lainnya
+    if (count($alerts) < 4) {
+        $notInClause = !empty($tracked_ids) ? ("AND id NOT IN (" . implode(',', $tracked_ids) . ")") : "";
+        $stmtGeneral = $conn->query("
+            SELECT id, nama_pasien, waktu_reservasi, total_harga_kunjungan, metode_bayar_admin 
+            FROM appointments 
+            WHERE status_pembayaran = 'Unverified'
+            AND status_jadwal != 'Dibatalkan'
+            AND deleted_at IS NULL
+            $notInClause
+            ORDER BY waktu_reservasi DESC
+            LIMIT 3
+        ");
+        $generalUnverified = $stmtGeneral->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($generalUnverified) {
+            foreach ($generalUnverified as $alert) {
+                $tracked_ids[] = (int)$alert['id'];
+                $nominal = number_format($alert['total_harga_kunjungan'], 0, ',', '.');
+                $alerts[] = [
+                    'id' => 'unverified-' . $alert['id'],
+                    'title' => $alert['nama_pasien'] . ' - Menunggu Verifikasi',
+                    'time' => date('h:i A', strtotime($alert['waktu_reservasi'])),
+                    'description' => "Reservasi #TRX-{$alert['id']} (Rp {$nominal}) menunggu verifikasi pembayaran ({$alert['metode_bayar_admin']}).",
+                    'type' => 'warning',
+                    'category' => 'payment',
+                    'link' => '/verify'
+                ];
+            }
         }
     }
 
