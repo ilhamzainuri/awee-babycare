@@ -42,7 +42,7 @@ interface ActiveSchedule {
   address: string;
   raw_address?: string;
   jenis_layanan?: string;
-  status: 'Pending' | 'Confirmed' | 'On Process' | 'Selesai' | 'Dibatalkan' | string;
+  status: 'Menunggu' | 'Diproses' | 'Selesai' | 'Dibatalkan' | string;
   status_db?: string;
   phone?: string;
   mapLink?: string;
@@ -240,11 +240,11 @@ export default function TherapistDashboard() {
     return '';
   };
 
-  if (isLoading) return <div className="flex h-64 items-center justify-center"><div className="text-on-surface-variant font-bold animate-pulse text-sm">Menyelaraskan Tugas Hari Ini...</div></div>;
+  if (isLoading) return <div className="flex h-64 items-center justify-center"><div className="text-on-surface-variant font-bold animate-pulse text-sm">Memuat Data Dashboard...</div></div>;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-0 relative">
-      {error && <div className="p-4 bg-error-container text-on-error-container rounded-2xl font-bold text-sm">Terjadi Kesalahan: {error}</div>}
+      {error && <div className="p-4 bg-error-container text-on-error-container rounded-2xl font-bold text-sm">Gagal Memuat Dashboard: {error}</div>}
 
       {/* WIDGET RINGKASAN & SALUTATION */}
       <section className="bg-gradient-to-br from-primary/10 via-primary-container/5 to-surface-container-lowest p-6 rounded-3xl border border-primary-container/20 shadow-sm">
@@ -282,7 +282,7 @@ export default function TherapistDashboard() {
                   <option value="today">Hari Ini</option>
                   <option value="weekly">7 Hari Terakhir</option>
                   <option value="monthly">Bulan Ini</option>
-                  <option value="custom">Kustom Range</option>
+                  <option value="custom">Rentang Kustom</option>
                 </select>
               </div>
               
@@ -332,7 +332,7 @@ export default function TherapistDashboard() {
               <Calendar className="w-5 h-5 text-primary" />
               <div>
                 <h2 className="text-lg font-black text-on-surface">
-                  {activeDate === todayStr ? 'Jadwal Kunjungan Hari Ini' : 'Jadwal Kunjungan'}
+                  Therapist Schedule
                 </h2>
                 <p className="text-[11px] text-on-surface-variant font-bold">
                   {new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', {
@@ -380,15 +380,14 @@ export default function TherapistDashboard() {
               </div>
             ) : schedules.length === 0 ? (
               <div className="col-span-2 bg-surface-container-lowest border border-dashed border-surface-container p-8 text-center rounded-3xl text-sm text-on-surface-variant italic">
-                Tidak ada jadwal kunjungan untuk tanggal {new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                Tidak ada jadwal untuk tanggal {new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
               </div>
             ) : (
               schedules.map((schedule, index) => (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05 }} key={schedule.id} className="bg-surface-container-lowest border border-surface-container rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                   <div className={cn("absolute top-0 left-0 right-0 h-1.5",
-                    schedule.status === 'On Process' && "bg-warning",
-                    schedule.status === 'Confirmed' && "bg-primary",
-                    schedule.status === 'Pending' && "bg-outline",
+                    schedule.status === 'Diproses' && "bg-warning",
+                    schedule.status === 'Menunggu' && "bg-outline",
                     schedule.status === 'Selesai' && "bg-emerald-500",
                     schedule.status === 'Dibatalkan' && "bg-red-400"
                   )} />
@@ -410,9 +409,8 @@ export default function TherapistDashboard() {
                         )}
                         <span className={cn(
                           "text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md",
-                          schedule.status === 'On Process' && "bg-warning-container/30 text-warning",
-                          schedule.status === 'Confirmed' && "bg-primary-container/20 text-primary",
-                          schedule.status === 'Pending' && "bg-surface-container text-on-surface-variant",
+                          schedule.status === 'Diproses' && "bg-warning-container/30 text-warning",
+                          schedule.status === 'Menunggu' && "bg-surface-container text-on-surface-variant",
                           schedule.status === 'Selesai' && "bg-emerald-100 text-emerald-700",
                           schedule.status === 'Dibatalkan' && "bg-red-100 text-red-600"
                         )}>
@@ -439,7 +437,7 @@ export default function TherapistDashboard() {
 
         {/* RIWAYAT SINGKAT */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between"><h2 className="text-lg font-black text-on-surface">Riwayat Pelayanan</h2></div>
+          <div className="flex items-center justify-between"><h2 className="text-lg font-black text-on-surface">Service History</h2></div>
           <div className="bg-surface-container-lowest border border-surface-container rounded-3xl p-4 shadow-sm divide-y divide-surface-container">
             {history.length === 0 ? (
               <p className="p-4 text-center text-xs text-on-surface-variant italic">Belum ada riwayat pelayanan baru-baru ini.</p>
@@ -517,7 +515,7 @@ export default function TherapistDashboard() {
                             <p className="text-sm font-black text-primary">{formatRupiah(item.total_komisi_kunjungan)}</p>
                           </div>
                           <button onClick={() => setSelectedDetail({
-                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), status: item.status_jadwal === 'Menunggu' ? 'Pending' : (item.status_jadwal === 'Diproses' ? 'On Process' : item.status_jadwal), phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
+                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), status: item.status_jadwal, phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
                           })} className="text-[11px] font-bold text-primary hover:underline self-end flex items-center gap-1">
                             Lihat Detail <ArrowRight className="w-3 h-3"/>
                           </button>
@@ -546,7 +544,7 @@ export default function TherapistDashboard() {
               <div className="p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
                 {/* Info pasien */}
                 <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl">
-                  <h4 className="text-xs font-black text-primary uppercase tracking-wider mb-3">Informasi pasien</h4>
+                  <h4 className="text-xs font-black text-primary uppercase tracking-wider mb-3">Informasi Pasien</h4>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-0.5">Nama Pasien</p>
@@ -653,7 +651,7 @@ export default function TherapistDashboard() {
                   <div className="bg-red-50 border border-red-200 p-4 rounded-2xl text-center">
                     <p className="text-sm font-bold text-red-600">Reservasi Dibatalkan</p>
                   </div>
-                ) : selectedDetail.status === 'Pending' || selectedDetail.status === 'Menunggu' ? (
+                ) : selectedDetail.status === 'Menunggu' ? (
                   <>
                     {!canStartSchedule(selectedDetail) && (
                       <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
@@ -676,7 +674,7 @@ export default function TherapistDashboard() {
                       {canStartSchedule(selectedDetail) ? 'Mulai Layanan Sekarang' : 'Belum Saatnya Dimulai'}
                     </button>
                   </>
-                ) : selectedDetail.status === 'On Process' || selectedDetail.status === 'Diproses' ? (
+                ) : selectedDetail.status === 'Diproses' ? (
                   <button onClick={openReportModal} className="w-full bg-success hover:bg-success/90 text-on-primary text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-success/30">
                     <CheckCircle2 className="w-5 h-5"/> Isi Laporan Selesai
                   </button>

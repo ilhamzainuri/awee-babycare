@@ -164,14 +164,7 @@ try {
     
     $schedules = [];
     while ($row = $stmtSched->fetch(PDO::FETCH_ASSOC)) {
-        // Peta semua status DB ke label UI
-        $status_map = [
-            'Menunggu'   => 'Pending',
-            'Diproses'   => 'On Process',
-            'Selesai'    => 'Selesai',
-            'Dibatalkan' => 'Dibatalkan',
-        ];
-        $ui_status = $status_map[$row['status_jadwal']] ?? 'Pending';
+        $ui_status = $row['status_jadwal'];
 
         $kat_str = strtolower($row['kategori_layanan'] ?? '');
         $has_outlet = (strpos($kat_str, 'outlet') !== false);

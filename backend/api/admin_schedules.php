@@ -39,6 +39,7 @@ try {
                 a.usia_saat_ini, 
                 a.bb_saat_ini, 
                 a.bb_real_terapis,
+                a.suhu_pasien,
                 a.jenis_kelamin,
                 a.alamat_lengkap, 
                 a.link_shareloc, 

@@ -596,7 +596,7 @@ export default function AdminSchedules() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-black/60 backdrop-blur-sm"
             onClick={handleCloseModal}
           >
             <motion.div
@@ -604,49 +604,55 @@ export default function AdminSchedules() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-surface-container-lowest w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-[2rem] shadow-2xl flex flex-col hide-scrollbar"
+              className="bg-surface-container-lowest w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-[2rem] shadow-2xl flex flex-col hide-scrollbar"
             >
               {/* Header Modal */}
-              <div className="sticky top-0 z-10 bg-surface-container-lowest/95 backdrop-blur-md px-6 py-5 border-b border-surface-container flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-black text-on-surface tracking-tight flex items-center gap-2">
-                    Detail Pelayanan <span className="px-2 py-1 bg-primary-container/10 text-primary-container rounded-lg text-sm">#TRX-{selectedSchedule.id}</span>
-                  </h2>
-                  <span className={cn(
-                    "px-3 py-1 rounded-full text-xs font-black border uppercase tracking-wider flex items-center gap-1.5",
-                    STATUS_COLORS[selectedSchedule.status_jadwal]?.bg,
-                    STATUS_COLORS[selectedSchedule.status_jadwal]?.text,
-                    STATUS_COLORS[selectedSchedule.status_jadwal]?.border
-                  )}>
-                    {selectedSchedule.status_jadwal === 'Selesai' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    {selectedSchedule.status_jadwal === 'Dibatalkan' && <Ban className="w-3.5 h-3.5" />}
-                    {selectedSchedule.status_jadwal}
-                  </span>
+              <div className="sticky top-0 z-10 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-3.5 sm:px-6 sm:py-5 border-b border-surface-container flex items-start sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h2 className="text-lg sm:text-xl font-black text-on-surface tracking-tight">
+                      Detail Pelayanan
+                    </h2>
+                    <span className="px-2 py-0.5 bg-primary-container/10 text-primary-container font-mono font-bold rounded-lg text-xs sm:text-sm">
+                      #TRX-{selectedSchedule.id}
+                    </span>
+                    <span className={cn(
+                      "px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-black border uppercase tracking-wider inline-flex items-center gap-1 shrink-0",
+                      STATUS_COLORS[selectedSchedule.status_jadwal]?.bg,
+                      STATUS_COLORS[selectedSchedule.status_jadwal]?.text,
+                      STATUS_COLORS[selectedSchedule.status_jadwal]?.border
+                    )}>
+                      {selectedSchedule.status_jadwal === 'Selesai' && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                      {selectedSchedule.status_jadwal === 'Dibatalkan' && <Ban className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                      {selectedSchedule.status_jadwal}
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={handleCloseModal}
-                  className="p-2 bg-surface-container hover:bg-surface-container-high text-on-surface-variant rounded-full transition-all"
+                  className="p-1.5 sm:p-2 bg-surface-container hover:bg-surface-container-high text-on-surface-variant rounded-full transition-all shrink-0 -mr-1 sm:mr-0"
+                  aria-label="Tutup modal"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Isi Modal */}
-              <div className="p-6 md:p-8 space-y-6 text-sm text-left">
+              <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 text-sm text-left">
 
                 {/* Banner Jika Status 'Selesai' (Terkunci) */}
                 {selectedSchedule.status_jadwal === 'Selesai' && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start sm:items-center gap-3 text-emerald-800"
+                    className="p-3.5 sm:p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start sm:items-center gap-3 text-emerald-800"
                   >
                     <div className="p-2 bg-emerald-500/20 text-emerald-700 rounded-xl shrink-0 mt-0.5 sm:mt-0">
-                      <Lock className="w-5 h-5" />
+                      <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <div>
-                      <p className="font-extrabold text-sm">Layanan Telah Selesai Dilaksanakan (Terkunci)</p>
-                      <p className="text-xs text-emerald-700/80 mt-0.5">
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-xs sm:text-sm">Layanan Telah Selesai Dilaksanakan (Terkunci)</p>
+                      <p className="text-[11px] sm:text-xs text-emerald-700/80 mt-0.5 leading-relaxed">
                         Jadwal dan status telah terkunci permanen demi integritas laporan & komisi. Layanan ini tidak dapat di-reschedule ataupun dibatalkan lagi.
                       </p>
                     </div>
@@ -658,19 +664,19 @@ export default function AdminSchedules() {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-red-700"
+                    className="p-3.5 sm:p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 text-red-700"
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className="p-2 bg-red-500/20 text-red-600 rounded-xl shrink-0 mt-0.5">
-                        <AlertOctagon className="w-5 h-5" />
+                        <AlertOctagon className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <div>
-                        <p className="font-extrabold text-sm">Layanan Ini Telah Dibatalkan</p>
-                        <p className="text-xs text-red-600/80 mt-0.5">
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-xs sm:text-sm">Layanan Ini Telah Dibatalkan</p>
+                        <p className="text-[11px] sm:text-xs text-red-600/80 mt-0.5 leading-relaxed">
                           Slot waktu terapis telah dibebaskan dan transaksi ini dikecualikan dari perhitungan omzet & komisi laporan.
                         </p>
                         {selectedSchedule.catatan_terapis && (
-                          <div className="mt-2 text-xs bg-red-500/15 p-2.5 rounded-xl font-medium whitespace-pre-line text-red-800 border border-red-500/20">
+                          <div className="mt-2 text-xs bg-red-500/15 p-2.5 rounded-xl font-medium whitespace-pre-line text-red-800 border border-red-500/20 break-words">
                             {selectedSchedule.catatan_terapis}
                           </div>
                         )}
@@ -679,7 +685,7 @@ export default function AdminSchedules() {
                     <button
                       onClick={() => handleUpdateStatus('Menunggu')}
                       disabled={isUpdating}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
+                      className="w-full sm:w-auto justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
                     >
                       {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                       Pulihkan Jadwal
@@ -692,22 +698,22 @@ export default function AdminSchedules() {
                   {isEditingSchedule && (
                     <motion.div
                       initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                      animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+                      animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
                       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                      className="bg-primary-container/10 border border-primary-container/20 p-5 rounded-2xl overflow-hidden"
+                      className="bg-primary-container/10 border border-primary-container/20 p-4 sm:p-5 rounded-2xl overflow-hidden"
                     >
-                      <div className="flex items-center gap-2 mb-4">
-                        <CalendarDays className="w-5 h-5 text-primary-container" />
-                        <h3 className="font-bold text-primary-container text-base">Atur Ulang Jadwal & Status (Reschedule)</h3>
+                      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                        <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-primary-container shrink-0" />
+                        <h3 className="font-bold text-primary-container text-sm sm:text-base">Atur Ulang Jadwal & Status (Reschedule)</h3>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                         <div>
                           <label className="text-xs font-bold text-on-surface-variant mb-1.5 block">Tanggal Baru</label>
                           <input
                             type="date"
                             value={editForm.date}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                            className="w-full p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all"
+                            className="w-full p-2.5 sm:p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all text-xs sm:text-sm"
                           />
                         </div>
                         <div>
@@ -716,7 +722,7 @@ export default function AdminSchedules() {
                             type="time"
                             value={editForm.time}
                             onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
-                            className="w-full p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all"
+                            className="w-full p-2.5 sm:p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all text-xs sm:text-sm"
                           />
                         </div>
                         <div>
@@ -724,7 +730,7 @@ export default function AdminSchedules() {
                           <select
                             value={editForm.status}
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                            className="w-full p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all font-bold text-on-surface"
+                            className="w-full p-2.5 sm:p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all font-bold text-on-surface text-xs sm:text-sm"
                           >
                             <option value="Menunggu">Menunggu</option>
                             <option value="Diproses">Diproses</option>
@@ -748,17 +754,17 @@ export default function AdminSchedules() {
                         </div>
                       )}
 
-                      <div className="flex justify-end gap-3">
+                      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                         <button
                           onClick={() => setIsEditingSchedule(false)}
-                          className="px-4 py-2 bg-surface-container text-on-surface rounded-xl text-sm font-bold hover:bg-surface-container-high transition-all"
+                          className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-surface-container text-on-surface rounded-xl text-xs sm:text-sm font-bold hover:bg-surface-container-high transition-all text-center"
                           disabled={isUpdating}
                         >
                           Batal
                         </button>
                         <button
                           onClick={submitReschedule}
-                          className="flex items-center gap-2 px-5 py-2 bg-primary text-on-primary rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-md"
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 sm:py-2 bg-primary text-on-primary rounded-xl text-xs sm:text-sm font-bold hover:opacity-90 transition-all shadow-md"
                           disabled={isUpdating}
                         >
                           {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -769,20 +775,20 @@ export default function AdminSchedules() {
                   )}
                 </AnimatePresence>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   {/* Kiri: Info Pasien & Lokasi */}
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {/* Data Pasien */}
-                    <div className="bg-surface-container-low p-5 rounded-2xl border border-surface-container">
-                      <div className="flex items-center gap-2 border-b border-surface-container pb-3 mb-4">
-                        <Baby className="w-5 h-5 text-primary" />
+                    <div className="bg-surface-container-low p-4 sm:p-5 rounded-2xl border border-surface-container">
+                      <div className="flex items-center gap-2 border-b border-surface-container pb-3 mb-3.5">
+                        <Baby className="w-5 h-5 text-primary shrink-0" />
                         <h3 className="font-bold text-on-surface text-base">Data Pasien</h3>
                       </div>
                       <div className="space-y-3">
                         <div>
-                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Nama Pasien</span>
+                          <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Nama Pasien</span>
                           <span className={cn(
-                            "font-black text-on-surface text-base",
+                            "font-black text-on-surface text-base sm:text-lg block",
                             selectedSchedule.status_jadwal === 'Dibatalkan' && "line-through text-on-surface/70"
                           )}>
                             {selectedSchedule.nama_pasien}
@@ -790,43 +796,59 @@ export default function AdminSchedules() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Gender</span>
-                            <span className="font-semibold text-on-surface">{selectedSchedule.jenis_kelamin}</span>
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Gender</span>
+                            <span className="font-semibold text-on-surface text-xs sm:text-sm">{selectedSchedule.jenis_kelamin || '-'}</span>
                           </div>
                           <div>
-                            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Usia</span>
-                            <span className="font-semibold text-on-surface">{selectedSchedule.usia_saat_ini || '-'}</span>
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Usia</span>
+                            <span className="font-semibold text-on-surface text-xs sm:text-sm">{selectedSchedule.usia_saat_ini || '-'}</span>
                           </div>
                         </div>
                         <div>
-                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">No. WhatsApp Ortu</span>
-                          <span className="font-semibold text-on-surface flex items-center gap-2">
-                            {selectedSchedule.no_hp_ortu}
-                          </span>
+                          <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">No. WhatsApp Ortu</span>
+                          {selectedSchedule.no_hp_ortu ? (
+                            <a
+                              href={`https://wa.me/${selectedSchedule.no_hp_ortu.replace(/^0/, '62').replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-semibold text-primary hover:underline inline-flex items-center gap-1.5 text-xs sm:text-sm"
+                            >
+                              <Phone className="w-3.5 h-3.5 shrink-0" />
+                              <span>{selectedSchedule.no_hp_ortu}</span>
+                            </a>
+                          ) : (
+                            <span className="font-semibold text-on-surface text-xs sm:text-sm">-</span>
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3 bg-surface-container p-3 rounded-xl">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-container/70 p-3 rounded-xl border border-surface-container">
                           <div>
                             <span className="text-on-surface-variant text-[10px] uppercase font-bold block">BB (Admin)</span>
-                            <span className="font-black text-on-surface">{selectedSchedule.bb_saat_ini ? `${selectedSchedule.bb_saat_ini} kg` : '-'}</span>
+                            <span className="font-black text-on-surface text-xs sm:text-sm">{selectedSchedule.bb_saat_ini ? `${selectedSchedule.bb_saat_ini} kg` : '-'}</span>
                           </div>
                           <div>
                             <span className="text-on-surface-variant text-[10px] uppercase font-bold block">BB (Terapis)</span>
-                            <span className="font-black text-primary">{selectedSchedule.bb_real_terapis ? `${selectedSchedule.bb_real_terapis} kg` : '-'}</span>
+                            <span className="font-black text-primary text-xs sm:text-sm">{selectedSchedule.bb_real_terapis ? `${selectedSchedule.bb_real_terapis} kg` : '-'}</span>
+                          </div>
+                          <div className="col-span-2 sm:col-span-1">
+                            <span className="text-on-surface-variant text-[10px] uppercase font-bold block">Suhu Tubuh</span>
+                            <span className="font-black text-on-surface text-xs sm:text-sm">
+                              {selectedSchedule.suhu_pasien ? `${selectedSchedule.suhu_pasien}°C` : '-'}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Lokasi & Keluhan */}
-                    <div className="bg-surface-container-low p-5 rounded-2xl border border-surface-container">
-                      <div className="flex items-center justify-between border-b border-surface-container pb-3 mb-4">
+                    <div className="bg-surface-container-low p-4 sm:p-5 rounded-2xl border border-surface-container">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-container pb-3 mb-3.5">
                         <div className="flex items-center gap-2">
-                          <MapPin className="w-5 h-5 text-tertiary" />
+                          <MapPin className="w-5 h-5 text-tertiary shrink-0" />
                           <h3 className="font-bold text-on-surface text-base">Lokasi & Keluhan</h3>
                         </div>
                         {selectedSchedule.jenis_layanan && (
                           <span className={cn(
-                            "text-xs font-black px-3 py-1 rounded-full border tracking-wide uppercase",
+                            "text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full border tracking-wide uppercase shrink-0",
                             selectedSchedule.jenis_layanan.toLowerCase().includes('outlet') && selectedSchedule.jenis_layanan.toLowerCase().includes('homecare')
                               ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
                               : selectedSchedule.jenis_layanan.toLowerCase().includes('outlet')
@@ -837,14 +859,27 @@ export default function AdminSchedules() {
                           </span>
                         )}
                       </div>
-                      <div className="space-y-4">
+                      <div className="space-y-3.5">
                         <div>
-                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block mb-1">
+                          <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-1">
                             Lokasi / Alamat Kunjungan
                           </span>
-                          <p className="font-bold text-on-surface leading-relaxed text-sm bg-surface-container p-3 rounded-xl border border-surface-container-high/50">
-                            {selectedSchedule.lokasi_kunjungan || selectedSchedule.alamat_lengkap}
-                          </p>
+                          <div className="bg-surface-container p-3 rounded-xl border border-surface-container-high/50 space-y-2">
+                            <p className="font-bold text-on-surface leading-relaxed text-xs sm:text-sm">
+                              {selectedSchedule.lokasi_kunjungan || selectedSchedule.alamat_lengkap}
+                            </p>
+                            {selectedSchedule.link_shareloc && selectedSchedule.link_shareloc !== '-' && (
+                              <a
+                                href={selectedSchedule.link_shareloc}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary-container/20 hover:bg-secondary-container/30 text-secondary border border-secondary/20 rounded-lg text-xs font-bold transition-all"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Buka Peta / Shareloc
+                              </a>
+                            )}
+                          </div>
                           {selectedSchedule.jenis_layanan?.toLowerCase().includes('outlet') && selectedSchedule.alamat_lengkap && (
                             <p className="text-[11px] text-on-surface-variant mt-1.5 italic">
                               * Alamat domisili pasien: {selectedSchedule.alamat_lengkap}
@@ -852,8 +887,8 @@ export default function AdminSchedules() {
                           )}
                         </div>
                         <div>
-                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block mb-1">Keluhan Awal</span>
-                          <p className="font-medium text-on-surface bg-surface-container p-3 rounded-xl text-sm border border-surface-container-high/50">
+                          <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-1">Keluhan Awal</span>
+                          <p className="font-medium text-on-surface bg-surface-container p-3 rounded-xl text-xs sm:text-sm border border-surface-container-high/50">
                             {selectedSchedule.keluhan_awal || 'Tidak ada keluhan.'}
                           </p>
                         </div>
@@ -861,19 +896,19 @@ export default function AdminSchedules() {
                     </div>
                   </div>
 
-                  {/* Kanan: Penugasan & Pembatalan / Status */}
-                  <div className="space-y-6">
-                    <div className="bg-surface-container-low p-5 rounded-2xl border border-surface-container h-full flex flex-col">
-                      <div className="flex items-center justify-between border-b border-surface-container pb-3 mb-4">
+                  {/* Kanan: Penugasan & Biaya */}
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="bg-surface-container-low p-4 sm:p-5 rounded-2xl border border-surface-container h-full flex flex-col">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-surface-container pb-3 mb-3.5">
                         <div className="flex items-center gap-2">
-                          <Receipt className="w-5 h-5 text-secondary" />
+                          <Receipt className="w-5 h-5 text-secondary shrink-0" />
                           <h3 className="font-bold text-on-surface text-base">Penugasan & Biaya</h3>
                         </div>
 
                         {/* Tombol Aksi di Header Penugasan */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {selectedSchedule.status_jadwal === 'Selesai' ? (
-                            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-500/20">
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-500/20">
                               <Lock className="w-3.5 h-3.5" /> Selesai & Terkunci
                             </span>
                           ) : (
@@ -911,21 +946,22 @@ export default function AdminSchedules() {
                         </div>
                       </div>
 
-                      <div className="space-y-4 flex-1">
+                      <div className="space-y-3.5 flex-1">
+                        {/* Terapis Bertugas */}
                         <div className="flex items-center gap-3 p-3 bg-secondary-container/10 rounded-xl border border-secondary-container/20">
-                          <div className="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-sm">
+                          <div className="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-sm shrink-0">
                             {selectedSchedule.initials || <Baby className="w-5 h-5" />}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <span className="text-on-surface-variant text-[10px] uppercase tracking-wider font-bold block">Terapis Bertugas</span>
-                            <span className="font-black text-on-surface text-base">{selectedSchedule.nama_terapis}</span>
+                            <span className="font-black text-on-surface text-sm sm:text-base truncate block">{selectedSchedule.nama_terapis}</span>
                           </div>
                         </div>
 
                         {/* Pengubah Status Jadwal Langsung */}
-                        <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high/60">
+                        <div className="bg-surface-container/70 p-3 rounded-xl border border-surface-container">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block">
                               Ubah Status Jadwal
                             </span>
                             {selectedSchedule.status_jadwal === 'Selesai' && (
@@ -941,7 +977,7 @@ export default function AdminSchedules() {
                               <span className="text-[10px] uppercase tracking-wider bg-emerald-500/20 px-2 py-0.5 rounded">Terkunci</span>
                             </div>
                           ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                               {(['Menunggu', 'Diproses', 'Selesai', 'Dibatalkan'] as const).map((status) => {
                                 const isCurrent = selectedSchedule.status_jadwal === status;
                                 return (
@@ -951,7 +987,7 @@ export default function AdminSchedules() {
                                     onClick={() => handleUpdateStatus(status)}
                                     disabled={isUpdating || isCurrent}
                                     className={cn(
-                                      "py-2 px-2 rounded-lg text-xs font-bold transition-all border text-center",
+                                      "py-2 sm:py-2.5 px-2 rounded-lg text-xs font-bold transition-all border text-center flex items-center justify-center gap-1",
                                       isCurrent
                                         ? status === 'Dibatalkan'
                                           ? "bg-red-600 text-white border-red-600 shadow-sm"
@@ -963,6 +999,7 @@ export default function AdminSchedules() {
                                         : "bg-surface-container-lowest text-on-surface hover:bg-surface-container border-surface-container-high"
                                     )}
                                   >
+                                    {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                                     {status}
                                   </button>
                                 );
@@ -971,74 +1008,67 @@ export default function AdminSchedules() {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Detail Info Waktu & Pembayaran */}
+                        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 bg-surface-container/50 p-3 rounded-xl border border-surface-container">
                           <div>
-                            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Waktu Reservasi</span>
-                            <span className="font-black text-on-surface">{selectedSchedule.waktu_reservasi}</span>
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Waktu Reservasi</span>
+                            <span className="font-black text-on-surface text-xs sm:text-sm">{selectedSchedule.waktu_reservasi}</span>
                           </div>
                           <div>
-                            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Status Jadwal</span>
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Status Verifikasi</span>
                             <span className={cn(
-                              "font-black uppercase inline-flex items-center gap-1",
-                              STATUS_COLORS[selectedSchedule.status_jadwal]?.text
+                              "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider",
+                              selectedSchedule.status_pembayaran === 'Verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                             )}>
-                              {selectedSchedule.status_jadwal}
+                              {selectedSchedule.status_pembayaran}
                             </span>
                           </div>
                           <div>
-                            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Bayar (Admin)</span>
-                            <span className="font-semibold text-on-surface">{selectedSchedule.metode_bayar_admin}</span>
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Bayar (Admin)</span>
+                            <span className="font-semibold text-on-surface text-xs sm:text-sm">{selectedSchedule.metode_bayar_admin}</span>
                           </div>
                           <div>
-                            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Bayar (Terapis)</span>
-                            <span className="font-semibold text-on-surface">{selectedSchedule.metode_bayar_terapis || '-'}</span>
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Bayar (Terapis)</span>
+                            <span className="font-semibold text-on-surface text-xs sm:text-sm">{selectedSchedule.metode_bayar_terapis || '-'}</span>
                           </div>
-                        </div>
-
-                        <div>
-                          <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block">Status Verifikasi</span>
-                          <span className={cn(
-                            "inline-block mt-1 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider",
-                            selectedSchedule.status_pembayaran === 'Verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                          )}>
-                            {selectedSchedule.status_pembayaran}
-                          </span>
                         </div>
                       </div>
 
                       {/* Rincian Layanan & Harga */}
-                      <div className="border-t border-surface-container pt-4 mt-4">
-                        <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold block mb-2">Rincian Layanan</span>
-                        <div className="space-y-2 mb-4">
+                      <div className="border-t border-surface-container pt-3.5 mt-3.5">
+                        <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-2">
+                          Rincian Layanan ({selectedSchedule.services?.length || 0})
+                        </span>
+                        <div className="space-y-1.5 mb-3.5 max-h-44 overflow-y-auto pr-1">
                           {selectedSchedule.services && selectedSchedule.services.map((srv: any, i: number) => (
-                            <div key={i} className="flex justify-between items-center text-sm bg-surface-container p-2.5 rounded-xl">
-                              <span className="font-semibold text-on-surface">{srv.nama_layanan}</span>
-                              <span className="font-bold text-on-surface-variant">{formatRupiah(srv.harga_snapshot)}</span>
+                            <div key={i} className="flex justify-between items-center text-xs sm:text-sm bg-surface-container/70 p-2.5 rounded-xl gap-2">
+                              <span className="font-semibold text-on-surface break-words leading-tight">{srv.nama_layanan}</span>
+                              <span className="font-bold text-on-surface-variant shrink-0">{formatRupiah(srv.harga_snapshot)}</span>
                             </div>
                           ))}
                         </div>
 
                         <div className={cn(
-                          "flex justify-between items-center p-4 rounded-2xl border transition-all",
+                          "p-3.5 sm:p-4 rounded-2xl border transition-all space-y-2",
                           selectedSchedule.status_jadwal === 'Dibatalkan'
                             ? "bg-red-500/10 border-red-500/20 opacity-80"
                             : "bg-primary-container/15 border-primary-container/20"
                         )}>
-                          <div>
-                            <span className="text-[11px] text-primary-container font-black uppercase tracking-wider block">
-                              Total Biaya {selectedSchedule.status_jadwal === 'Dibatalkan' && "(Dibatalkan)"}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] sm:text-[11px] text-primary-container font-black uppercase tracking-wider">
+                              Total Biaya {selectedSchedule.status_jadwal === 'Dibatalkan' && "(Batal)"}
                             </span>
                             <h4 className={cn(
-                              "text-xl font-black mt-0.5",
+                              "text-lg sm:text-xl font-black",
                               selectedSchedule.status_jadwal === 'Dibatalkan' ? "text-red-700 line-through" : "text-primary-container"
                             )}>
                               {formatRupiah(selectedSchedule.total_harga_kunjungan)}
                             </h4>
                           </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-on-surface-variant font-bold block uppercase tracking-wider">Komisi Terapis</span>
+                          <div className="flex items-center justify-between border-t border-primary-container/15 pt-2">
+                            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Komisi Terapis</span>
                             <span className={cn(
-                              "text-base font-black",
+                              "text-sm sm:text-base font-black",
                               selectedSchedule.status_jadwal === 'Dibatalkan' ? "text-red-600 line-through" : "text-secondary"
                             )}>
                               {formatRupiah(selectedSchedule.total_komisi_kunjungan)}
@@ -1064,7 +1094,7 @@ export default function AdminSchedules() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm"
             onClick={() => !isCancelling && setIsCancelModalOpen(false)}
           >
             <motion.div
@@ -1072,14 +1102,14 @@ export default function AdminSchedules() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-surface-container-lowest w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl border border-red-500/20 text-left space-y-5"
+              className="bg-surface-container-lowest w-full max-w-lg rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl border border-red-500/20 text-left space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-red-500/10 text-red-600 rounded-2xl shrink-0">
-                  <AlertTriangle className="w-6 h-6" />
+                <div className="p-2.5 sm:p-3 bg-red-500/10 text-red-600 rounded-2xl shrink-0">
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-on-surface tracking-tight">Batalkan Jadwal Layanan</h3>
+                  <h3 className="text-lg sm:text-xl font-black text-on-surface tracking-tight">Batalkan Jadwal Layanan</h3>
                   <p className="text-xs text-on-surface-variant mt-0.5">
                     Konfirmasi pembatalan kunjungan <span className="font-bold text-red-600">#TRX-{selectedSchedule.id}</span>
                   </p>
@@ -1087,20 +1117,20 @@ export default function AdminSchedules() {
               </div>
 
               {/* Ringkasan Singkat Jadwal */}
-              <div className="p-4 bg-surface-container-low rounded-2xl border border-surface-container space-y-2 text-xs">
-                <div className="flex justify-between">
+              <div className="p-3.5 sm:p-4 bg-surface-container-low rounded-2xl border border-surface-container space-y-2 text-xs">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-on-surface-variant">Pasien:</span>
-                  <span className="font-extrabold text-on-surface">{selectedSchedule.nama_pasien}</span>
+                  <span className="font-extrabold text-on-surface text-right truncate">{selectedSchedule.nama_pasien}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-on-surface-variant">Terapis:</span>
-                  <span className="font-bold text-on-surface">{selectedSchedule.nama_terapis}</span>
+                  <span className="font-bold text-on-surface text-right truncate">{selectedSchedule.nama_terapis}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-on-surface-variant">Waktu:</span>
-                  <span className="font-bold text-on-surface">{selectedSchedule.waktu_reservasi}</span>
+                  <span className="font-bold text-on-surface text-right">{selectedSchedule.waktu_reservasi}</span>
                 </div>
-                <div className="flex justify-between border-t border-surface-container pt-2 mt-2">
+                <div className="flex justify-between items-center border-t border-surface-container pt-2 mt-2">
                   <span className="text-on-surface-variant">Total Biaya:</span>
                   <span className="font-black text-red-600">{formatRupiah(selectedSchedule.total_harga_kunjungan)}</span>
                 </div>
@@ -1153,12 +1183,12 @@ export default function AdminSchedules() {
               </div>
 
               {/* Tombol Aksi */}
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsCancelModalOpen(false)}
                   disabled={isCancelling}
-                  className="px-4 py-2.5 bg-surface-container text-on-surface rounded-xl text-xs font-bold hover:bg-surface-container-high transition-all"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-surface-container text-on-surface rounded-xl text-xs font-bold hover:bg-surface-container-high transition-all text-center"
                 >
                   Kembali
                 </button>
@@ -1166,7 +1196,7 @@ export default function AdminSchedules() {
                   type="button"
                   onClick={submitCancellation}
                   disabled={isCancelling}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-red-500/20"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-red-500/20"
                 >
                   {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
                   Ya, Batalkan Layanan

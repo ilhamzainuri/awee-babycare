@@ -24,12 +24,16 @@ interface LayoutProps {
 
 const therapistNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/therapist' },
-  { icon: Calendar, label: 'Jadwal Saya', path: '/therapist/Schedule' },
-  { icon: Activity, label: 'Pemeriksaan Klinis', path: '/therapist/start-service' },
-  { icon: ClipboardList, label: 'Laporan Selesai', path: '/therapist/submit-report' },
+  { icon: Calendar, label: 'Schedules', path: '/therapist/schedule' },
+  { icon: Activity, label: 'Start Service', path: '/therapist/start-service' },
+  { icon: ClipboardList, label: 'Submit Report', path: '/therapist/submit-report' },
   { icon: BarChart3, label: 'Reports', path: '/therapist/TherapistReport' },
-  { icon: Settings, label: 'Settings', path: '/therapist/settings' }, // Path disesuaikan
+  { icon: Settings, label: 'Settings', path: '/therapist/settings' },
 ];
+
+const therapistBottomNavItems = therapistNavItems.filter(
+  (item) => item.path !== '/therapist/settings'
+);
 
 // Helper untuk format UI Notifikasi Terapis
 const getNotificationConfig = (type: string) => {
@@ -157,7 +161,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
             </div>
             <div>
               <h2 className="font-bold text-on-surface text-sm capitalize">{userName}</h2>
-              <p className="text-xs text-primary font-bold">Official Therapist</p>
+              <p className="text-xs text-primary font-bold">Awee Babycare</p>
             </div>
           </NavLink>
         </div>
@@ -206,7 +210,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
 
             <img src={logo} alt="Logo" className="w-10 h-10 rounded-full object-cover" />
             <h1 className="text-lg font-black text-primary-container tracking-tight">
-              Therapist Portal
+              Therapist
             </h1>
           </div>
 
@@ -301,28 +305,20 @@ export default function TherapistLayout({ children }: LayoutProps) {
         </div>
 
         {/* Bottom Navigation Khusus Mobile View */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-surface-container-lowest border-t border-surface-container flex items-center justify-around px-4 z-40">
-          {therapistNavItems.map((item) => (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-surface-container flex items-stretch z-40 pb-[env(safe-area-inset-bottom)]">
+          {therapistBottomNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) => cn(
-                "flex flex-col items-center gap-1 p-2 transition-all min-w-[72px]",
+                "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-3 px-1 transition-all",
                 isActive ? "text-primary font-bold" : "text-on-surface-variant"
               )}
             >
               <item.icon className={cn("w-6 h-6", location.pathname === item.path ? "fill-primary/10" : "")} />
-              <span className="text-[11px] font-bold tracking-wide">{item.label}</span>
+              <span className="text-[10px] font-bold tracking-wide truncate max-w-full">{item.label}</span>
             </NavLink>
           ))}
-          <NavLink
-            to="/login"
-            onClick={handleLogout}
-            className="flex flex-col items-center gap-1 p-2 text-error"
-          >
-            <LogOut className="w-6 h-6" />
-            <span className="text-[11px] font-bold tracking-wide">Logout</span>
-          </NavLink>
         </nav>
       </main>
 
@@ -341,7 +337,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
               className="fixed top-0 left-0 bottom-0 w-80 bg-surface-container-lowest shadow-2xl z-[70] md:hidden rounded-r-3xl flex flex-col py-8"
             >
               <div className="px-8 mb-8">
-                <h1 className="text-xl font-black text-primary mb-6">Awee Therapist Portal</h1>
+                <h1 className="text-xl font-black text-primary mb-6">Awee Babycare Therapist</h1>
                 {/* Tautan Profil di Mobile Drawer */}
                 <NavLink 
                   to="/therapist/settings" 
@@ -353,7 +349,7 @@ export default function TherapistLayout({ children }: LayoutProps) {
                   </div>
                   <div>
                     <h2 className="font-bold text-on-surface text-sm capitalize">{userName}</h2>
-                    <p className="text-xs text-primary font-bold">On-Duty</p>
+                    <p className="text-xs text-primary font-bold">Awee Babycare</p>
                   </div>
                 </NavLink>
               </div>

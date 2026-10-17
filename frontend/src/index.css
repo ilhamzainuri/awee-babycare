@@ -47,6 +47,11 @@
   }
 }
 
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }

@@ -35,8 +35,8 @@ export default function SubmitReport() {
         const result = await response.json();
         
         if (result.status === 200 && result.data.schedules) {
-          // Backend sudah filter Diproses, frontend hanya perlu filter status On Process
-          const validSchedules = result.data.schedules.filter((s: any) => s.status === 'On Process');
+          // Backend sudah filter Diproses, frontend hanya perlu filter status Diproses
+          const validSchedules = result.data.schedules.filter((s: any) => s.status === 'Diproses');
           setSchedules(validSchedules);
 
           if (initialDetail && validSchedules.find((s: any) => s.id === initialDetail.id)) {

@@ -33,8 +33,8 @@ export default function StartService() {
         const result = await response.json();
 
         if (result.status === 200 && result.data.schedules) {
-          // Hanya ambil jadwal yang Pending atau On Process
-          const validSchedules = result.data.schedules.filter((s: any) => s.status === 'Pending' || s.status === 'On Process');
+          // Hanya ambil jadwal yang Menunggu atau Diproses
+          const validSchedules = result.data.schedules.filter((s: any) => s.status === 'Menunggu' || s.status === 'Diproses');
           setSchedules(validSchedules);
 
           // Set pilihan awal berdasarkan location state atau dropdown kosong

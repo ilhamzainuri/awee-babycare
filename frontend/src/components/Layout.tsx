@@ -42,6 +42,10 @@ const navItems = [
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
+const bottomNavItems = navItems.filter((item) =>
+  ['/', '/admin-schedule', '/master-data', '/verify', '/reports'].includes(item.path)
+);
+
 // Helper untuk format UI berdasarkan jenis Aksi
 const getUiConfig = (aksi: string, tabel: string, dataLama?: string | null, dataBaru?: string | null) => {
   let entityName = '';
@@ -388,37 +392,20 @@ export default function Layout({ children }: LayoutProps) {
           <Plus className="w-8 h-8" />
         </NavLink>
 
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-surface-container-lowest border-t border-surface-container flex items-center justify-around px-2 z-40 overflow-x-auto">
-          {navItems
-            .filter(
-              item =>
-                item.label !== 'Settings' &&
-      item.label !== 'Audit Log' &&
-      item.label !== 'Add User'
-            )
-            .map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => cn(
-                  "flex flex-col items-center gap-1 p-2 transition-all min-w-[64px]",
-                  isActive ? "text-primary-container font-bold" : "text-on-surface-variant"
-                )}
-              >
-                <item.icon className={cn("w-6 h-6", location.pathname === item.path ? "fill-primary-container/20" : "")} />
-                <span className="text-[10px] uppercase font-bold tracking-wider">{item.label.split(' ')[0]}</span>
-              </NavLink>
-            ))}
-          <NavLink
-            to="/reservation"
-            className={({ isActive }) => cn(
-              "flex flex-col items-center gap-1 p-2 transition-all min-w-[64px]",
-              isActive ? "text-primary-container font-bold" : "text-on-surface-variant"
-            )}
-          >
-            <CalendarPlus className="w-6 h-6" />
-            <span className="text-[10px] uppercase font-bold tracking-wider">Book</span>
-          </NavLink>
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-surface-container flex items-stretch z-40 pb-[env(safe-area-inset-bottom)]">
+          {bottomNavItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => cn(
+                "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-3 px-1 transition-all",
+                isActive ? "text-primary-container font-bold" : "text-on-surface-variant"
+              )}
+            >
+              <item.icon className={cn("w-6 h-6", location.pathname === item.path ? "fill-primary-container/20" : "")} />
+              <span className="text-[10px] font-bold tracking-wide truncate max-w-full">{item.label}</span>
+            </NavLink>
+          ))}
         </nav>
       </main>
 
