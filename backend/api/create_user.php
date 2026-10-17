@@ -82,6 +82,19 @@ if (
         $role
     ]);
 
+    $new_record_id = $conn->lastInsertId();
+
+    $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'create', 'users', ?, NULL, ?)");
+    $log_stmt->execute([
+        1,
+        $new_record_id,
+        json_encode([
+            "username" => $username,
+            "role" => $role,
+            "foto" => $fotoName
+        ])
+    ]);
+
     echo json_encode([
         "status"=>200,
         "message"=>"User berhasil ditambahkan"

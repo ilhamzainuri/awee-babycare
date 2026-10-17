@@ -28,7 +28,7 @@ try {
     
     // 1. Ambil data lama untuk Audit Log (Dari tabel users dan therapists)
     $old_stmt = $conn->prepare("
-        SELECT u.username, u.password, u.foto, t.id AS therapist_id, t.nama_terapis, t.no_whatsapp 
+        SELECT u.username, u.password, u.foto, u.role, t.id AS therapist_id, t.nama_terapis, t.no_whatsapp 
         FROM users u 
         LEFT JOIN therapists t ON u.id = t.user_id 
         WHERE u.id = ?
@@ -59,6 +59,12 @@ try {
         $query_updates_users[] = "password = :password";
         $params_users[':password'] = $password;
         $data_baru_log_users['password'] = "[PASSWORD_DIUBAH]"; 
+    }
+
+    if (isset($_POST['role']) && in_array($_POST['role'], ['admin', 'therapist'], true)) {
+        $query_updates_users[] = "role = :role";
+        $params_users[':role'] = $_POST['role'];
+        $data_baru_log_users['role'] = $_POST['role'];
     }
 
     // Handle Upload Foto (Jika ada)
@@ -107,6 +113,7 @@ try {
     // Eksekusi Log untuk Users
     $data_lama_users_log = [
         "username" => $data_lama['username'],
+        "role" => $data_lama['role'],
         "foto" => $data_lama['foto'],
         "password" => "[HIDDEN]"
     ];
