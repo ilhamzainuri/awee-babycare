@@ -1,0 +1,21 @@
+# Dependencies & Build
+**/node_modules/
+**/dist/
+
+# Uploads (User photos & Payment proofs)
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/payments/.gitkeep
+
+# Environment variables
+.env
+*.env.local
+frontend/.env.local
+
+# Catatan pribadi / file tugas
+
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+*.log
