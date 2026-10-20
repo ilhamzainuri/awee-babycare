@@ -213,7 +213,7 @@ export default function Reservation() {
       )}
 
       <form className="space-y-6" onSubmit={handleSubmit}>
-        {/* Patient Info Section */}
+        {/* Patient Info Section (Identitas Pasien) */}
         <motion.section className="bg-surface-container-lowest p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-surface-container-high space-y-8">
           <div className="flex items-center gap-4 border-b border-surface-container pb-4">
             <div className="p-3 bg-primary-container/10 text-primary-container rounded-2xl"><Baby className="w-6 h-6" /></div>
@@ -221,7 +221,6 @@ export default function Reservation() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-
             <div className="space-y-2 md:col-span-2">
               <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Nama Pasien</label>
               <input name="nama_pasien" value={formData.nama_pasien} onChange={handleInputChange} type="text" placeholder="Nama Lengkap Pasien (Kosongkan jika treatment Ibu)" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
@@ -244,69 +243,10 @@ export default function Reservation() {
                  <option value="Perempuan">Perempuan</option>
               </select>
             </div>
-
-            <div className="space-y-2 md:col-span-2 flex flex-col sm:flex-row gap-6">
-               <div className="flex-1 space-y-2">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1 flex items-center gap-1"><Phone className="w-3 h-3" /> No. WhatsApp Ortu</label>
-                  <input required name="no_hp_ortu" value={formData.no_hp_ortu} onChange={handleInputChange} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="08..." className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
-               </div>
-               <div className="flex-1 space-y-2">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> Shareloc Link</label>
-                  <input name="link_shareloc" value={formData.link_shareloc} onChange={handleInputChange} type="url" placeholder="Google Maps URL" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
-               </div>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Alamat Lengkap</label>
-              <textarea required name="alamat_lengkap" value={formData.alamat_lengkap} onChange={handleInputChange} placeholder="Detail alamat..." rows={3} className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none resize-none" />
-            </div>
-            
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Keluhan / Catatan</label>
-              <textarea name="keluhan_awal" value={formData.keluhan_awal} onChange={handleInputChange} placeholder="Catatan kunjungan..." rows={2} className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none resize-none" />
-            </div>
           </div>
         </motion.section>
 
-        {/* Assignment Section */}
-        <motion.section className="bg-surface-container-lowest p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-surface-container-high space-y-8">
-          <div className="flex items-center gap-4 border-b border-surface-container pb-4">
-            <div className="p-3 bg-secondary-container/20 text-secondary rounded-2xl"><UserPlus className="w-6 h-6" /></div>
-            <h2 className="text-xl font-bold text-secondary">Assignment & Payment</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Terapis Bertugas</label>
-                <div className="relative">
-                   <select required name="id_therapist" value={formData.id_therapist} onChange={handleInputChange} className="w-full appearance-none px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
-                      <option value="" disabled>Pilih Terapis</option>
-                      {therapists.map(t => <option key={t.id} value={t.id}>{t.nama_terapis}</option>)}
-                   </select>
-                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline pointer-events-none" />
-                </div>
-             </div>
-             <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Waktu Reservasi</label>
-                <div className="relative">
-                   <input required name="waktu_reservasi" value={formData.waktu_reservasi} onChange={handleInputChange} type="datetime-local" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none text-on-surface" />
-                </div>
-             </div>
-             <div className="space-y-2 md:col-span-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Metode Bayar (Rencana Admin)</label>
-                <div className="relative">
-                   <select required name="metode_bayar_admin" value={formData.metode_bayar_admin} onChange={handleInputChange} className="w-full appearance-none px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
-                      <option value="Cash">Cash (Tunai)</option>
-                      <option value="Transfer Bank">Transfer Bank</option>
-                      <option value="QRIS">QRIS</option>
-                   </select>
-                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline pointer-events-none" />
-                </div>
-             </div>
-          </div>
-        </motion.section>
-
-        {/* Treatment Details Dynamic Selection */}
+        {/* Treatment Details Dynamic Selection (Ditaruh sebelum Alamat) */}
         <motion.section className="bg-surface-container-lowest p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-surface-container-high space-y-8">
           <div className="flex items-center justify-between border-b border-surface-container pb-4">
             <div className="flex items-center gap-4">
@@ -389,7 +329,7 @@ export default function Reservation() {
           </div>
         </motion.section>
 
-        {/* Alert Error Khusus Pemilihan Layanan (Muncul Langsung di Bawah Card Layanan) */}
+        {/* Alert Error Khusus Pemilihan Layanan */}
         <AnimatePresence>
           {categoryError && (
             <motion.div
@@ -408,6 +348,75 @@ export default function Reservation() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Contact, Address & Notes Section */}
+        <motion.section className="bg-surface-container-lowest p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-surface-container-high space-y-8">
+          <div className="flex items-center gap-4 border-b border-surface-container pb-4">
+            <div className="p-3 bg-primary-container/10 text-primary-container rounded-2xl"><MapPin className="w-6 h-6" /></div>
+            <h2 className="text-xl font-bold text-primary-container">Kontak & Alamat Pelanggan</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="space-y-2 md:col-span-2 flex flex-col sm:flex-row gap-6">
+               <div className="flex-1 space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1 flex items-center gap-1"><Phone className="w-3 h-3" /> No. WhatsApp Ortu</label>
+                  <input required name="no_hp_ortu" value={formData.no_hp_ortu} onChange={handleInputChange} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="08..." className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
+               </div>
+               <div className="flex-1 space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> Shareloc Link</label>
+                  <input name="link_shareloc" value={formData.link_shareloc} onChange={handleInputChange} type="url" placeholder="Google Maps URL" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none" />
+               </div>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Alamat Lengkap</label>
+              <textarea required name="alamat_lengkap" value={formData.alamat_lengkap} onChange={handleInputChange} placeholder="Detail alamat..." rows={3} className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none resize-none" />
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Keluhan / Catatan</label>
+              <textarea name="keluhan_awal" value={formData.keluhan_awal} onChange={handleInputChange} placeholder="Catatan kunjungan..." rows={2} className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-primary-container outline-none resize-none" />
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Assignment Section */}
+        <motion.section className="bg-surface-container-lowest p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-surface-container-high space-y-8">
+          <div className="flex items-center gap-4 border-b border-surface-container pb-4">
+            <div className="p-3 bg-secondary-container/20 text-secondary rounded-2xl"><UserPlus className="w-6 h-6" /></div>
+            <h2 className="text-xl font-bold text-secondary">Assignment & Payment</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Terapis Bertugas</label>
+                <div className="relative">
+                   <select required name="id_therapist" value={formData.id_therapist} onChange={handleInputChange} className="w-full appearance-none px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
+                      <option value="" disabled>Pilih Terapis</option>
+                      {therapists.map(t => <option key={t.id} value={t.id}>{t.nama_terapis}</option>)}
+                   </select>
+                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline pointer-events-none" />
+                </div>
+             </div>
+             <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Waktu Pelayanan</label>
+                <div className="relative">
+                   <input required name="waktu_reservasi" value={formData.waktu_reservasi} onChange={handleInputChange} type="datetime-local" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none text-on-surface" />
+                </div>
+             </div>
+             <div className="space-y-2 md:col-span-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Metode Bayar (Rencana Admin)</label>
+                <div className="relative">
+                   <select required name="metode_bayar_admin" value={formData.metode_bayar_admin} onChange={handleInputChange} className="w-full appearance-none px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
+                      <option value="Cash">Cash (Tunai)</option>
+                      <option value="Transfer Bank">Transfer Bank</option>
+                      <option value="QRIS">QRIS</option>
+                   </select>
+                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline pointer-events-none" />
+                </div>
+             </div>
+          </div>
+        </motion.section>
 
         <div className="pb-12">
            <button type="submit" disabled={isLoading} className="w-full py-5 bg-primary-container text-on-primary-container font-black rounded-[2rem] shadow-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-lg disabled:opacity-50">

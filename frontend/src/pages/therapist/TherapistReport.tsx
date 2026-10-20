@@ -807,7 +807,7 @@ export default function TherapistReport() {
                             <span className="font-bold text-on-surface">{trxDetail.nama_terapis}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-on-surface-variant">Waktu Reservasi</span>
+                            <span className="text-on-surface-variant">Waktu Pelayanan</span>
                             <span className="font-bold text-on-surface">{trxDetail.waktu_reservasi}</span>
                           </div>
                           <div className="flex justify-between items-center">

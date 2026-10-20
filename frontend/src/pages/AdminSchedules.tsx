@@ -1011,7 +1011,7 @@ export default function AdminSchedules() {
                         {/* Detail Info Waktu & Pembayaran */}
                         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 bg-surface-container/50 p-3 rounded-xl border border-surface-container">
                           <div>
-                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Waktu Reservasi</span>
+                            <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Waktu Pelayanan</span>
                             <span className="font-black text-on-surface text-xs sm:text-sm">{selectedSchedule.waktu_reservasi}</span>
                           </div>
                           <div>
