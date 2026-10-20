@@ -124,15 +124,41 @@ export default function AddUser() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
+
+    if (cleanUsername.length < 3 || cleanUsername.length > 100) {
+      setMessage({ type: 'error', text: 'Username harus terdiri dari 3-100 karakter.' });
+      return;
+    }
+
+    if (!/^[A-Za-z0-9._-]+$/.test(cleanUsername)) {
+      setMessage({ type: 'error', text: 'Username hanya boleh berisi huruf, angka, titik, underscore, atau strip (tanpa spasi).' });
+      return;
+    }
+
+    if (!editingId || cleanPassword) {
+      if (cleanPassword.length < 8 || cleanPassword.length > 255) {
+        setMessage({ type: 'error', text: 'Password harus terdiri dari 8-255 karakter.' });
+        return;
+      }
+
+      if (!/[A-Za-z]/.test(cleanPassword) || !/[0-9]/.test(cleanPassword)) {
+        setMessage({ type: 'error', text: 'Password harus mengandung huruf dan angka.' });
+        return;
+      }
+    }
+
     setIsSaving(true);
     setMessage({ type: null, text: '' });
 
     try {
       const formData = new FormData();
-      formData.append('username', username);
+      formData.append('username', cleanUsername);
       formData.append('role', role);
       if (editingId) formData.append('id', String(editingId));
-      if (password) formData.append('password', password);
+      if (cleanPassword) formData.append('password', cleanPassword);
       if (fotoFile) formData.append('foto', fotoFile);
 
       const url = editingId
@@ -211,11 +237,10 @@ export default function AddUser() {
 
       {message.type && (
         <div
-          className={`mb-6 p-4 rounded-2xl flex items-center gap-3 ${
-            message.type === 'success'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
-          }`}
+          className={`mb-6 p-4 rounded-2xl flex items-center gap-3 ${message.type === 'success'
+            ? 'bg-green-100 text-green-700'
+            : 'bg-red-100 text-red-700'
+            }`}
         >
           {message.type === 'success' ? (
             <CheckCircle2 size={20} />
@@ -237,7 +262,7 @@ export default function AddUser() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari username..."
+              placeholder="Cari username... (contoh: karin)"
               className="w-full pl-12 py-3 rounded-2xl border border-surface-container bg-surface"
             />
           </div>
@@ -306,11 +331,10 @@ export default function AddUser() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full capitalize ${
-                          user.role === 'admin'
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-secondary-container text-on-secondary-container'
-                        }`}
+                        className={`text-xs font-bold px-3 py-1 rounded-full capitalize ${user.role === 'admin'
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-secondary-container text-on-secondary-container'
+                          }`}
                       >
                         {user.role}
                       </span>
@@ -318,10 +342,10 @@ export default function AddUser() {
                     <td className="px-6 py-4 text-sm text-on-surface-variant">
                       {user.created_at
                         ? new Date(user.created_at).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric'
-                          })
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric'
+                        })
                         : '-'}
                     </td>
                     <td className="px-6 py-4">
@@ -428,12 +452,18 @@ export default function AddUser() {
                       <input
                         type="text"
                         required
+                        minLength={3}
+                        maxLength={100}
+                        autoComplete="username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="w-full pl-12 py-3 rounded-2xl border border-surface-container"
-                        placeholder="Masukkan username"
+                        placeholder="Contoh: john123"
                       />
                     </div>
+                    <p className="text-[11px] text-on-surface-variant mt-1.5">
+                      3-100 karakter, tanpa spasi (huruf, angka, titik, underscore, strip).
+                    </p>
                   </div>
 
                   <div>
@@ -452,10 +482,13 @@ export default function AddUser() {
                       <input
                         type={showPassword ? 'text' : 'password'}
                         required={!editingId}
+                        minLength={8}
+                        maxLength={255}
+                        autoComplete="new-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full pl-12 pr-12 py-3 rounded-2xl border border-surface-container"
-                        placeholder="Masukkan password"
+                        placeholder="Contoh: John2026"
                       />
                       <button
                         type="button"
@@ -465,6 +498,9 @@ export default function AddUser() {
                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
+                    <p className="text-[11px] text-on-surface-variant mt-1.5">
+                      Minimal 8 karakter, kombinasi huruf dan angka.
+                    </p>
                   </div>
 
                   <div>
@@ -484,6 +520,13 @@ export default function AddUser() {
                       </select>
                     </div>
                   </div>
+
+                  {message.type === 'error' && (
+                    <div className="p-3 rounded-xl bg-red-100 text-red-700 text-sm font-medium flex items-start gap-2">
+                      <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                      <span>{message.text}</span>
+                    </div>
+                  )}
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     <button

@@ -1093,9 +1093,13 @@ export default function AdminSchedules() {
                             <span className="text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-wider font-bold block mb-0.5">Status Verifikasi</span>
                             <span className={cn(
                               "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider",
-                              selectedSchedule.status_pembayaran === 'Verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                              selectedSchedule.status_pembayaran === 'Verified' 
+                                ? 'bg-emerald-100 text-emerald-700' 
+                                : selectedSchedule.status_pembayaran === 'Rejected'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-amber-100 text-amber-700'
                             )}>
-                              {selectedSchedule.status_pembayaran}
+                              {selectedSchedule.status_pembayaran === 'Rejected' ? 'Ditolak' : selectedSchedule.status_pembayaran}
                             </span>
                           </div>
                           <div>

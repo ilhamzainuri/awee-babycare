@@ -94,7 +94,7 @@ try {
 
     if ($all_on_process) {
         $stmtSched = $conn->prepare("
-            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal, status_pembayaran, alasan_penolakan, waktu_penolakan,
                    no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
                    (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                     FROM appointment_details ad 
@@ -115,7 +115,7 @@ try {
     } elseif (isset($_GET['include_overdue']) && $_GET['include_overdue'] == '1') {
         // Query khusus (misal dari Pemeriksaan Klinis / StartService): sertakan jadwal overdue yang masih Menunggu/Diproses
         $stmtSched = $conn->prepare("
-            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal, status_pembayaran, alasan_penolakan, waktu_penolakan,
                    no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
                    (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                     FROM appointment_details ad 
@@ -142,7 +142,7 @@ try {
     } else {
         // Query default dashboard terapis: HANYA jadwal pada tanggal terpilih (default hari ini), tidak menampilkan jadwal kemarin
         $stmtSched = $conn->prepare("
-            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+            SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal, status_pembayaran, alasan_penolakan, waktu_penolakan,
                    no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis,
                    (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                     FROM appointment_details ad 
@@ -200,6 +200,9 @@ try {
             "services"             => $row['rincian_layanan'],
             "waktu_reservasi_raw" => $row['waktu_reservasi'],
             "status_db"           => $row['status_jadwal'],
+            "status_pembayaran"   => $row['status_pembayaran'],
+            "alasan_penolakan"    => $row['alasan_penolakan'],
+            "waktu_penolakan"     => $row['waktu_penolakan'],
             "is_overdue"          => (date('Y-m-d', strtotime($row['waktu_reservasi'])) < $hari_ini) ? true : false
         ];
     }
@@ -208,7 +211,7 @@ try {
     // BAGIAN 3B: JADWAL 7 HARI KEDEPAN / PERPEKAN (WEEKLY)
     // ========================================================
     $stmtWeeklySched = $conn->prepare("
-        SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+        SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal, status_pembayaran, alasan_penolakan, waktu_penolakan,
                no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis, total_komisi_kunjungan,
                (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                 FROM appointment_details ad 
@@ -267,6 +270,9 @@ try {
             "services"             => $wRow['rincian_layanan'],
             "waktu_reservasi_raw" => $wRow['waktu_reservasi'],
             "status_db"           => $wRow['status_jadwal'],
+            "status_pembayaran"   => $wRow['status_pembayaran'],
+            "alasan_penolakan"    => $wRow['alasan_penolakan'],
+            "waktu_penolakan"     => $wRow['waktu_penolakan'],
             "total_komisi"        => (int)($wRow['total_komisi_kunjungan'] ?? 0),
             "is_overdue"          => (date('Y-m-d', strtotime($wRow['waktu_reservasi'])) < $hari_ini) ? true : false
         ];

@@ -15,7 +15,8 @@ import {
   Map,
   MessageCircle,
   Info,
-  ClipboardList
+  ClipboardList,
+  AlertCircle
 } from 'lucide-react';
 import { cn, canStartService, startServiceBlockMessage, groupSchedulesByDate, formatGroupDate, formatDateRange, localDateKey } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -44,6 +45,9 @@ interface ActiveSchedule {
   jenis_layanan?: string;
   status: 'Menunggu' | 'Diproses' | 'Selesai' | 'Dibatalkan' | string;
   status_db?: string;
+  status_pembayaran?: string;
+  alasan_penolakan?: string | null;
+  waktu_penolakan?: string | null;
   phone?: string;
   mapLink?: string;
   complaint?: string;
@@ -287,6 +291,15 @@ export default function TherapistDashboard() {
               )}>
                 {schedule.status}
               </span>
+
+              {schedule.status_pembayaran === 'Rejected' && (
+                <span
+                  className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-error-container text-on-error-container border border-error/30"
+                  title={schedule.alasan_penolakan || 'Pembayaran ditolak admin'}
+                >
+                  Bayar Ditolak
+                </span>
+              )}
             </div>
           </div>
 
@@ -645,6 +658,9 @@ export default function TherapistDashboard() {
                           <div className="flex items-center gap-2 mb-1.5">
                             <h3 className="font-bold text-on-surface text-base truncate">{item.nama_pasien}</h3>
                             <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full border", item.status_jadwal === 'Menunggu' ? "bg-surface-container text-on-surface border-outline-variant" : item.status_jadwal === 'Diproses' ? "bg-warning-container/30 text-warning border-warning/20" : item.status_jadwal === 'Selesai' ? "bg-success-container/30 text-success border-success/20" : "bg-error-container/30 text-error border-error/20")}>{item.status_jadwal}</span>
+                            {item.status_pembayaran === 'Rejected' && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border bg-error-container text-on-error-container border-error/30" title={item.alasan_penolakan || 'Pembayaran ditolak admin'}>Bayar Ditolak</span>
+                            )}
                           </div>
                           <p className="text-xs text-on-surface-variant mb-2 line-clamp-1 font-medium flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> {item.rincian_layanan || 'Pemeriksaan Umum'}</p>
                           <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-on-surface-variant">
@@ -658,7 +674,7 @@ export default function TherapistDashboard() {
                             <p className="text-sm font-black text-primary">{formatRupiah(item.total_komisi_kunjungan)}</p>
                           </div>
                           <button onClick={() => setSelectedDetail({
-                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), waktu_reservasi_raw: item.waktu_reservasi, status: item.status_jadwal, phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
+                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), waktu_reservasi_raw: item.waktu_reservasi, status: item.status_jadwal, phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan, status_pembayaran: item.status_pembayaran, alasan_penolakan: item.alasan_penolakan, waktu_penolakan: item.waktu_penolakan
                           })} className="text-[11px] font-bold text-primary hover:underline self-end flex items-center gap-1">
                             Lihat Detail <ArrowRight className="w-3 h-3"/>
                           </button>
@@ -723,6 +739,22 @@ export default function TherapistDashboard() {
                     <p className="font-black text-sm text-primary uppercase">{selectedDetail.status}</p>
                   </div>
                 </div>
+
+                {/* Pemberitahuan pembayaran ditolak admin */}
+                {selectedDetail.status_pembayaran === 'Rejected' && (
+                  <div className="bg-error-container/40 border border-error/30 p-4 rounded-2xl flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-black text-sm text-error">Pembayaran Ditolak Admin</p>
+                      <p className="text-xs font-medium text-on-surface mt-0.5">
+                        {selectedDetail.alasan_penolakan || 'Tidak ada alasan yang dicatat.'}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant mt-1">
+                        Silakan koordinasi dengan admin untuk perbaikan bukti pembayaran.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Daftar Layanan */}
                 <div>

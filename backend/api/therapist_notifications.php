@@ -81,8 +81,15 @@ while ($row = $logs->fetch_assoc()) {
             $type = 'status_change';
             $message = "Status layanan " . $row['nama_pasien'] . " berubah menjadi " . $data_baru['Status'];
         } elseif (isset($data_baru['status_pembayaran'])) {
-            $type = 'data_update';
-            $message = "Status pembayaran " . $row['nama_pasien'] . " berubah menjadi " . $data_baru['status_pembayaran'];
+            if ($data_baru['status_pembayaran'] === 'Rejected') {
+                $type = 'payment_rejected';
+                $alasan = $data_baru['alasan_penolakan'] ?? ($data_baru['Alasan Penolakan'] ?? '');
+                $message = "Pembayaran pasien " . $row['nama_pasien'] . " ditolak" . ($alasan !== '' ? ": " . $alasan : "");
+            } else {
+                $type = 'data_update';
+                $label = $data_baru['status_pembayaran'] === 'Verified' ? 'Terverifikasi' : $data_baru['status_pembayaran'];
+                $message = "Status pembayaran " . $row['nama_pasien'] . " berubah menjadi " . $label;
+            }
         }
     }
 

@@ -16,7 +16,8 @@ import {
   Clock,
   ShieldCheck,
   Receipt,
-  Pencil // <-- Icon untuk tombol override
+  Pencil, // <-- Icon untuk tombol override
+  XCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -30,7 +31,10 @@ interface TaskData {
   actual_method: string;
   appointment_date: string;
   status_jadwal?: string;
-  type: 'mismatch' | 'pending' | 'verified' | 'waiting_therapist';
+  status_pembayaran?: string;
+  alasan_penolakan?: string | null;
+  waktu_penolakan?: string | null;
+  type: 'mismatch' | 'pending' | 'verified' | 'waiting_therapist' | 'rejected';
 }
 
 interface AppointmentDetail {
@@ -46,6 +50,8 @@ interface AppointmentDetail {
   waktu_reservasi: string;
   status_jadwal: string;
   status_pembayaran?: string;
+  alasan_penolakan?: string | null;
+  waktu_penolakan?: string | null;
   metode_bayar_admin: string;
   metode_bayar_terapis: string | null;
   total_harga_kunjungan: number;
@@ -80,6 +86,11 @@ export default function Verification() {
   const [overrideModal, setOverrideModal] = useState<{ id: number; patient: string } | null>(null);
   const [overrideMethod, setOverrideMethod] = useState<string>('Cash');
   const [overrideLoading, setOverrideLoading] = useState<boolean>(false);
+
+  // State untuk modal tolak pembayaran
+  const [rejectModal, setRejectModal] = useState<{ id: number; patient: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState<string>('');
+  const [rejectLoading, setRejectLoading] = useState<boolean>(false);
 
   // BASE URL API
   const apiUrl = import.meta.env.VITE_API_BASE_URL 
@@ -183,7 +194,7 @@ export default function Verification() {
       if (response.ok && result.status === 200) {
         setTasks((prevTasks) => 
           prevTasks.map(task => 
-            task.id === id ? { ...task, type: 'verified' } : task
+            task.id === id ? { ...task, type: 'verified', alasan_penolakan: null, waktu_penolakan: null } : task
           )
         );
         setSelectedAppointment(null); 
@@ -194,6 +205,56 @@ export default function Verification() {
       console.error("Error verifying task:", err);
       alert("Terjadi kesalahan jaringan saat memverifikasi.");
     }
+  };
+
+  const handleReject = async () => {
+    if (!rejectModal) return;
+    const alasan = rejectReason.trim();
+    if (!alasan) {
+      toast.error('Alasan penolakan wajib diisi.');
+      return;
+    }
+    const target = rejectModal;
+    setRejectLoading(true);
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: target.id, action: 'reject', alasan_penolakan: alasan, user_id: 1 })
+      });
+      const result = await response.json();
+
+      if (response.ok && result.status === 200) {
+        const waktu = result.data?.waktu_penolakan || new Date().toISOString();
+        setTasks(prev => prev.map(t => t.id === target.id ? {
+          ...t,
+          type: 'rejected',
+          status_pembayaran: 'Rejected',
+          alasan_penolakan: alasan,
+          waktu_penolakan: waktu
+        } : t));
+        setSelectedAppointment(prev => prev && prev.id === target.id ? {
+          ...prev,
+          status_pembayaran: 'Rejected',
+          alasan_penolakan: alasan,
+          waktu_penolakan: waktu
+        } : prev);
+        toast.success('Pembayaran ditolak. Alasan akan terlihat oleh terapis.');
+        setRejectModal(null);
+        setRejectReason('');
+      } else {
+        toast.error(result.message || 'Gagal menolak pembayaran.');
+      }
+    } catch (err) {
+      toast.error('Terjadi kesalahan jaringan.');
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
+  const openRejectModal = (id: number, patient: string) => {
+    setRejectReason('');
+    setRejectModal({ id, patient });
   };
 
   const handleOverride = async () => {
@@ -237,6 +298,13 @@ export default function Verification() {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatDateTime = (dateString?: string | null) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString.replace(' ', 'T'));
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -471,6 +539,17 @@ export default function Verification() {
                               <div className="flex items-center gap-2 text-primary font-bold text-sm bg-primary-container/30 w-max px-3 py-1.5 rounded-full">
                                 🟢 Verified
                               </div>
+                            ) : task.type === 'rejected' ? (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 text-error font-bold text-sm bg-error-container/40 w-max px-3 py-1.5 rounded-full">
+                                  🔴 Ditolak
+                                </div>
+                                {task.alasan_penolakan && (
+                                  <span className="text-xs text-error font-medium max-w-[220px] line-clamp-2" title={task.alasan_penolakan}>
+                                    {task.alasan_penolakan}
+                                  </span>
+                                )}
+                              </div>
                             ) : isMismatch ? (
                               <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2 text-error font-bold text-sm bg-error-container/30 w-max px-3 py-1.5 rounded-full">
@@ -538,12 +617,20 @@ export default function Verification() {
                                     </button>
                                   </>
                                 ) : (
-                                  <button 
-                                    onClick={() => handleVerify(task.id)}
-                                    className="flex items-center gap-1.5 bg-primary-container text-on-primary-container font-bold px-5 py-2 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm"
-                                  >
-                                    Verify
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => openRejectModal(task.id, task.patient)}
+                                      className="flex items-center gap-1.5 bg-error-container text-on-error-container font-bold px-3.5 py-2 rounded-xl hover:brightness-95 transition-all text-xs border border-error/20"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5" /> Tolak
+                                    </button>
+                                    <button 
+                                      onClick={() => handleVerify(task.id)}
+                                      className="flex items-center gap-1.5 bg-primary-container text-on-primary-container font-bold px-5 py-2 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm"
+                                    >
+                                      {task.type === 'rejected' ? 'Verifikasi Ulang' : 'Verify'}
+                                    </button>
+                                  </>
                                 )
                               )}
                             </div>
@@ -588,6 +675,22 @@ export default function Verification() {
                     <div>
                       <p className="font-extrabold text-sm">Layanan Ini Telah Dibatalkan</p>
                       <p className="text-xs text-red-600/80">Jadwal layanan ini telah dibatalkan, sehingga tidak memerlukan verifikasi pembayaran.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Alert jika pembayaran ditolak */}
+                {selectedAppointment.status_pembayaran === 'Rejected' && (
+                  <div className="bg-error-container/40 border border-error/30 p-4 rounded-2xl flex items-start gap-3 text-error">
+                    <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-extrabold text-sm">Pembayaran Ditolak</p>
+                      <p className="text-xs font-medium mt-0.5 text-on-error-container">
+                        {selectedAppointment.alasan_penolakan || 'Tidak ada alasan yang dicatat.'}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant mt-1">
+                        Ditolak pada {formatDateTime(selectedAppointment.waktu_penolakan)}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -757,9 +860,17 @@ export default function Verification() {
                 </button>
                 {selectedAppointment.status_pembayaran !== 'Verified' && selectedAppointment.status_jadwal !== 'Dibatalkan' && (
                   selectedAppointment.metode_bayar_terapis ? (
-                    <button onClick={() => handleVerify(selectedAppointment.id)} className="bg-primary-container text-on-primary-container font-bold px-6 py-2.5 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm">
-                      Sahkan & Verifikasi
-                    </button>
+                    <>
+                      <button
+                        onClick={() => openRejectModal(selectedAppointment.id, selectedAppointment.nama_pasien)}
+                        className="px-5 py-2.5 bg-error-container text-on-error-container font-bold rounded-xl hover:brightness-95 transition-all text-sm border border-error/20 flex items-center gap-1.5"
+                      >
+                        <XCircle className="w-4 h-4" /> Tolak
+                      </button>
+                      <button onClick={() => handleVerify(selectedAppointment.id)} className="bg-primary-container text-on-primary-container font-bold px-6 py-2.5 rounded-xl hover:brightness-110 transition-all text-sm shadow-sm">
+                        {selectedAppointment.status_pembayaran === 'Rejected' ? 'Verifikasi Ulang' : 'Sahkan & Verifikasi'}
+                      </button>
+                    </>
                   ) : (
                     <button disabled className="bg-surface-container text-on-surface-variant/50 font-bold px-5 py-2.5 rounded-xl text-sm cursor-not-allowed border border-surface-container-high flex items-center gap-1.5" title="Terapis belum menginput metode bayar">
                       <Clock className="w-4 h-4" /> Menunggu Input Terapis
@@ -842,6 +953,85 @@ export default function Verification() {
                     <Pencil className="w-4 h-4" />
                   )}
                   Simpan Override
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL TOLAK PEMBAYARAN — Admin mengisi alasan penolakan */}
+      <AnimatePresence>
+        {rejectModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="absolute inset-0" onClick={() => !rejectLoading && setRejectModal(null)} />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative z-10 w-full max-w-md bg-surface-container-lowest border border-surface-container rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-5 border-b border-surface-container bg-error-container/40 flex items-center gap-3">
+                <div className="p-2 bg-error/10 rounded-full">
+                  <XCircle className="w-5 h-5 text-error" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-on-error-container">Tolak Pembayaran</h2>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Pasien: <span className="font-bold">{rejectModal.patient}</span></p>
+                </div>
+                <button
+                  onClick={() => setRejectModal(null)}
+                  disabled={rejectLoading}
+                  className="ml-auto p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full disabled:opacity-50"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="bg-error-container/30 border border-error/20 rounded-2xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+                  <p className="text-xs text-on-surface-variant">
+                    Pembayaran akan ditandai <span className="font-bold text-error">Ditolak</span> dan alasan ini terlihat oleh terapis.
+                    Admin tetap dapat memverifikasi ulang setelah bukti diperbaiki. Aksi ini dicatat di <span className="font-bold">Audit Log</span>.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-outline uppercase tracking-wider mb-2">
+                    Alasan Penolakan <span className="text-error">*</span>
+                  </label>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    maxLength={1000}
+                    rows={4}
+                    placeholder="Contoh: Bukti transfer tidak terbaca / nominal tidak sesuai dengan tagihan."
+                    className="w-full px-4 py-3 bg-surface-container-low border border-surface-container rounded-xl text-sm text-on-surface outline-none focus:ring-2 focus:ring-error/40 transition-all resize-none"
+                  />
+                  <p className="text-[10px] text-on-surface-variant text-right mt-1">{rejectReason.length}/1000</p>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-surface-container flex justify-end gap-3 bg-surface-container-low">
+                <button
+                  onClick={() => setRejectModal(null)}
+                  disabled={rejectLoading}
+                  className="px-5 py-2.5 bg-surface-container text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={rejectLoading || !rejectReason.trim()}
+                  className="px-6 py-2.5 bg-error hover:brightness-110 text-white font-bold rounded-xl transition-all text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {rejectLoading ? (
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4" />
+                  )}
+                  Tolak Pembayaran
                 </button>
               </div>
             </motion.div>

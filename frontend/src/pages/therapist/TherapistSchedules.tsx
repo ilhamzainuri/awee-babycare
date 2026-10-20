@@ -35,6 +35,9 @@ interface ActiveScheduleDetail {
   mapLink?: string;
   complaint?: string;
   services?: string;
+  status_pembayaran?: string;
+  alasan_penolakan?: string | null;
+  waktu_penolakan?: string | null;
 }
 
 export default function AllSchedulesPage() {
@@ -299,6 +302,9 @@ export default function AllSchedulesPage() {
                       mapLink: item.link_shareloc,
                       complaint: item.keluhan_awal,
                       services: item.rincian_layanan,
+                      status_pembayaran: item.status_pembayaran,
+                      alasan_penolakan: item.alasan_penolakan,
+                      waktu_penolakan: item.waktu_penolakan,
                     })
                   }
                   className="text-[11px] font-bold text-primary hover:underline self-end flex items-center gap-1"
@@ -381,6 +387,22 @@ export default function AllSchedulesPage() {
                     <p className="font-black text-sm text-primary uppercase">{selectedDetail.status}</p>
                   </div>
                 </div>
+
+                {/* Pemberitahuan pembayaran ditolak admin */}
+                {selectedDetail.status_pembayaran === 'Rejected' && (
+                  <div className="bg-error-container/40 border border-error/30 p-4 rounded-2xl flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-black text-sm text-error">Pembayaran Ditolak Admin</p>
+                      <p className="text-xs font-medium text-on-surface mt-0.5">
+                        {selectedDetail.alasan_penolakan || 'Tidak ada alasan yang dicatat.'}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant mt-1">
+                        Silakan koordinasi dengan admin untuk perbaikan bukti pembayaran.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Daftar Layanan */}
                 <div>

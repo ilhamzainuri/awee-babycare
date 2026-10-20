@@ -25,6 +25,30 @@ try {
 
     $id_target = (int)$_POST['id'];
     $username = trim($_POST['username']);
+
+    if ($username === '' || strlen($username) < 3 || strlen($username) > 100) {
+        http_response_code(400);
+        echo json_encode(["status" => 400, "message" => "Username harus terdiri dari 3-100 karakter."]);
+        exit();
+    }
+
+    if (!preg_match('/^[A-Za-z0-9._-]+$/', $username)) {
+        http_response_code(400);
+        echo json_encode(["status" => 400, "message" => "Username hanya boleh berisi huruf, angka, titik, underscore, atau strip (tanpa spasi)."]);
+        exit();
+    }
+
+    $cek_username = $conn->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
+    $cek_username->execute([$username, $id_target]);
+
+    if ($cek_username->fetch()) {
+        http_response_code(409);
+        echo json_encode([
+            "status" => 409,
+            "message" => "Username \"$username\" sudah digunakan. Silakan pilih username lain."
+        ]);
+        exit();
+    }
     
     // 1. Ambil data lama untuk Audit Log (Dari tabel users dan therapists)
     $old_stmt = $conn->prepare("
@@ -56,6 +80,19 @@ try {
     // Handle Password (Jika diubah)
     if (isset($_POST['password']) && trim($_POST['password']) !== "") {
         $password = trim($_POST['password']);
+
+        if (strlen($password) < 8 || strlen($password) > 255) {
+            http_response_code(400);
+            echo json_encode(["status" => 400, "message" => "Password harus terdiri dari 8-255 karakter."]);
+            exit();
+        }
+
+        if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+            http_response_code(400);
+            echo json_encode(["status" => 400, "message" => "Password harus mengandung huruf dan angka."]);
+            exit();
+        }
+
         $query_updates_users[] = "password = :password";
         $params_users[':password'] = $password;
         $data_baru_log_users['password'] = "[PASSWORD_DIUBAH]"; 
@@ -170,6 +207,15 @@ try {
     exit();
 
 } catch (PDOException $e) {
+    if ($e->getCode() === '23000') {
+        http_response_code(409);
+        echo json_encode([
+            "status" => 409,
+            "message" => "Username \"$username\" sudah digunakan. Silakan pilih username lain."
+        ]);
+        exit();
+    }
+
     http_response_code(500); 
     echo json_encode(["status" => 500, "message" => "Database Error: " . $e->getMessage()]);
     exit();

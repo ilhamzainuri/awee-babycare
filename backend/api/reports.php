@@ -227,6 +227,7 @@ try {
             a.nama_pasien, 
             t.nama_terapis, 
             a.metode_bayar_admin, 
+            a.metode_bayar_terapis,
             a.status_pembayaran, 
             a.status_jadwal, 
             a.total_harga_kunjungan,

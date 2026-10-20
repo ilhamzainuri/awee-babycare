@@ -31,7 +31,6 @@ export default function TherapistReport() {
   const [endDate, setEndDate] = useState(today);
 
   // States Database API
-  const [totalOmzet, setTotalOmzet] = useState(0);
   const [totalKomisi, setTotalKomisi] = useState(0);
   const [totalBersih, setTotalBersih] = useState(0);
   const [totalReservasi, setTotalReservasi] = useState(0);
@@ -47,6 +46,7 @@ export default function TherapistReport() {
   // States untuk Filter Tabel (Client-Side)
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterPayment, setFilterPayment] = useState('All');
 
   // Get Logged-in Therapist User ID
   const [userId, setUserId] = useState<number | null>(null);
@@ -176,7 +176,6 @@ export default function TherapistReport() {
         const result = await response.json();
 
         if (result.status === 200) {
-          setTotalOmzet(result.data.total_omzet);
           setTotalKomisi(result.data.total_komisi);
           setTotalBersih(result.data.total_pendapatan_bersih || 0);
           setTotalReservasi(result.data.total_reservasi);
@@ -201,12 +200,22 @@ export default function TherapistReport() {
 
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
+  const getPaymentMethod = (res: any) =>
+    res.status_pembayaran === 'Verified' && res.metode_bayar_terapis
+      ? res.metode_bayar_terapis
+      : res.metode_bayar_admin;
+
+  const uniquePaymentMethods = Array.from(
+    new Set(reservations.map(getPaymentMethod).filter(Boolean))
+  ).sort();
+
   const filteredReservations = reservations.filter(res => {
     const matchSearch = res.nama_pasien.toLowerCase().includes(searchQuery.toLowerCase()) ||
       `#TRX-${res.trx_id}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchStatus = filterStatus === 'All' || res.status_jadwal === filterStatus;
+    const matchPayment = filterPayment === 'All' || getPaymentMethod(res) === filterPayment;
 
-    return matchSearch && matchStatus;
+    return matchSearch && matchStatus && matchPayment;
   });
 
   const prepareExportData = () => {
@@ -223,7 +232,7 @@ export default function TherapistReport() {
           "Waktu": `${tgl} ${jam}`,
           "Nama Pasien": res.nama_pasien,
           "Nama Terapis": res.nama_terapis,
-          "Metode Bayar": res.metode_bayar_admin,
+          "Metode Bayar": getPaymentMethod(res),
           "Status Pembayaran": res.status_pembayaran,
           "Status Pelaksanaan": res.status_jadwal,
           "Total Kotor (Rp)": hargaKotor,
@@ -425,18 +434,12 @@ export default function TherapistReport() {
                 <div className="p-2 bg-primary-container/10 text-primary-container rounded-2xl"><Landmark className="w-6 h-6" /></div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container">
-                <div>
-                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total Omzet Layanan (Gross)</span>
-                  <h2 className="text-2xl font-black text-primary-container tracking-tight mt-1">{formatRupiah(totalOmzet)}</h2>
-                </div>
-                <div className="pt-4 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-surface-container-high">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
-                    Komisi Terverifikasi (Net)
-                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  </span>
-                  <h2 className="text-2xl font-black text-emerald-600 tracking-tight mt-1">{formatRupiah(totalBersih)}</h2>
-                </div>
+              <div className="mb-8 bg-surface-container-low/40 p-4 rounded-2xl border border-surface-container">
+                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                  Total Komisi Terverifikasi
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                </span>
+                <h2 className="text-2xl font-black text-emerald-600 tracking-tight mt-1">{formatRupiah(totalBersih)}</h2>
               </div>
 
               <div className="h-64 h-full min-h-[250px]">
@@ -616,6 +619,20 @@ export default function TherapistReport() {
                       <option value="Dibatalkan">Dibatalkan</option>
                     </select>
                   </div>
+
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                    <select
+                      value={filterPayment}
+                      onChange={(e) => setFilterPayment(e.target.value)}
+                      className="w-full sm:w-auto appearance-none pl-10 pr-8 py-2 bg-surface-container-low border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary outline-none cursor-pointer"
+                    >
+                      <option value="All">Semua Metode</option>
+                      {uniquePaymentMethods.map(method => (
+                        <option key={method} value={method}>{method}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -650,9 +667,9 @@ export default function TherapistReport() {
                           </td>
                           <td className="p-4 border-b border-surface-container font-bold text-sm text-on-surface">{res.nama_pasien}</td>
                           <td className="p-4 border-b border-surface-container">
-                            <p className="text-sm font-bold">{res.metode_bayar_admin}</p>
+                            <p className="text-sm font-bold">{getPaymentMethod(res)}</p>
                             <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-0.5", res.status_pembayaran === 'Verified' ? "text-tertiary" : "text-error")}>
-                              {res.status_pembayaran}
+                              {res.status_pembayaran === 'Rejected' ? 'Ditolak' : res.status_pembayaran}
                             </p>
                           </td>
                           <td className="p-4 border-b border-surface-container">
@@ -735,6 +752,20 @@ export default function TherapistReport() {
                   <div className="py-12 text-center text-error font-bold">Gagal memuat data transaksi.</div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {trxDetail.status_pembayaran === 'Rejected' && (
+                      <div className="lg:col-span-2 bg-error-container/40 border border-error/30 p-4 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-sm text-error">Pembayaran Ditolak Admin</p>
+                          <p className="text-xs font-medium text-on-surface mt-0.5">
+                            {trxDetail.alasan_penolakan || 'Tidak ada alasan yang dicatat.'}
+                          </p>
+                          <p className="text-[10px] text-on-surface-variant mt-1">
+                            Silakan koordinasi dengan admin untuk perbaikan bukti pembayaran.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {/* Kolom Kiri: Rincian Reservasi & Pasien */}
                     <div className="space-y-4">
                       {/* Kotak Pasien */}
@@ -874,13 +905,24 @@ export default function TherapistReport() {
                         {/* Total Pembayaran */}
                         <div className="border-t border-surface-container pt-4 space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-on-surface-variant">Metode Bayar</span>
+                            <span className="text-sm text-on-surface-variant">Metode Bayar (Rencana Admin)</span>
                             <span className="text-sm font-bold">{trxDetail.metode_bayar_admin || '-'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-on-surface-variant">Metode Bayar (Aktual Terapis)</span>
+                            <span className={cn(
+                              "text-sm font-bold",
+                              trxDetail.metode_bayar_terapis && trxDetail.metode_bayar_admin !== trxDetail.metode_bayar_terapis
+                                ? "text-error"
+                                : trxDetail.metode_bayar_terapis ? "text-tertiary" : "text-on-surface-variant"
+                            )}>
+                              {trxDetail.metode_bayar_terapis || 'Belum Diinput'}
+                            </span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-on-surface-variant">Status Bayar</span>
                             <span className={cn("text-xs font-bold uppercase tracking-widest", trxDetail.status_pembayaran === 'Verified' ? "text-tertiary" : "text-error")}>
-                              {trxDetail.status_pembayaran || 'Unverified'}
+                              {trxDetail.status_pembayaran === 'Rejected' ? 'Ditolak' : (trxDetail.status_pembayaran || 'Unverified')}
                             </span>
                           </div>
                           <div className="flex justify-between items-center mt-2 p-3 bg-primary-container/10 rounded-xl">

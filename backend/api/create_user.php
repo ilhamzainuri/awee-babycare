@@ -14,12 +14,32 @@ require_once '../config/koneksi.php';
 
 try {
 
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
     $role = $_POST['role'] ?? '';
 
     if(empty($username) || empty($password)){
         throw new Exception("Data belum lengkap");
+    }
+
+    if (strlen($username) < 3 || strlen($username) > 100) {
+        throw new Exception("Username harus terdiri dari 3-100 karakter.");
+    }
+
+    if (!preg_match('/^[A-Za-z0-9._-]+$/', $username)) {
+        throw new Exception("Username hanya boleh berisi huruf, angka, titik, underscore, atau strip (tanpa spasi).");
+    }
+
+    if (strlen($password) < 8 || strlen($password) > 255) {
+        throw new Exception("Password harus terdiri dari 8-255 karakter.");
+    }
+
+    if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+        throw new Exception("Password harus mengandung huruf dan angka.");
+    }
+
+    if (!in_array($role, ['admin', 'therapist'], true)) {
+        throw new Exception("Role tidak valid.");
     }
 
     $cek = $conn->prepare("
@@ -31,7 +51,12 @@ try {
     $cek->execute([$username]);
 
     if($cek->fetch()){
-        throw new Exception("Username sudah digunakan");
+        http_response_code(409);
+        echo json_encode([
+            "status" => 409,
+            "message" => "Username \"$username\" sudah digunakan. Silakan pilih username lain."
+        ]);
+        exit();
     }
 
     $fotoName = null;
@@ -41,10 +66,18 @@ if (
     $_FILES['foto']['error'] === UPLOAD_ERR_OK
 ) {
 
-    $ext = pathinfo(
+    $ext = strtolower(pathinfo(
         $_FILES['foto']['name'],
         PATHINFO_EXTENSION
-    );
+    ));
+
+    if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+        throw new Exception("Format foto harus JPG, JPEG, atau PNG.");
+    }
+
+    if ($_FILES['foto']['size'] > 2097152) {
+        throw new Exception("Ukuran foto maksimal 2MB.");
+    }
 
     $fotoName = time().'_'.uniqid().'.'.$ext;
 
@@ -101,6 +134,24 @@ if (
     ]);
 
 } catch(PDOException $e){
+
+    if ($e->getCode() === '23000') {
+        http_response_code(409);
+        echo json_encode([
+            "status"=>409,
+            "message"=>"Username \"$username\" sudah digunakan. Silakan pilih username lain."
+        ]);
+        exit();
+    }
+
+    http_response_code(400);
+
+    echo json_encode([
+        "status"=>400,
+        "message"=>$e->getMessage()
+    ]);
+
+} catch(Exception $e){
 
     http_response_code(400);
 
