@@ -205,6 +205,74 @@ try {
     }
 
     // ========================================================
+    // BAGIAN 3B: JADWAL 7 HARI KEDEPAN / PERPEKAN (WEEKLY)
+    // ========================================================
+    $stmtWeeklySched = $conn->prepare("
+        SELECT id, nama_pasien, usia_saat_ini, bb_saat_ini, waktu_reservasi, alamat_lengkap, status_jadwal,
+               no_hp_ortu, link_shareloc, keluhan_awal, suhu_Pasien, bb_real_terapis, total_komisi_kunjungan,
+               (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
+                FROM appointment_details ad 
+                JOIN services s ON ad.id_service = s.id 
+                WHERE ad.id_appointment = appointments.id) as rincian_layanan,
+               (SELECT GROUP_CONCAT(DISTINCT k.nama_kategori SEPARATOR ' + ')
+                FROM appointment_details ad
+                JOIN services s ON ad.id_service = s.id
+                LEFT JOIN kategori k ON s.kategori_id = k.id_kategori
+                WHERE ad.id_appointment = appointments.id) as kategori_layanan
+        FROM appointments 
+        WHERE id_therapist = :id 
+          AND deleted_at IS NULL
+          AND (
+            (DATE(waktu_reservasi) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY))
+            OR (status_jadwal = 'Diproses' AND DATE(waktu_reservasi) < CURDATE())
+          )
+        ORDER BY waktu_reservasi ASC
+    ");
+    $stmtWeeklySched->execute([':id' => $therapist_id]);
+
+    $weekly_schedules = [];
+    while ($wRow = $stmtWeeklySched->fetch(PDO::FETCH_ASSOC)) {
+        $w_ui_status = $wRow['status_jadwal'];
+        $w_kat_str = strtolower($wRow['kategori_layanan'] ?? '');
+        $w_has_outlet = (strpos($w_kat_str, 'outlet') !== false);
+        $w_has_homecare = (strpos($w_kat_str, 'homecare') !== false);
+
+        if ($w_has_outlet && $w_has_homecare) {
+            $w_jenis_layanan = 'Outlet & Homecare';
+            $w_lokasi_kunjungan = 'Outlet / ' . ($wRow['alamat_lengkap'] ?: 'Alamat Pasien');
+        } elseif ($w_has_outlet) {
+            $w_jenis_layanan = 'Outlet';
+            $w_lokasi_kunjungan = 'Outlet (Klinik)';
+        } elseif ($w_has_homecare) {
+            $w_jenis_layanan = 'Homecare';
+            $w_lokasi_kunjungan = $wRow['alamat_lengkap'] ?: 'Alamat Pasien (Homecare)';
+        } else {
+            $w_jenis_layanan = 'Homecare';
+            $w_lokasi_kunjungan = $wRow['alamat_lengkap'];
+        }
+
+        $weekly_schedules[] = [
+            "id" => (int)$wRow['id'],
+            "childName" => $wRow['nama_pasien'],
+            "usia" => $wRow['usia_saat_ini'],
+            "bb" => $wRow['bb_saat_ini'],
+            "time" => $wRow['waktu_reservasi'], 
+            "address" => $w_lokasi_kunjungan,
+            "raw_address" => $wRow['alamat_lengkap'],
+            "jenis_layanan" => $w_jenis_layanan,
+            "status" => $w_ui_status,
+            "phone" => $wRow['no_hp_ortu'],
+            "mapLink" => $wRow['link_shareloc'],
+            "complaint" => $wRow['keluhan_awal'],
+            "services"             => $wRow['rincian_layanan'],
+            "waktu_reservasi_raw" => $wRow['waktu_reservasi'],
+            "status_db"           => $wRow['status_jadwal'],
+            "total_komisi"        => (int)($wRow['total_komisi_kunjungan'] ?? 0),
+            "is_overdue"          => (date('Y-m-d', strtotime($wRow['waktu_reservasi'])) < $hari_ini) ? true : false
+        ];
+    }
+
+    // ========================================================
     // BAGIAN 4: RIWAYAT SINGKAT (5 TRANSAKSI TERAKHIR)
     // ========================================================
     $stmtHist = $conn->prepare("
@@ -257,6 +325,7 @@ try {
                 ]
             ],
             "schedules" => $schedules,
+            "weekly_schedules" => $weekly_schedules,
             "history" => $history
         ]
     ]);

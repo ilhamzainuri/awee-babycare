@@ -3,7 +3,7 @@
 3. Waktu pada layanan di tampilkan
 --4. Tulisan waktu reservasi diganti waktu pelayanan
 5. Tambah jadwal pelayanan direservasi
-6. Di dashboard terapis ada keterangan jadwal perpekan
+--6. Di dashboard terapis ada keterangan jadwal perpekan
 7. Username dan password sama dengan akun lain diberi notifikasi yang benar
 8. Karakter password diberi keterangan
 9. Waktu akses kalau belum waktunya tidak boleh di handling
