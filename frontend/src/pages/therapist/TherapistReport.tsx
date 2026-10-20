@@ -139,6 +139,19 @@ export default function TherapistReport() {
     fetchDetail();
   }, [selectedTrxId]);
 
+  const formatDateTime = (dateStr: string | null | undefined): string => {
+    if (!dateStr || dateStr === '0000-00-00 00:00:00') return '';
+    try {
+      const d = new Date(dateStr.replace(' ', 'T'));
+      if (isNaN(d.getTime())) return '';
+      const tgl = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      return `${tgl}, ${jam}`;
+    } catch {
+      return '';
+    }
+  };
+
   // ==========================================
   // EFFECT UNTUK FETCH DATA REPORT UTAMA
   // ==========================================
@@ -807,8 +820,12 @@ export default function TherapistReport() {
                             <span className="font-bold text-on-surface">{trxDetail.nama_terapis}</span>
                           </div>
                           <div className="flex justify-between items-center">
+                            <span className="text-on-surface-variant">Waktu Reservasi</span>
+                            <span className="font-bold text-on-surface">{formatDateTime(trxDetail.created_at) || '-'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
                             <span className="text-on-surface-variant">Waktu Pelayanan</span>
-                            <span className="font-bold text-on-surface">{trxDetail.waktu_reservasi}</span>
+                            <span className="font-bold text-on-surface">{formatDateTime(trxDetail.waktu_reservasi) || '-'}</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-on-surface-variant">Status Pelaksanaan</span>
@@ -820,11 +837,15 @@ export default function TherapistReport() {
                         <div className="space-y-2 text-xs">
                           <div className="flex justify-between">
                             <span className="text-on-surface-variant">Mulai Layanan:</span>
-                            <span className="font-medium">{trxDetail.waktu_mulai_layanan || '-'}</span>
+                            <span className="font-medium">
+                              {formatDateTime(trxDetail.waktu_mulai_layanan) || 'Belum dimulai'}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-on-surface-variant">Selesai Layanan:</span>
-                            <span className="font-medium">{trxDetail.waktu_selesai_layanan || '-'}</span>
+                            <span className="font-medium">
+                              {formatDateTime(trxDetail.waktu_selesai_layanan) || (trxDetail.waktu_mulai_layanan ? 'Belum selesai' : 'Belum dimulai')}
+                            </span>
                           </div>
                         </div>
                       </div>

@@ -1,8 +1,8 @@
 --1. Layanan di taruh bagian atas sebelum isi alamat
 2. Tanggal hari dan waktu sebelumnya di blok sehingga hari kemarin tidak bisa di pilih
-3. Waktu pada layanan di tampilkan
+--3. Waktu pada layanan di tampilkan
 --4. Tulisan waktu reservasi diganti waktu pelayanan
-5. Tambah jadwal pelayanan direservasi
+--5. Tambah jadwal pelayanan direservasi
 --6. Di dashboard terapis ada keterangan jadwal perpekan
 7. Username dan password sama dengan akun lain diberi notifikasi yang benar
 8. Karakter password diberi keterangan
