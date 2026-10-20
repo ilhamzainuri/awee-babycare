@@ -79,6 +79,20 @@ try {
     $new_status_jadwal = $has_status ? $input['status_jadwal'] : $old_status_jadwal;
     $alasan_batal = isset($input['alasan_batal']) ? trim($input['alasan_batal']) : '';
 
+    // Validasi aturan bisnis: Layanan yang sedang 'Diproses' terkunci penuh.
+    // Hanya boleh maju ke 'Selesai'; reschedule, pembatalan, dan kembalikan ke 'Menunggu' ditolak.
+    if ($old_status_jadwal === 'Diproses') {
+        if ($has_datetime) {
+            throw new Exception("Layanan sedang 'Diproses'. Jadwal tidak dapat di-reschedule.");
+        }
+        if ($new_status_jadwal === 'Dibatalkan') {
+            throw new Exception("Layanan sedang 'Diproses' sehingga tidak dapat dibatalkan.");
+        }
+        if ($new_status_jadwal === 'Menunggu') {
+            throw new Exception("Layanan sedang 'Diproses' sehingga tidak dapat dikembalikan ke status 'Menunggu'.");
+        }
+    }
+
     // Validasi waktu tidak boleh mundur (hanya jika tanggal/waktu diubah)
     if ($has_datetime && strtotime($new_datetime) < strtotime(date('Y-m-d H:i:s'))) {
         throw new Exception("Gagal: Waktu pelayanan tidak boleh di masa lalu. Silakan pilih waktu saat ini atau di masa depan.");

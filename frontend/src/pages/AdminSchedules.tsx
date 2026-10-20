@@ -132,6 +132,12 @@ export default function AdminSchedules() {
       return;
     }
 
+    // Aturan bisnis: Layanan yang sedang 'Diproses' terkunci dari reschedule
+    if (selectedSchedule.status_jadwal === 'Diproses') {
+      toast.error("Layanan sedang 'Diproses' sehingga tidak dapat di-reschedule.");
+      return;
+    }
+
     const datetimeString = selectedSchedule.waktu_reservasi || '';
     const [datePart, timePart] = datetimeString.split(' ');
 
@@ -168,6 +174,11 @@ export default function AdminSchedules() {
 
     if (selectedSchedule.status_jadwal === 'Selesai') {
       toast.error("Layanan yang sudah 'Selesai' tidak dapat diubah lagi.");
+      return;
+    }
+
+    if (selectedSchedule.status_jadwal === 'Diproses') {
+      toast.error("Layanan sedang 'Diproses' sehingga tidak dapat di-reschedule.");
       return;
     }
 
@@ -252,6 +263,12 @@ export default function AdminSchedules() {
       return;
     }
 
+    // Aturan bisnis: Layanan 'Diproses' hanya boleh maju ke 'Selesai'
+    if (selectedSchedule.status_jadwal === 'Diproses' && newStatus !== 'Selesai' && newStatus !== 'Diproses') {
+      toast.error("Layanan sedang 'Diproses'. Status hanya dapat dilanjutkan ke 'Selesai'.");
+      return;
+    }
+
     // Jika ingin membatalkan, arahkan ke modal konfirmasi pembatalan khusus
     if (newStatus === 'Dibatalkan') {
       setCancelReason('');
@@ -307,6 +324,11 @@ export default function AdminSchedules() {
 
     if (selectedSchedule.status_jadwal === 'Selesai') {
       toast.error("Layanan yang sudah 'Selesai' tidak dapat dibatalkan.");
+      return;
+    }
+
+    if (selectedSchedule.status_jadwal === 'Diproses') {
+      toast.error("Layanan sedang 'Diproses' sehingga tidak dapat dibatalkan.");
       return;
     }
 
@@ -684,6 +706,25 @@ export default function AdminSchedules() {
                   </motion.div>
                 )}
 
+                {/* Banner Jika Status 'Diproses' (Terkunci) */}
+                {selectedSchedule.status_jadwal === 'Diproses' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3.5 sm:p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-start sm:items-center gap-3 text-blue-800"
+                  >
+                    <div className="p-2 bg-blue-500/20 text-blue-700 rounded-xl shrink-0 mt-0.5 sm:mt-0">
+                      <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-xs sm:text-sm">Layanan Sedang Diproses (Terkunci)</p>
+                      <p className="text-[11px] sm:text-xs text-blue-700/80 mt-0.5 leading-relaxed">
+                        Terapis sudah memulai layanan, sehingga jadwal dan pembatalan dikunci. Status hanya dapat dilanjutkan menjadi Selesai.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Banner Jika Status 'Dibatalkan' */}
                 {selectedSchedule.status_jadwal === 'Dibatalkan' && (
                   <motion.div
@@ -940,7 +981,7 @@ export default function AdminSchedules() {
                             </span>
                           ) : (
                             <>
-                              {!isEditingSchedule && (
+                              {!isEditingSchedule && selectedSchedule.status_jadwal !== 'Diproses' && (
                                 <button
                                   onClick={handleOpenEdit}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-container/10 text-primary-container hover:bg-primary-container/20 rounded-xl text-xs font-bold transition-colors"
@@ -955,7 +996,12 @@ export default function AdminSchedules() {
                                     setCancelReason('');
                                     setIsCancelModalOpen(true);
                                   }}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-600 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold transition-colors"
+                                  disabled={selectedSchedule.status_jadwal === 'Diproses'}
+                                  title={selectedSchedule.status_jadwal === 'Diproses' ? 'Layanan sedang Diproses sehingga tidak dapat dibatalkan' : ''}
+                                  className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-600 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold transition-colors",
+                                    selectedSchedule.status_jadwal === 'Diproses' && "opacity-50 cursor-not-allowed hover:bg-red-500/10"
+                                  )}
                                 >
                                   <Ban className="w-3.5 h-3.5" /> Batalkan
                                 </button>
@@ -1012,7 +1058,8 @@ export default function AdminSchedules() {
                                     key={status}
                                     type="button"
                                     onClick={() => handleUpdateStatus(status)}
-                                    disabled={isUpdating || isCurrent}
+                                    disabled={isUpdating || isCurrent || (selectedSchedule.status_jadwal === 'Diproses' && status !== 'Selesai')}
+                                    title={selectedSchedule.status_jadwal === 'Diproses' && status !== 'Selesai' ? "Layanan sedang Diproses. Status hanya dapat dilanjutkan ke Selesai." : ''}
                                     className={cn(
                                       "py-2 sm:py-2.5 px-2 rounded-lg text-xs font-bold transition-all border text-center flex items-center justify-center gap-1",
                                       isCurrent
@@ -1023,7 +1070,8 @@ export default function AdminSchedules() {
                                           : status === 'Diproses'
                                           ? "bg-blue-600 text-white border-blue-600 shadow-sm"
                                           : "bg-amber-600 text-white border-amber-600 shadow-sm"
-                                        : "bg-surface-container-lowest text-on-surface hover:bg-surface-container border-surface-container-high"
+                                        : "bg-surface-container-lowest text-on-surface hover:bg-surface-container border-surface-container-high",
+                                      selectedSchedule.status_jadwal === 'Diproses' && status !== 'Selesai' && "opacity-40 cursor-not-allowed hover:bg-surface-container-lowest"
                                     )}
                                   >
                                     {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
