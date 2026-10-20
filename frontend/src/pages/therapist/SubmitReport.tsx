@@ -98,8 +98,8 @@ export default function SubmitReport() {
       
       if (reportData.bukti_pembayaran) {
         formData.append('bukti_pembayaran', reportData.bukti_pembayaran);
-      } else if (reportData.metode_bayar_terapis === 'Transfer Bank' || reportData.metode_bayar_terapis === 'Transfer') {
-        alert("Mohon unggah foto bukti transfer!");
+      } else {
+        alert("Mohon unggah bukti pembayaran (wajib untuk semua metode, termasuk tunai).");
         setIsSubmittingReport(false);
         return;
       }
@@ -213,10 +213,10 @@ export default function SubmitReport() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-on-surface-variant">Bukti Pembayaran (Wajib jika Transfer)</label>
+                      <label className="text-sm font-bold text-on-surface-variant">Bukti Pembayaran (Wajib untuk semua metode)</label>
                       
                       <div className="relative border-2 border-dashed border-surface-container hover:border-primary/50 transition-colors rounded-2xl p-6 text-center cursor-pointer overflow-hidden bg-surface-container-lowest">
-                        <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                        <input type="file" accept="image/*" required onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                         
                         {previewImage ? (
                           <div className="relative aspect-video w-full">
@@ -231,7 +231,7 @@ export default function SubmitReport() {
                               <UploadCloud className="w-7 h-7" />
                             </div>
                             <p className="text-sm font-bold text-on-surface">Tap untuk Ambil Foto / Pilih Galeri</p>
-                            <p className="text-xs text-on-surface-variant mt-1">Upload foto bukti transfer atau kwitansi uang pas</p>
+                            <p className="text-xs text-on-surface-variant mt-1">Upload foto bukti transfer atau kwitansi uang tunai</p>
                           </div>
                         )}
                       </div>

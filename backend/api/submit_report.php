@@ -28,25 +28,26 @@ try {
     $waktu_selesai = date('Y-m-d H:i:s');
     $bukti_bayar_url = null;
 
-    // Handle File Upload
-    if (isset($_FILES['bukti_pembayaran']) && $_FILES['bukti_pembayaran']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = '../uploads/payments/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
+    // Bukti pembayaran wajib diunggah untuk semua metode (Cash maupun Transfer)
+    if (!isset($_FILES['bukti_pembayaran']) || $_FILES['bukti_pembayaran']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(["status" => 400, "message" => "Bukti pembayaran wajib diunggah untuk semua metode pembayaran."]);
+        exit;
+    }
 
-        $fileExtension = pathinfo($_FILES['bukti_pembayaran']['name'], PATHINFO_EXTENSION);
-        $fileName = 'payment_' . $appointment_id . '_' . time() . '.' . $fileExtension;
-        $targetFile = $uploadDir . $fileName;
+    $uploadDir = '../uploads/payments/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
 
-        if (move_uploaded_file($_FILES['bukti_pembayaran']['tmp_name'], $targetFile)) {
-            $bukti_bayar_url = $fileName;
-        } else {
-            throw new Exception("Gagal mengunggah foto bukti pembayaran.");
-        }
-    } else if ($metode_bayar_terapis === 'Transfer Bank' || $metode_bayar_terapis === 'Transfer') {
-        // Jika wajib upload saat transfer
-        // throw new Exception("Bukti pembayaran wajib diunggah untuk metode Transfer.");
+    $fileExtension = pathinfo($_FILES['bukti_pembayaran']['name'], PATHINFO_EXTENSION);
+    $fileName = 'payment_' . $appointment_id . '_' . time() . '.' . $fileExtension;
+    $targetFile = $uploadDir . $fileName;
+
+    if (move_uploaded_file($_FILES['bukti_pembayaran']['tmp_name'], $targetFile)) {
+        $bukti_bayar_url = $fileName;
+    } else {
+        throw new Exception("Gagal mengunggah foto bukti pembayaran.");
     }
 
     $conn->beginTransaction();
