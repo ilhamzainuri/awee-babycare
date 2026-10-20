@@ -3,7 +3,7 @@ import {
   Stethoscope, Syringe, Brain, Apple, Plus, History,
   CheckCircle2, XCircle, MoreVertical, Activity, Phone,
   AlertTriangle, X, Edit, Trash2,
-  Hand, Waves, Scissors, Baby, User
+  Hand, Waves, Scissors, Baby, User, IdCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -50,6 +50,8 @@ export default function MasterData() {
   const [formData, setFormData] = useState({
     nama_layanan: '', kategori_id: '', harga_saat_ini: '', persentase_komisi: '',
     user_id: '', nama_terapis: '', no_whatsapp: '', status_aktif: '1',
+    nik: '', tempat_lahir: '', tanggal_lahir: '', jenis_kelamin: '', alamat: '',
+    kelurahan: '', kecamatan: '', kota_kabupaten: '', provinsi: '', agama: '', status_perkawinan: '',
     nama_kategori: ''
   });
 
@@ -171,6 +173,17 @@ export default function MasterData() {
         nama_terapis: data.nama_terapis || '',
         no_whatsapp: data.no_whatsapp || '',
         status_aktif: data.status_aktif !== undefined ? data.status_aktif.toString() : '1',
+        nik: data.nik || '',
+        tempat_lahir: data.tempat_lahir || '',
+        tanggal_lahir: data.tanggal_lahir || '',
+        jenis_kelamin: data.jenis_kelamin || '',
+        alamat: data.alamat || '',
+        kelurahan: data.kelurahan || '',
+        kecamatan: data.kecamatan || '',
+        kota_kabupaten: data.kota_kabupaten || '',
+        provinsi: data.provinsi || '',
+        agama: data.agama || '',
+        status_perkawinan: data.status_perkawinan || '',
         nama_kategori: data.nama_kategori || ''
       });
     } else {
@@ -183,6 +196,17 @@ export default function MasterData() {
         nama_terapis: '',
         no_whatsapp: '',
         status_aktif: '1',
+        nik: '',
+        tempat_lahir: '',
+        tanggal_lahir: '',
+        jenis_kelamin: '',
+        alamat: '',
+        kelurahan: '',
+        kecamatan: '',
+        kota_kabupaten: '',
+        provinsi: '',
+        agama: '',
+        status_perkawinan: '',
         nama_kategori: ''
       });
     }
@@ -193,6 +217,9 @@ export default function MasterData() {
   const formatRupiah = (angka: number | string) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(angka));
   };
+
+  const maskNik = (nik?: string) =>
+    !nik || nik.length < 8 ? (nik || 'NIK belum diisi') : `${nik.slice(0, 4)}\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022${nik.slice(-4)}`;
 
   return (
     <div className="space-y-8 relative">
@@ -391,6 +418,10 @@ export default function MasterData() {
                     <div>
                       <h3 className="text-xl font-bold truncate max-w-[150px]">{therapist.nama_terapis}</h3>
                       <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-1"><Phone className="w-3 h-3" /> {therapist.no_whatsapp}</p>
+                      <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5"><IdCard className="w-3 h-3" /> {maskNik(therapist.nik)}</p>
+                      {therapist.tanggal_lahir && (
+                        <p className="text-[11px] text-on-surface-variant mt-0.5">Lahir: {therapist.tempat_lahir}, {new Date(therapist.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      )}
                     </div>
                   </div>
                   <div className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1", isAktif ? "bg-tertiary-container/10 text-tertiary" : "bg-surface-container text-on-surface-variant")}>
@@ -452,7 +483,7 @@ export default function MasterData() {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="bg-surface-container-lowest w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className={cn("bg-surface-container-lowest w-full rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto", activeTab === 'therapists' ? "max-w-2xl" : "max-w-md")}>
               <div className="flex justify-between items-center p-6 border-b border-outline-variant/30">
                 <h2 className="text-xl font-bold">{modalMode === 'create' ? 'Tambah Data' : 'Edit Data'} {activeTab === 'services' ? 'Layanan' : (activeTab === 'categories' ? 'Kategori' : 'Terapis')}</h2>
                 <button onClick={() => setIsModalOpen(false)} className="p-2 bg-surface-container hover:bg-error-container hover:text-error rounded-full transition-all"><X className="w-5 h-5" /></button>
@@ -568,20 +599,84 @@ export default function MasterData() {
                       <p className="text-[10px] text-on-surface-variant mt-1.5">Tautkan profil dengan akun login yang sudah dibuat.</p>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-bold text-on-surface-variant mb-1 block">Nama Lengkap Terapis</label>
-                      <input required type="text" value={formData.nama_terapis} onChange={e => setFormData({ ...formData, nama_terapis: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-bold text-on-surface-variant mb-1 block">No WhatsApp</label>
-                      <input required type="text" value={formData.no_whatsapp} onChange={e => setFormData({ ...formData, no_whatsapp: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-bold text-on-surface-variant mb-1 block">Status Pekerjaan</label>
-                      <select value={formData.status_aktif} onChange={e => setFormData({ ...formData, status_aktif: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none">
-                        <option value="1">Aktif (On-Duty)</option>
-                        <option value="0">Tidak Aktif (Off-Duty)</option>
-                      </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Nama Lengkap Terapis (sesuai KTP)</label>
+                        <input required type="text" value={formData.nama_terapis} onChange={e => setFormData({ ...formData, nama_terapis: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">NIK (16 digit)</label>
+                        <input required type="text" inputMode="numeric" maxLength={16} pattern="\d{16}" value={formData.nik} onChange={e => setFormData({ ...formData, nik: e.target.value.replace(/\D/g, '') })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" placeholder="3271234567890001" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">No WhatsApp</label>
+                        <input required type="text" value={formData.no_whatsapp} onChange={e => setFormData({ ...formData, no_whatsapp: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Tempat Lahir</label>
+                        <input required type="text" value={formData.tempat_lahir} onChange={e => setFormData({ ...formData, tempat_lahir: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Tanggal Lahir</label>
+                        <input required type="date" value={formData.tanggal_lahir} onChange={e => setFormData({ ...formData, tanggal_lahir: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Jenis Kelamin</label>
+                        <select required value={formData.jenis_kelamin} onChange={e => setFormData({ ...formData, jenis_kelamin: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                          <option value="" disabled>-- Pilih --</option>
+                          <option value="Laki-laki">Laki-laki</option>
+                          <option value="Perempuan">Perempuan</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Agama</label>
+                        <select value={formData.agama} onChange={e => setFormData({ ...formData, agama: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                          <option value="">-- Pilih --</option>
+                          <option value="Islam">Islam</option>
+                          <option value="Kristen">Kristen</option>
+                          <option value="Katolik">Katolik</option>
+                          <option value="Hindu">Hindu</option>
+                          <option value="Buddha">Buddha</option>
+                          <option value="Konghucu">Konghucu</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Status Perkawinan</label>
+                        <select value={formData.status_perkawinan} onChange={e => setFormData({ ...formData, status_perkawinan: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                          <option value="">-- Pilih --</option>
+                          <option value="Belum Menikah">Belum Menikah</option>
+                          <option value="Menikah">Menikah</option>
+                          <option value="Cerai Hidup">Cerai Hidup</option>
+                          <option value="Cerai Mati">Cerai Mati</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Alamat (Jalan, RT/RW)</label>
+                        <input required type="text" value={formData.alamat} onChange={e => setFormData({ ...formData, alamat: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Kelurahan / Desa</label>
+                        <input required type="text" value={formData.kelurahan} onChange={e => setFormData({ ...formData, kelurahan: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Kecamatan</label>
+                        <input required type="text" value={formData.kecamatan} onChange={e => setFormData({ ...formData, kecamatan: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Kabupaten / Kota</label>
+                        <input required type="text" value={formData.kota_kabupaten} onChange={e => setFormData({ ...formData, kota_kabupaten: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Provinsi</label>
+                        <input required type="text" value={formData.provinsi} onChange={e => setFormData({ ...formData, provinsi: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-bold text-on-surface-variant mb-1 block">Status Pekerjaan</label>
+                        <select value={formData.status_aktif} onChange={e => setFormData({ ...formData, status_aktif: e.target.value })} className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                          <option value="1">Aktif (On-Duty)</option>
+                          <option value="0">Tidak Aktif (Off-Duty)</option>
+                        </select>
+                      </div>
                     </div>
                   </>
                 )}

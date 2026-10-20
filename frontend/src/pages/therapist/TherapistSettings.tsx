@@ -25,6 +25,11 @@ export default function TherapistSettings() {
   // State tambahan untuk tabel therapists
   const [namaTerapis, setNamaTerapis] = useState('');
   const [noWhatsapp, setNoWhatsapp] = useState('');
+  const [ktp, setKtp] = useState({
+    nik: '', tempat_lahir: '', tanggal_lahir: '', jenis_kelamin: '',
+    alamat: '', kelurahan: '', kecamatan: '', kota_kabupaten: '', provinsi: '',
+    agama: '', status_perkawinan: '',
+  });
   
   const [isFetching, setIsFetching] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,6 +57,19 @@ export default function TherapistSettings() {
           // Set data dari tabel therapists
           setNamaTerapis(result.data.nama_terapis || '');
           setNoWhatsapp(result.data.no_whatsapp || '');
+          setKtp({
+            nik: result.data.nik || '',
+            tempat_lahir: result.data.tempat_lahir || '',
+            tanggal_lahir: result.data.tanggal_lahir || '',
+            jenis_kelamin: result.data.jenis_kelamin || '',
+            alamat: result.data.alamat || '',
+            kelurahan: result.data.kelurahan || '',
+            kecamatan: result.data.kecamatan || '',
+            kota_kabupaten: result.data.kota_kabupaten || '',
+            provinsi: result.data.provinsi || '',
+            agama: result.data.agama || '',
+            status_perkawinan: result.data.status_perkawinan || '',
+          });
           
           if (result.data.foto) {
             const uploadsUrl = baseUrl.replace('/api', '/uploads');
@@ -97,6 +115,17 @@ export default function TherapistSettings() {
       // Data tabel therapists
       formData.append('nama_terapis', namaTerapis);
       formData.append('no_whatsapp', noWhatsapp);
+      formData.append('nik', ktp.nik);
+      formData.append('tempat_lahir', ktp.tempat_lahir);
+      formData.append('tanggal_lahir', ktp.tanggal_lahir);
+      formData.append('jenis_kelamin', ktp.jenis_kelamin);
+      formData.append('alamat', ktp.alamat);
+      formData.append('kelurahan', ktp.kelurahan);
+      formData.append('kecamatan', ktp.kecamatan);
+      formData.append('kota_kabupaten', ktp.kota_kabupaten);
+      formData.append('provinsi', ktp.provinsi);
+      formData.append('agama', ktp.agama);
+      formData.append('status_perkawinan', ktp.status_perkawinan);
 
       const response = await fetch(`${baseUrl}/update_settings.php`, {
         method: 'POST',
@@ -212,32 +241,174 @@ export default function TherapistSettings() {
           <div className="space-y-5 pt-2 pb-6 border-b border-surface-container">
             <h3 className="text-sm font-bold text-primary uppercase tracking-wider mb-4">Informasi Pribadi</h3>
             
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Nama Lengkap</label>
-              <div className="relative">
-                <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Nama Lengkap (sesuai KTP)</label>
+                <div className="relative">
+                  <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline" />
+                  <input
+                    type="text"
+                    required
+                    value={namaTerapis}
+                    onChange={(e) => setNamaTerapis(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                    placeholder="Masukkan nama lengkap"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">NIK (16 digit)</label>
                 <input
                   type="text"
                   required
-                  value={namaTerapis}
-                  onChange={(e) => setNamaTerapis(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
-                  placeholder="Masukkan nama lengkap"
+                  inputMode="numeric"
+                  maxLength={16}
+                  pattern="\d{16}"
+                  value={ktp.nik}
+                  onChange={(e) => setKtp({ ...ktp, nik: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                  placeholder="3271234567890001"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">No. WhatsApp</label>
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline" />
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">No. WhatsApp</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline" />
+                  <input
+                    type="text"
+                    required
+                    value={noWhatsapp}
+                    onChange={(e) => setNoWhatsapp(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                    placeholder="Contoh: 081234567890"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Tempat Lahir</label>
                 <input
                   type="text"
                   required
-                  value={noWhatsapp}
-                  onChange={(e) => setNoWhatsapp(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
-                  placeholder="Contoh: 081234567890"
+                  value={ktp.tempat_lahir}
+                  onChange={(e) => setKtp({ ...ktp, tempat_lahir: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                  placeholder="Kota kelahiran"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Tanggal Lahir</label>
+                <input
+                  type="date"
+                  required
+                  value={ktp.tanggal_lahir}
+                  onChange={(e) => setKtp({ ...ktp, tanggal_lahir: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Jenis Kelamin</label>
+                <select
+                  required
+                  value={ktp.jenis_kelamin}
+                  onChange={(e) => setKtp({ ...ktp, jenis_kelamin: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                >
+                  <option value="" disabled>-- Pilih --</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Agama</label>
+                <select
+                  value={ktp.agama}
+                  onChange={(e) => setKtp({ ...ktp, agama: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                >
+                  <option value="">-- Pilih --</option>
+                  <option value="Islam">Islam</option>
+                  <option value="Kristen">Kristen</option>
+                  <option value="Katolik">Katolik</option>
+                  <option value="Hindu">Hindu</option>
+                  <option value="Buddha">Buddha</option>
+                  <option value="Konghucu">Konghucu</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Status Perkawinan</label>
+                <select
+                  value={ktp.status_perkawinan}
+                  onChange={(e) => setKtp({ ...ktp, status_perkawinan: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                >
+                  <option value="">-- Pilih --</option>
+                  <option value="Belum Menikah">Belum Menikah</option>
+                  <option value="Menikah">Menikah</option>
+                  <option value="Cerai Hidup">Cerai Hidup</option>
+                  <option value="Cerai Mati">Cerai Mati</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Alamat (Jalan, RT/RW)</label>
+                <input
+                  type="text"
+                  required
+                  value={ktp.alamat}
+                  onChange={(e) => setKtp({ ...ktp, alamat: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                  placeholder="Jl. Contoh No. 1, RT 01/RW 02"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Kelurahan / Desa</label>
+                <input
+                  type="text"
+                  required
+                  value={ktp.kelurahan}
+                  onChange={(e) => setKtp({ ...ktp, kelurahan: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Kecamatan</label>
+                <input
+                  type="text"
+                  required
+                  value={ktp.kecamatan}
+                  onChange={(e) => setKtp({ ...ktp, kecamatan: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Kabupaten / Kota</label>
+                <input
+                  type="text"
+                  required
+                  value={ktp.kota_kabupaten}
+                  onChange={(e) => setKtp({ ...ktp, kota_kabupaten: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest ml-1">Provinsi</label>
+                <input
+                  type="text"
+                  required
+                  value={ktp.provinsi}
+                  onChange={(e) => setKtp({ ...ktp, provinsi: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-surface-container-low border border-surface-container focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl outline-none font-medium text-on-surface transition-all"
                 />
               </div>
             </div>

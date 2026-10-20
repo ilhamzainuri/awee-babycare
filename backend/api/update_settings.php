@@ -11,6 +11,28 @@ ini_set('display_errors', 0);
 
 require_once '../config/koneksi.php';
 
+function maskNik($nik) {
+    if (!$nik || strlen($nik) < 8) return $nik;
+    return substr($nik, 0, 4) . str_repeat('*', strlen($nik) - 8) . substr($nik, -4);
+}
+
+function validateTherapistProfile($profile) {
+    if (!preg_match('/^\d{16}$/', $profile['nik'])) {
+        return "NIK harus terdiri dari 16 digit angka.";
+    }
+    if ($profile['tempat_lahir'] === '') return "Tempat lahir wajib diisi.";
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $profile['tanggal_lahir'])) {
+        return "Tanggal lahir tidak valid.";
+    }
+    if (!in_array($profile['jenis_kelamin'], ['Laki-laki', 'Perempuan'], true)) {
+        return "Jenis kelamin tidak valid.";
+    }
+    foreach (['alamat', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi'] as $field) {
+        if ($profile[$field] === '') return "Data alamat KTP belum lengkap.";
+    }
+    return null;
+}
+
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         echo json_encode(["status" => 405, "message" => "Method Not Allowed"]);
@@ -52,7 +74,9 @@ try {
     
     // 1. Ambil data lama untuk Audit Log (Dari tabel users dan therapists)
     $old_stmt = $conn->prepare("
-        SELECT u.username, u.password, u.foto, u.role, t.id AS therapist_id, t.nama_terapis, t.no_whatsapp 
+        SELECT u.username, u.password, u.foto, u.role, t.id AS therapist_id, t.nama_terapis, t.no_whatsapp,
+               t.nik, t.tempat_lahir, t.tanggal_lahir, t.jenis_kelamin, t.alamat,
+               t.kelurahan, t.kecamatan, t.kota_kabupaten, t.provinsi, t.agama, t.status_perkawinan
         FROM users u 
         LEFT JOIN therapists t ON u.id = t.user_id 
         WHERE u.id = ?
@@ -163,28 +187,90 @@ try {
     // ==========================================
     // BAGIAN 2: UPDATE TABEL THERAPISTS
     // ==========================================
-    if (isset($_POST['nama_terapis']) && isset($_POST['no_whatsapp']) && !empty($data_lama['therapist_id'])) {
-        
-        $nama_terapis = trim($_POST['nama_terapis']);
-        $no_whatsapp = trim($_POST['no_whatsapp']);
+    if (isset($_POST['nama_terapis']) && !empty($data_lama['therapist_id'])) {
 
-        $stmt_therapists = $conn->prepare("UPDATE therapists SET nama_terapis = :nama, no_whatsapp = :wa WHERE user_id = :uid");
+        $nama_terapis = trim($_POST['nama_terapis']);
+        $no_whatsapp = trim($_POST['no_whatsapp'] ?? '');
+        $profile = [
+            'nik' => trim($_POST['nik'] ?? ''),
+            'tempat_lahir' => trim($_POST['tempat_lahir'] ?? ''),
+            'tanggal_lahir' => trim($_POST['tanggal_lahir'] ?? ''),
+            'jenis_kelamin' => trim($_POST['jenis_kelamin'] ?? ''),
+            'alamat' => trim($_POST['alamat'] ?? ''),
+            'kelurahan' => trim($_POST['kelurahan'] ?? ''),
+            'kecamatan' => trim($_POST['kecamatan'] ?? ''),
+            'kota_kabupaten' => trim($_POST['kota_kabupaten'] ?? ''),
+            'provinsi' => trim($_POST['provinsi'] ?? ''),
+            'agama' => trim($_POST['agama'] ?? ''),
+            'status_perkawinan' => trim($_POST['status_perkawinan'] ?? ''),
+        ];
+
+        if ($nama_terapis === '' || $no_whatsapp === '') {
+            http_response_code(400);
+            echo json_encode(["status" => 400, "message" => "Nama dan no WhatsApp wajib diisi."]);
+            exit();
+        }
+
+        if ($error = validateTherapistProfile($profile)) {
+            http_response_code(400);
+            echo json_encode(["status" => 400, "message" => $error]);
+            exit();
+        }
+
+        $cek_nik = $conn->prepare("SELECT id FROM therapists WHERE nik = ? AND id != ? LIMIT 1");
+        $cek_nik->execute([$profile['nik'], $data_lama['therapist_id']]);
+        if ($cek_nik->fetch()) {
+            http_response_code(409);
+            echo json_encode(["status" => 409, "message" => "NIK sudah terdaftar pada terapis lain."]);
+            exit();
+        }
+
+        $stmt_therapists = $conn->prepare("
+            UPDATE therapists SET
+                nama_terapis = :nama, no_whatsapp = :wa, nik = :nik, tempat_lahir = :tempat,
+                tanggal_lahir = :tgl, jenis_kelamin = :jk, alamat = :alamat, kelurahan = :kel,
+                kecamatan = :kec, kota_kabupaten = :kota, provinsi = :prov, agama = :agama,
+                status_perkawinan = :status
+            WHERE user_id = :uid
+        ");
         $stmt_therapists->execute([
             ':nama' => $nama_terapis,
             ':wa' => $no_whatsapp,
+            ':nik' => $profile['nik'],
+            ':tempat' => $profile['tempat_lahir'],
+            ':tgl' => $profile['tanggal_lahir'],
+            ':jk' => $profile['jenis_kelamin'],
+            ':alamat' => $profile['alamat'],
+            ':kel' => $profile['kelurahan'],
+            ':kec' => $profile['kecamatan'],
+            ':kota' => $profile['kota_kabupaten'],
+            ':prov' => $profile['provinsi'],
+            ':agama' => $profile['agama'],
+            ':status' => $profile['status_perkawinan'],
             ':uid' => $id_target
         ]);
 
-        // Eksekusi Log untuk Therapists
         $data_lama_therapist_log = [
             "nama_terapis" => $data_lama['nama_terapis'],
-            "no_whatsapp" => $data_lama['no_whatsapp']
+            "no_whatsapp" => $data_lama['no_whatsapp'],
+            "nik" => maskNik($data_lama['nik']),
+            "tempat_lahir" => $data_lama['tempat_lahir'],
+            "tanggal_lahir" => $data_lama['tanggal_lahir'],
+            "jenis_kelamin" => $data_lama['jenis_kelamin'],
+            "alamat" => $data_lama['alamat'],
+            "kelurahan" => $data_lama['kelurahan'],
+            "kecamatan" => $data_lama['kecamatan'],
+            "kota_kabupaten" => $data_lama['kota_kabupaten'],
+            "provinsi" => $data_lama['provinsi'],
+            "agama" => $data_lama['agama'],
+            "status_perkawinan" => $data_lama['status_perkawinan']
         ];
-        
-        $data_baru_therapist_log = [
+
+        $data_baru_therapist_log = array_merge($profile, [
+            "nik" => maskNik($profile['nik']),
             "nama_terapis" => $nama_terapis,
             "no_whatsapp" => $no_whatsapp
-        ];
+        ]);
 
         $log_stmt->execute([
             $id_target, 'therapists', $data_lama['therapist_id'], json_encode($data_lama_therapist_log), json_encode($data_baru_therapist_log)

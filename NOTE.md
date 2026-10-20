@@ -11,6 +11,6 @@
 --11. Pembayaran tunai tetap upload foto
 --12. Saat admin verifikasi harus di sertakan gambar
 --13. Bagaimana bila verifikasi di tolak harus ada tombolnya
-14. Edit data terapis infonya ditambahkan biodatanya minimal informasi di ktp (jenis kelamin juga jangan lupa)
+--14. Edit data terapis infonya ditambahkan biodatanya minimal informasi di ktp (jenis kelamin juga jangan lupa)
 --15. Saat start service ada tambahan waktu aktual saat service di mulai
 16. Dibatalkan tetap harus tercatat di audit log belum ada

@@ -26,7 +26,9 @@ try {
 
     // Ambil data user (JOIN dengan tabel therapists)
     $stmt = $conn->prepare("
-        SELECT u.id, u.username, u.foto, u.role, t.nama_terapis, t.no_whatsapp 
+        SELECT u.id, u.username, u.foto, u.role, t.nama_terapis, t.no_whatsapp,
+               t.nik, t.tempat_lahir, t.tanggal_lahir, t.jenis_kelamin, t.alamat,
+               t.kelurahan, t.kecamatan, t.kota_kabupaten, t.provinsi, t.agama, t.status_perkawinan
         FROM users u 
         LEFT JOIN therapists t ON u.id = t.user_id 
         WHERE u.id = ?
