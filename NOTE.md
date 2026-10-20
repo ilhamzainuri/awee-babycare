@@ -13,4 +13,4 @@
 --13. Bagaimana bila verifikasi di tolak harus ada tombolnya
 --14. Edit data terapis infonya ditambahkan biodatanya minimal informasi di ktp (jenis kelamin juga jangan lupa)
 --15. Saat start service ada tambahan waktu aktual saat service di mulai
-16. Dibatalkan tetap harus tercatat di audit log belum ada
+--16. Dibatalkan tetap harus tercatat di audit log belum ada
