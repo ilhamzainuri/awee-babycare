@@ -57,6 +57,11 @@ export default function MasterData() {
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || FALLBACK_BASE_URL;
 
+  // Aktor untuk audit log
+  const actorId = (() => {
+    try { return JSON.parse(localStorage.getItem('user_session') || '{}').id ?? null; } catch { return null; }
+  })();
+
   const fetchData = async () => {
     setIsLoading(true);
     setErrorMsg(null);
@@ -118,7 +123,9 @@ export default function MasterData() {
       const url = modalMode === 'edit' ? `${baseUrl}/${endpoint}?id=${selectedId}` : `${baseUrl}/${endpoint}`;
       const method = modalMode === 'edit' ? 'PUT' : 'POST';
 
-      const payload = activeTab === 'categories' ? { nama_kategori: formData.nama_kategori } : formData;
+      const payload = activeTab === 'categories'
+        ? { nama_kategori: formData.nama_kategori, actor_id: actorId }
+        : { ...formData, actor_id: actorId };
 
       const response = await fetch(url, {
         method: method,
@@ -144,7 +151,7 @@ export default function MasterData() {
     if (!window.confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
     try {
       const endpoint = activeTab === 'services' ? 'services.php' : (activeTab === 'categories' ? 'categories.php' : 'therapists.php');
-      const response = await fetch(`${baseUrl}/${endpoint}?id=${id}`, { method: 'DELETE' });
+      const response = await fetch(`${baseUrl}/${endpoint}?id=${id}&actor_id=${actorId ?? ''}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.status === 200) {
         fetchData();
@@ -525,7 +532,7 @@ export default function MasterData() {
                                 const response = await fetch(`${baseUrl}/categories.php`, {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ nama_kategori: newCategoryName.trim() })
+                                  body: JSON.stringify({ nama_kategori: newCategoryName.trim(), actor_id: actorId })
                                 });
                                 const result = await response.json();
                                 if (result.status === 201) {

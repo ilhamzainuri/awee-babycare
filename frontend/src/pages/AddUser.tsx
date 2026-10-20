@@ -155,6 +155,7 @@ export default function AddUser() {
 
     try {
       const formData = new FormData();
+      if (sessionId) formData.append('actor_id', String(sessionId));
       formData.append('username', cleanUsername);
       formData.append('role', role);
       if (editingId) formData.append('id', String(editingId));

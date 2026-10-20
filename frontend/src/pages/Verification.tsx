@@ -97,6 +97,11 @@ export default function Verification() {
     ? `${import.meta.env.VITE_API_BASE_URL}/verification.php` 
     : 'http://localhost/awee-babycare/backend/api/verification.php';
 
+  // Aktor untuk audit log
+  const sessionUser = (() => {
+    try { return JSON.parse(localStorage.getItem('user_session') || '{}'); } catch { return {}; }
+  })();
+
   const overrideUrl = import.meta.env.VITE_API_BASE_URL
     ? `${import.meta.env.VITE_API_BASE_URL}/override_payment_method.php`
     : 'http://localhost/awee-babycare/backend/api/override_payment_method.php';
@@ -187,7 +192,7 @@ export default function Verification() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id, user_id: 1 }) // user_id admin dummy
+        body: JSON.stringify({ id: id, user_id: sessionUser.id })
       });
       const result = await response.json();
       
@@ -220,7 +225,7 @@ export default function Verification() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: target.id, action: 'reject', alasan_penolakan: alasan, user_id: 1 })
+        body: JSON.stringify({ id: target.id, action: 'reject', alasan_penolakan: alasan, user_id: sessionUser.id })
       });
       const result = await response.json();
 
@@ -267,7 +272,7 @@ export default function Verification() {
         body: JSON.stringify({
           appointment_id: overrideModal.id,
           metode_bayar_terapis: overrideMethod,
-          user_id: 1
+          user_id: sessionUser.id
         })
       });
       const result = await response.json();

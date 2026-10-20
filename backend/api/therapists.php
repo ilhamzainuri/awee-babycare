@@ -49,6 +49,7 @@ function validateTherapistProfile($profile) {
 try {
     $method = $_SERVER['REQUEST_METHOD'];
     $input = json_decode(file_get_contents("php://input"), true);
+    $actor_id = isset($input['actor_id']) && $input['actor_id'] !== '' ? (int)$input['actor_id'] : null;
 
     switch ($method) {
         case 'GET':
@@ -105,7 +106,7 @@ try {
             ]);
 
             $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'create', 'therapists', ?, NULL, ?)");
-            $log_stmt->execute([1, $new_record_id, json_encode($data_log_baru)]);
+            $log_stmt->execute([$actor_id, $new_record_id, json_encode($data_log_baru)]);
 
             echo json_encode(["status" => 201, "message" => "Terapis ditambahkan"]);
             break;
@@ -165,7 +166,7 @@ try {
             ]);
 
             $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'update', 'therapists', ?, ?, ?)");
-            $log_stmt->execute([1, $id_target, json_encode($data_lama), json_encode($data_log_baru)]);
+            $log_stmt->execute([$actor_id, $id_target, json_encode($data_lama), json_encode($data_log_baru)]);
 
             echo json_encode(["status" => 200, "message" => "Terapis diperbarui"]);
             break;
@@ -184,7 +185,7 @@ try {
             $stmt->execute([$id_target]);
 
             $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'delete', 'therapists', ?, ?, NULL)");
-            $log_stmt->execute([1, $id_target, json_encode($data_lama)]);
+            $log_stmt->execute([$actor_id, $id_target, json_encode($data_lama)]);
 
             echo json_encode(["status" => 200, "message" => "Terapis dihapus"]);
             break;

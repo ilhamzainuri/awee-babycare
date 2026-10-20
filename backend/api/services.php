@@ -11,6 +11,9 @@ require_once __DIR__ . '/../config/koneksi.php';
 try {
     $method = $_SERVER['REQUEST_METHOD'];
     $input = json_decode(file_get_contents("php://input"), true);
+    $actor_id = isset($input['actor_id']) && $input['actor_id'] !== ''
+        ? (int)$input['actor_id']
+        : (isset($input['user_id']) && $input['user_id'] !== '' ? (int)$input['user_id'] : null);
 
     switch ($method) {
         case 'GET':
@@ -38,7 +41,7 @@ try {
             // 3. Catat ke audit_logs
             $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'create', 'services', ?, NULL, ?)");
             $log_stmt->execute([
-                1, // ID Admin (sementara hardcode)
+                $actor_id, // Aktor yang melakukan perubahan
                 $new_record_id, 
                 json_encode($data_log_baru)
             ]);
@@ -69,7 +72,7 @@ try {
             // 3. Catat ke audit_logs
             $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'update', 'services', ?, ?, ?)");
             $log_stmt->execute([
-                1, 
+                $actor_id, 
                 $id_target, 
                 json_encode($data_lama), 
                 json_encode($data_log_baru)
@@ -93,7 +96,7 @@ try {
             // 3. Catat ke audit_logs
             $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'delete', 'services', ?, ?, NULL)");
             $log_stmt->execute([
-                1, 
+                $actor_id, 
                 $id_target, 
                 json_encode($data_lama)
             ]);

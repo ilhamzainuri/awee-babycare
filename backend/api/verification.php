@@ -151,8 +151,6 @@ try {
                     $data_baru['status_pembayaran'] = 'Rejected';
                     $data_baru['alasan_penolakan'] = $alasan;
                     $data_baru['waktu_penolakan'] = $waktu_penolakan;
-                    $data_baru['Alasan Penolakan'] = $alasan;
-                    $data_baru['Waktu Penolakan'] = $waktu_penolakan;
 
                     $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'update', 'appointments', ?, ?, ?)");
                     $log_stmt->execute([

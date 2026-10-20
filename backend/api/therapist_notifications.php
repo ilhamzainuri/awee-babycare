@@ -16,6 +16,10 @@ if ($conn->connect_error) {
     exit;
 }
 
+function formatWaktuNotif($dt) {
+    return $dt ? date('d/m/Y H:i', strtotime($dt)) : '-';
+}
+
 // 1. Tangkap parameter terapist_id (berasal dari users.id saat login)
 $user_id = isset($_GET['terapist_id']) ? intval($_GET['terapist_id']) : 0;
 
@@ -46,6 +50,7 @@ $sql = "
     SELECT 
         al.id, 
         al.aksi, 
+        al.data_lama,
         al.data_baru, 
         al.created_at, 
         app.nama_pasien 
@@ -66,30 +71,46 @@ $notifications = [];
 
 while ($row = $logs->fetch_assoc()) {
     $type = 'data_update';
-    $message = "Perubahan data pada reservasi " . $row['nama_pasien'];
-    
-    // Parse JSON dari column data_baru di audit_logs
-    $data_baru = json_decode($row['data_baru'], true);
+    $nama = $row['nama_pasien'];
+    $message = "Perubahan data pada reservasi " . $nama;
+
+    $data_lama = json_decode($row['data_lama'], true) ?: [];
+    $data_baru = json_decode($row['data_baru'], true) ?: [];
 
     if ($row['aksi'] === 'create') {
         $type = 'reservation';
-        $message = "Reservasi baru masuk untuk Pasien " . $row['nama_pasien'];
+        $message = "Reservasi baru masuk untuk Pasien " . $nama;
     } elseif ($row['aksi'] === 'update') {
-        
-        // Deteksi perubahan dari field JSON yang ada di tabel audit_logs Anda
-        if (isset($data_baru['Status'])) {
-            $type = 'status_change';
-            $message = "Status layanan " . $row['nama_pasien'] . " berubah menjadi " . $data_baru['Status'];
-        } elseif (isset($data_baru['status_pembayaran'])) {
-            if ($data_baru['status_pembayaran'] === 'Rejected') {
-                $type = 'payment_rejected';
-                $alasan = $data_baru['alasan_penolakan'] ?? ($data_baru['Alasan Penolakan'] ?? '');
-                $message = "Pembayaran pasien " . $row['nama_pasien'] . " ditolak" . ($alasan !== '' ? ": " . $alasan : "");
+        $status_jadwal_baru = $data_baru['status_jadwal'] ?? null;
+        $status_jadwal_lama = $data_lama['status_jadwal'] ?? null;
+        $status_bayar_baru  = $data_baru['status_pembayaran'] ?? null;
+        $status_bayar_lama  = $data_lama['status_pembayaran'] ?? null;
+
+        if ($status_jadwal_baru !== null && $status_jadwal_baru !== $status_jadwal_lama) {
+            if ($status_jadwal_baru === 'Dibatalkan') {
+                $type = 'cancelled';
+                $alasan = $data_baru['alasan_pembatalan'] ?? '';
+                $message = "Jadwal pasien " . $nama . " dibatalkan" . ($alasan !== '' ? ": " . $alasan : "");
             } else {
-                $type = 'data_update';
-                $label = $data_baru['status_pembayaran'] === 'Verified' ? 'Terverifikasi' : $data_baru['status_pembayaran'];
-                $message = "Status pembayaran " . $row['nama_pasien'] . " berubah menjadi " . $label;
+                $type = 'status_change';
+                $message = "Status layanan " . $nama . " berubah menjadi " . $status_jadwal_baru;
             }
+        } elseif ($status_bayar_baru !== null && $status_bayar_baru !== $status_bayar_lama) {
+            if ($status_bayar_baru === 'Rejected') {
+                $type = 'payment_rejected';
+                $alasan = $data_baru['alasan_penolakan'] ?? '';
+                $message = "Pembayaran pasien " . $nama . " ditolak" . ($alasan !== '' ? ": " . $alasan : "");
+            } else {
+                $type = 'payment_verified';
+                $label = $status_bayar_baru === 'Verified' ? 'Terverifikasi' : $status_bayar_baru;
+                $message = "Status pembayaran " . $nama . " berubah menjadi " . $label;
+            }
+        } elseif (isset($data_baru['waktu_reservasi']) && ($data_lama['waktu_reservasi'] ?? null) !== $data_baru['waktu_reservasi']) {
+            $type = 'reschedule';
+            $message = "Jadwal pasien " . $nama . " diubah ke " . formatWaktuNotif($data_baru['waktu_reservasi']);
+        } elseif (isset($data_baru['metode_bayar_terapis']) && ($data_baru['override_by'] ?? '') === 'admin') {
+            $type = 'override';
+            $message = "Admin mengubah metode bayar pasien " . $nama . " menjadi " . $data_baru['metode_bayar_terapis'];
         }
     }
 
@@ -98,7 +119,7 @@ while ($row = $logs->fetch_assoc()) {
         "type" => $type,
         "message" => $message,
         "created_at" => $row['created_at'],
-        "link" => "/therapist/Schedule" // Sesuaikan dengan path target klik notifikasi
+        "link" => "/therapist/schedule"
     ];
 }
 

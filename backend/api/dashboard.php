@@ -248,7 +248,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         ");
         $auditLogs = $stmtAudit->fetchAll(PDO::FETCH_ASSOC);
 
-        $allowed_tables = ['therapists', 'services', 'appointments', 'users'];
+        $allowed_tables = ['therapists', 'services', 'appointments', 'users', 'kategori'];
 
         foreach ($auditLogs as $al) {
             $namaEntitas = '';
@@ -262,7 +262,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
 
             if ($al['aksi'] === 'delete' && in_array($al['nama_tabel'], $allowed_tables)) {
                 $tbl = $al['nama_tabel'];
-                $chk = $conn->prepare("SELECT id, deleted_at FROM `$tbl` WHERE id = ? LIMIT 1");
+                $chk = $conn->prepare("SELECT `" . getTablePrimaryKey($tbl) . "` AS id, deleted_at FROM `$tbl` WHERE `" . getTablePrimaryKey($tbl) . "` = ? LIMIT 1");
                 $chk->execute([$al['record_id']]);
                 $rec = $chk->fetch(PDO::FETCH_ASSOC);
 

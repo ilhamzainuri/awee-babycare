@@ -47,6 +47,7 @@ try {
 
     $id_target = (int)$_POST['id'];
     $username = trim($_POST['username']);
+    $actor_id = isset($_POST['actor_id']) && $_POST['actor_id'] !== '' ? (int)$_POST['actor_id'] : null;
 
     if ($username === '' || strlen($username) < 3 || strlen($username) > 100) {
         http_response_code(400);
@@ -180,7 +181,7 @@ try {
     ];
     
     $log_stmt->execute([
-        $id_target, 'users', $id_target, json_encode($data_lama_users_log), json_encode($data_baru_log_users)
+        $actor_id, 'users', $id_target, json_encode($data_lama_users_log), json_encode($data_baru_log_users)
     ]);
 
 
@@ -273,7 +274,7 @@ try {
         ]);
 
         $log_stmt->execute([
-            $id_target, 'therapists', $data_lama['therapist_id'], json_encode($data_lama_therapist_log), json_encode($data_baru_therapist_log)
+            $actor_id, 'therapists', $data_lama['therapist_id'], json_encode($data_lama_therapist_log), json_encode($data_baru_therapist_log)
         ]);
     }
 

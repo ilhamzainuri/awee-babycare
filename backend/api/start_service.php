@@ -35,7 +35,7 @@ try {
     }
 
     // Layanan tidak bisa dimulai sebelum waktu reservasi (kecuali update data yang sudah Diproses)
-    $stmtCheck = $conn->prepare("SELECT waktu_reservasi, status_jadwal FROM appointments WHERE id = :id AND deleted_at IS NULL LIMIT 1");
+    $stmtCheck = $conn->prepare("SELECT nama_pasien, waktu_reservasi, status_jadwal, waktu_mulai_layanan, suhu_Pasien AS suhu_pasien, bb_real_terapis FROM appointments WHERE id = :id AND deleted_at IS NULL LIMIT 1");
     $stmtCheck->execute([':id' => $appointment_id]);
     $appt = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
@@ -66,16 +66,27 @@ try {
     ]);
 
     if ($stmtUpdate->rowCount() > 0) {
-        $stmtLog = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_baru) VALUES (?, 'update', 'appointments', ?, ?)");
+        $data_lama_log = [
+            "nama_pasien" => $appt['nama_pasien'],
+            "status_jadwal" => $appt['status_jadwal'],
+            "waktu_mulai_layanan" => $appt['waktu_mulai_layanan'],
+            "suhu_pasien" => $appt['suhu_pasien'],
+            "bb_real_terapis" => $appt['bb_real_terapis']
+        ];
+        $data_baru_log = [
+            "nama_pasien" => $appt['nama_pasien'],
+            "status_jadwal" => "Diproses",
+            "waktu_mulai_layanan" => $appt['waktu_mulai_layanan'] ?: $waktu_mulai,
+            "suhu_pasien" => $suhu_Pasien,
+            "bb_real_terapis" => $bb_real_terapis
+        ];
+
+        $stmtLog = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'update', 'appointments', ?, ?, ?)");
         $stmtLog->execute([
             $user_id, 
             $appointment_id, 
-            json_encode([
-                "Status" => "Diproses", 
-                "Waktu Mulai" => $waktu_mulai,
-                "Suhu Pasien" => $suhu_Pasien,
-                "BB Real" => $bb_real_terapis
-            ])
+            json_encode($data_lama_log),
+            json_encode($data_baru_log)
         ]);
 
         $conn->commit();

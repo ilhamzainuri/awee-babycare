@@ -17,6 +17,7 @@ try {
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $role = $_POST['role'] ?? '';
+    $actor_id = isset($_POST['actor_id']) && $_POST['actor_id'] !== '' ? (int)$_POST['actor_id'] : null;
 
     if(empty($username) || empty($password)){
         throw new Exception("Data belum lengkap");
@@ -119,7 +120,7 @@ if (
 
     $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'create', 'users', ?, NULL, ?)");
     $log_stmt->execute([
-        1,
+        $actor_id,
         $new_record_id,
         json_encode([
             "username" => $username,

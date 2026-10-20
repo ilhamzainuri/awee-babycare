@@ -162,17 +162,17 @@ try {
         $new_data = ['nama_pasien' => $appointment['nama_pasien']];
 
         if ($old_waktu_reservasi !== $new_datetime) {
-            $old_data['Waktu Reservasi'] = $old_waktu_reservasi;
-            $new_data['Waktu Reservasi'] = $new_datetime;
+            $old_data['waktu_reservasi'] = $old_waktu_reservasi;
+            $new_data['waktu_reservasi'] = $new_datetime;
         }
 
         if ($old_status_jadwal !== $new_status_jadwal) {
-            $old_data['Status Jadwal'] = $old_status_jadwal;
-            $new_data['Status Jadwal'] = $new_status_jadwal;
+            $old_data['status_jadwal'] = $old_status_jadwal;
+            $new_data['status_jadwal'] = $new_status_jadwal;
         }
 
         if (!empty($alasan_batal)) {
-            $new_data['Alasan Pembatalan'] = $alasan_batal;
+            $new_data['alasan_pembatalan'] = $alasan_batal;
         }
 
         $old_data_json = json_encode($old_data, JSON_UNESCAPED_UNICODE);
