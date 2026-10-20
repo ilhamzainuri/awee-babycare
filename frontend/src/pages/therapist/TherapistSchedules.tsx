@@ -17,7 +17,7 @@ import {
   DollarSign,
   AlertTriangle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, canStartService, startServiceBlockMessage } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ActiveScheduleDetail {
@@ -29,6 +29,7 @@ interface ActiveScheduleDetail {
   raw_address?: string;
   jenis_layanan?: string;
   time: string;
+  waktu_reservasi_raw?: string;
   status: 'Pending' | 'Confirmed' | 'On Process' | 'Menunggu' | 'Diproses' | 'Selesai' | 'Dibatalkan' | string;
   phone?: string;
   mapLink?: string;
@@ -287,6 +288,7 @@ export default function AllSchedulesPage() {
                       raw_address: item.alamat_lengkap,
                       jenis_layanan: item.jenis_layanan,
                       time: formatDate(item.waktu_reservasi),
+                      waktu_reservasi_raw: item.waktu_reservasi,
                       status:
                         item.status_jadwal === 'Menunggu'
                           ? 'Pending'
@@ -457,12 +459,27 @@ export default function AllSchedulesPage() {
               {/* Action Buttons */}
               <div className="p-5 border-t border-surface-container bg-surface-container-low rounded-b-3xl shrink-0 flex flex-col gap-3">
                 {selectedDetail.status === 'Pending' || selectedDetail.status === 'Menunggu' ? (
-                  <button
-                    onClick={openStartModal}
-                    className="w-full bg-primary hover:bg-primary/90 text-on-primary text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30"
-                  >
-                    <Activity className="w-5 h-5" /> Mulai Layanan Sekarang
-                  </button>
+                  <>
+                    {!canStartService(selectedDetail.waktu_reservasi_raw) && (
+                      <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-xs font-semibold text-amber-700">{startServiceBlockMessage(selectedDetail.waktu_reservasi_raw)}</p>
+                      </div>
+                    )}
+                    <button
+                      onClick={canStartService(selectedDetail.waktu_reservasi_raw) ? openStartModal : undefined}
+                      disabled={!canStartService(selectedDetail.waktu_reservasi_raw)}
+                      title={startServiceBlockMessage(selectedDetail.waktu_reservasi_raw)}
+                      className={cn(
+                        "w-full text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2",
+                        canStartService(selectedDetail.waktu_reservasi_raw)
+                          ? "bg-primary hover:bg-primary/90 text-on-primary shadow-lg shadow-primary/30"
+                          : "bg-on-surface/10 text-on-surface/30 cursor-not-allowed"
+                      )}
+                    >
+                      <Activity className="w-5 h-5" /> {canStartService(selectedDetail.waktu_reservasi_raw) ? 'Mulai Layanan Sekarang' : 'Belum Saatnya Dimulai'}
+                    </button>
+                  </>
                 ) : selectedDetail.status === 'On Process' || selectedDetail.status === 'Diproses' ? (
                   <button
                     onClick={openReportModal}

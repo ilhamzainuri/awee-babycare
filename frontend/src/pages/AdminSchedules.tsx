@@ -144,6 +144,24 @@ export default function AdminSchedules() {
     setIsEditingSchedule(true);
   };
 
+  const getTodayDateString = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  };
+
+  const getMinTimeString = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getTimeMinValue = () => {
+    if (editForm.date === getTodayDateString()) {
+      return getMinTimeString();
+    }
+    return '';
+  };
+
   // Simpan perubahan dari box Reschedule
   const submitReschedule = async () => {
     if (!selectedSchedule) return;
@@ -155,6 +173,13 @@ export default function AdminSchedules() {
 
     if (!editForm.date || !editForm.time) {
       toast.error("Tanggal dan waktu tidak boleh kosong.");
+      return;
+    }
+
+    // Validasi waktu tidak boleh mundur (masa lalu)
+    const selectedDatetime = new Date(`${editForm.date}T${editForm.time}:00`);
+    if (selectedDatetime.getTime() < Date.now()) {
+      toast.error("Waktu pelayanan tidak boleh di masa lalu. Silakan pilih waktu saat ini atau di masa depan.");
       return;
     }
 
@@ -713,6 +738,7 @@ export default function AdminSchedules() {
                             type="date"
                             value={editForm.date}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                            min={getTodayDateString()}
                             className="w-full p-2.5 sm:p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all text-xs sm:text-sm"
                           />
                         </div>
@@ -722,6 +748,7 @@ export default function AdminSchedules() {
                             type="time"
                             value={editForm.time}
                             onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
+                            min={getTimeMinValue()}
                             className="w-full p-2.5 sm:p-3 bg-surface-container-lowest border border-surface-container rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-container transition-all text-xs sm:text-sm"
                           />
                         </div>

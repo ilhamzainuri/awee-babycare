@@ -36,6 +36,16 @@ try {
             $waktu_reservasi = $input['waktu_reservasi'];
             $id_therapist = (int)$input['id_therapist'];
 
+            // Validasi waktu tidak boleh mundur (masa lalu)
+            if (strtotime($waktu_reservasi) < strtotime(date('Y-m-d H:i:s'))) {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => 400,
+                    "message" => "Gagal: Waktu pelayanan tidak boleh di masa lalu. Silakan pilih waktu saat ini atau di masa depan."
+                ]);
+                exit();
+            }
+
             $stmtCheckOverlap = $conn->prepare("
                 SELECT waktu_reservasi, nama_pasien 
                 FROM appointments 

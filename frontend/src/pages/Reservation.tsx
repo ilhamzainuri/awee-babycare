@@ -125,6 +125,12 @@ export default function Reservation() {
     setTreatments(treatments.map(t => t.id === id ? { ...t, id_service } : t));
   };
 
+  const getMinDatetimeLocal = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
+
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +140,17 @@ export default function Reservation() {
     // Validasi basic
     if (!formData.id_therapist || treatments.some(t => !t.id_service)) {
       setMessage({ type: 'error', text: 'Mohon lengkapi pilihan Terapis dan Layanan.' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Validasi waktu tidak boleh mundur (masa lalu)
+    const selectedTime = new Date(formData.waktu_reservasi);
+    if (selectedTime.getTime() < Date.now()) {
+      setMessage({
+        type: 'error',
+        text: 'Waktu pelayanan tidak boleh di masa lalu. Silakan pilih waktu saat ini atau di masa depan.'
+      });
       setIsLoading(false);
       return;
     }
@@ -401,7 +418,7 @@ export default function Reservation() {
              <div className="space-y-2">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase px-1">Waktu Pelayanan</label>
                 <div className="relative">
-                   <input required name="waktu_reservasi" value={formData.waktu_reservasi} onChange={handleInputChange} type="datetime-local" className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none text-on-surface" />
+                   <input required name="waktu_reservasi" value={formData.waktu_reservasi} onChange={handleInputChange} type="datetime-local" min={getMinDatetimeLocal()} className="w-full px-5 py-4 bg-surface-container border border-surface-container-highest rounded-2xl text-base font-medium focus:ring-2 focus:ring-secondary outline-none text-on-surface" />
                 </div>
              </div>
              <div className="space-y-2 md:col-span-2">

@@ -79,6 +79,11 @@ try {
     $new_status_jadwal = $has_status ? $input['status_jadwal'] : $old_status_jadwal;
     $alasan_batal = isset($input['alasan_batal']) ? trim($input['alasan_batal']) : '';
 
+    // Validasi waktu tidak boleh mundur (hanya jika tanggal/waktu diubah)
+    if ($has_datetime && strtotime($new_datetime) < strtotime(date('Y-m-d H:i:s'))) {
+        throw new Exception("Gagal: Waktu pelayanan tidak boleh di masa lalu. Silakan pilih waktu saat ini atau di masa depan.");
+    }
+
     // 2. Cek Overlap jika status BUKAN 'Dibatalkan'
     // Cek hanya dilakukan jika:
     // a. Tanggal/waktu berubah, ATAU

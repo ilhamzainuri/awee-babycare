@@ -34,6 +34,27 @@ try {
         // Ignore if already exists
     }
 
+    // Layanan tidak bisa dimulai sebelum waktu reservasi (kecuali update data yang sudah Diproses)
+    $stmtCheck = $conn->prepare("SELECT waktu_reservasi, status_jadwal FROM appointments WHERE id = :id AND deleted_at IS NULL LIMIT 1");
+    $stmtCheck->execute([':id' => $appointment_id]);
+    $appt = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+    if (!$appt) {
+        http_response_code(404);
+        echo json_encode(["status" => 404, "message" => "Jadwal tidak ditemukan"]);
+        exit;
+    }
+
+    if (in_array($appt['status_jadwal'], ['Menunggu', 'Pending'], true)
+        && strtotime($appt['waktu_reservasi']) > strtotime(date('Y-m-d H:i:s'))) {
+        http_response_code(400);
+        echo json_encode([
+            "status" => 400,
+            "message" => "Belum waktunya memulai layanan. Jadwal: " . date('H:i', strtotime($appt['waktu_reservasi']))
+        ]);
+        exit;
+    }
+
     $conn->beginTransaction();
 
     $stmtUpdate = $conn->prepare("UPDATE appointments SET status_jadwal = 'Diproses', waktu_mulai_layanan = COALESCE(waktu_mulai_layanan, :waktu), suhu_Pasien = :suhu, bb_real_terapis = :bb WHERE id = :id AND status_jadwal IN ('Menunggu', 'Pending', 'Diproses')");

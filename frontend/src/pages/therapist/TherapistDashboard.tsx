@@ -17,7 +17,7 @@ import {
   Info,
   ClipboardList
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, canStartService, startServiceBlockMessage } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Interface Data
@@ -218,31 +218,15 @@ export default function TherapistDashboard() {
     navigate('/therapist/submit-report', { state: { selectedDetail } });
   };
 
-  // Cek apakah jadwal sudah bisa dimulai (±60 menit sebelum waktu reservasi)
+  // Layanan baru bisa dimulai tepat pada/atau setelah waktu reservasi
   const canStartSchedule = (detail: ActiveSchedule | null): boolean => {
     if (!detail) return false;
-    const rawTime = detail.waktu_reservasi_raw || detail.time;
-    if (!rawTime) return true;
-    const scheduleTime = new Date(rawTime.replace(' ', 'T'));
-    const now = new Date();
-    const diffMinutes = (scheduleTime.getTime() - now.getTime()) / 60000;
-    // Bisa dimulai jika waktunya sudah lewat atau dalam 60 menit ke depan
-    return diffMinutes <= 60;
+    return canStartService(detail.waktu_reservasi_raw || detail.time);
   };
 
   const getStartBlockMessage = (detail: ActiveSchedule | null): string => {
     if (!detail) return '';
-    const rawTime = detail.waktu_reservasi_raw || detail.time;
-    if (!rawTime) return '';
-    const scheduleTime = new Date(rawTime.replace(' ', 'T'));
-    const now = new Date();
-    const diffMinutes = Math.ceil((scheduleTime.getTime() - now.getTime()) / 60000);
-    if (diffMinutes > 60) {
-      const jam = Math.floor(diffMinutes / 60);
-      const mnt = diffMinutes % 60;
-      return `Layanan baru bisa dimulai ${jam > 0 ? jam + ' jam ' : ''}${mnt > 0 ? mnt + ' menit ' : ''}lagi (terjadwal: ${scheduleTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})`;
-    }
-    return '';
+    return startServiceBlockMessage(detail.waktu_reservasi_raw || detail.time);
   };
 
   if (isLoading) return <div className="flex h-64 items-center justify-center"><div className="text-on-surface-variant font-bold animate-pulse text-sm">Memuat Data Dashboard...</div></div>;
@@ -640,7 +624,7 @@ export default function TherapistDashboard() {
                             <p className="text-sm font-black text-primary">{formatRupiah(item.total_komisi_kunjungan)}</p>
                           </div>
                           <button onClick={() => setSelectedDetail({
-                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), status: item.status_jadwal, phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
+                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), waktu_reservasi_raw: item.waktu_reservasi, status: item.status_jadwal, phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
                           })} className="text-[11px] font-bold text-primary hover:underline self-end flex items-center gap-1">
                             Lihat Detail <ArrowRight className="w-3 h-3"/>
                           </button>
