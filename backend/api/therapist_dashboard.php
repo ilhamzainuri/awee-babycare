@@ -223,7 +223,7 @@ try {
         WHERE id_therapist = :id 
           AND deleted_at IS NULL
           AND (
-            (DATE(waktu_reservasi) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY))
+            (DATE(waktu_reservasi) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 6 DAY))
             OR (status_jadwal = 'Diproses' AND DATE(waktu_reservasi) < CURDATE())
           )
         ORDER BY waktu_reservasi ASC

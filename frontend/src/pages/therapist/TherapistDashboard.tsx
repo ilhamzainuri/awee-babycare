@@ -17,7 +17,7 @@ import {
   Info,
   ClipboardList
 } from 'lucide-react';
-import { cn, canStartService, startServiceBlockMessage } from '@/lib/utils';
+import { cn, canStartService, startServiceBlockMessage, groupSchedulesByDate, formatGroupDate, formatDateRange, localDateKey } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Interface Data
@@ -229,6 +229,109 @@ export default function TherapistDashboard() {
     return startServiceBlockMessage(detail.waktu_reservasi_raw || detail.time);
   };
 
+  const weeklyGroups = groupSchedulesByDate(weeklySchedules);
+  const weeklyStart = new Date();
+  const weeklyEnd = new Date();
+  weeklyEnd.setDate(weeklyStart.getDate() + 6);
+  const weeklyRangeLabel = formatDateRange(localDateKey(weeklyStart), localDateKey(weeklyEnd));
+
+  const renderScheduleCard = (schedule: ActiveSchedule, index: number) => {
+    const isOverdue = schedule.status === 'Diproses' && schedule.waktu_reservasi_raw && (new Date(schedule.waktu_reservasi_raw.replace(' ', 'T')).getTime() < new Date().setHours(0,0,0,0));
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.04 }}
+        key={schedule.id}
+        className={cn(
+          "bg-surface-container-lowest border rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden group",
+          isOverdue ? "border-error/40 bg-error-container/5" : "border-surface-container"
+        )}
+      >
+        {/* Status Top Strip Bar */}
+        <div className={cn("absolute top-0 left-0 right-0 h-1 sm:h-1.5",
+          schedule.status === 'Diproses' && "bg-warning",
+          schedule.status === 'Menunggu' && "bg-outline",
+          schedule.status === 'Selesai' && "bg-emerald-500",
+          schedule.status === 'Dibatalkan' && "bg-red-400"
+        )} />
+
+        <div className="space-y-2.5 sm:space-y-3.5">
+          {/* Header Card: Jam & Badges */}
+          <div className="flex justify-between items-start gap-2 flex-wrap">
+            <span className="text-[10px] sm:text-[11px] font-extrabold text-on-surface tracking-wide bg-surface-container px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl flex items-center gap-1.5">
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" /> 
+              {schedule.time}
+            </span>
+
+            <div className="flex items-center gap-1 flex-wrap justify-end">
+              {schedule.jenis_layanan && (
+                <span className={cn(
+                  "text-[8px] sm:text-[9px] font-black uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border",
+                  schedule.jenis_layanan.toLowerCase().includes('outlet') && schedule.jenis_layanan.toLowerCase().includes('homecare')
+                    ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                    : schedule.jenis_layanan.toLowerCase().includes('outlet')
+                    ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                )}>
+                  {schedule.jenis_layanan}
+                </span>
+              )}
+
+              <span className={cn(
+                "text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl",
+                schedule.status === 'Diproses' && "bg-warning-container/30 text-warning",
+                schedule.status === 'Menunggu' && "bg-surface-container text-on-surface-variant",
+                schedule.status === 'Selesai' && "bg-emerald-100 text-emerald-700",
+                schedule.status === 'Dibatalkan' && "bg-red-100 text-red-600"
+              )}>
+                {schedule.status}
+              </span>
+            </div>
+          </div>
+
+          {/* Info Pasien & Layanan */}
+          <div>
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="font-black text-sm sm:text-base text-on-surface group-hover:text-primary transition-colors truncate">
+                {schedule.childName}
+              </h3>
+              {schedule.usia && (
+                <span className="text-[10px] sm:text-[11px] font-bold text-on-surface-variant shrink-0 bg-surface-container px-2 py-0.5 rounded-lg">
+                  {schedule.usia}
+                </span>
+              )}
+            </div>
+
+            {schedule.services && (
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-primary truncate">
+                <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                <span className="truncate">{schedule.services}</span>
+              </div>
+            )}
+
+            <div className="flex items-start gap-1.5 text-on-surface-variant text-[11px] sm:text-xs mt-2">
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 mt-0.5 shrink-0 text-outline" />
+              <p className="line-clamp-2 leading-relaxed">{schedule.address}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tombol Aksi Card */}
+        <div className="pt-3 mt-2.5 sm:pt-4 sm:mt-3 border-t border-surface-container flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedDetail(schedule)}
+            className="w-full bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] sm:text-xs font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-2 group/btn shadow-sm"
+          >
+            <span>Detail & Mulai Pelayanan</span>
+            <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform group-hover/btn:translate-x-1" />
+          </button>
+        </div>
+      </motion.div>
+    );
+  };
+
   if (isLoading) return <div className="flex h-64 items-center justify-center"><div className="text-on-surface-variant font-bold animate-pulse text-sm">Memuat Data Dashboard...</div></div>;
 
   return (
@@ -413,7 +516,7 @@ export default function TherapistDashboard() {
               {/* Keterangan Periode Pekan */}
               {scheduleView === 'weekly' && (
                 <div className="text-[11px] font-bold text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-xl">
-                  📅 7 Hari ke Depan
+                  📅 {weeklyRangeLabel}
                 </div>
               )}
             </div>
@@ -442,102 +545,33 @@ export default function TherapistDashboard() {
                 </p>
               </div>
             </div>
+          ) : scheduleView === 'today' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              {schedules.map(renderScheduleCard)}
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(scheduleView === 'today' ? schedules : weeklySchedules).map((schedule, index) => {
-                const isOverdue = schedule.status === 'Diproses' && schedule.waktu_reservasi_raw && (new Date(schedule.waktu_reservasi_raw.replace(' ', 'T')).getTime() < new Date().setHours(0,0,0,0));
+            <div className="space-y-4 sm:space-y-6">
+              {weeklyGroups.map(group => {
+                const groupDate = new Date(`${group.dateKey}T00:00:00`);
                 return (
-                  <motion.div
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.04 }}
-                    key={schedule.id}
-                    className={cn(
-                      "bg-surface-container-lowest border rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden group",
-                      isOverdue ? "border-error/40 bg-error-container/5" : "border-surface-container"
-                    )}
-                  >
-                    {/* Status Top Strip Bar */}
-                    <div className={cn("absolute top-0 left-0 right-0 h-1.5",
-                      schedule.status === 'Diproses' && "bg-warning",
-                      schedule.status === 'Menunggu' && "bg-outline",
-                      schedule.status === 'Selesai' && "bg-emerald-500",
-                      schedule.status === 'Dibatalkan' && "bg-red-400"
-                    )} />
-
-                    <div className="space-y-3.5">
-                      {/* Header Card: Jam & Badges */}
-                      <div className="flex justify-between items-start gap-2 flex-wrap">
-                        <span className="text-[11px] font-extrabold text-on-surface tracking-wide bg-surface-container px-2.5 py-1.5 rounded-xl flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-primary" /> 
-                          {schedule.time}
+                  <div key={group.dateKey} className="space-y-2 sm:space-y-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex flex-col items-center justify-center shrink-0">
+                        <span className="text-sm sm:text-base font-black leading-none">{groupDate.getDate()}</span>
+                        <span className="text-[8px] sm:text-[9px] font-bold uppercase leading-none mt-0.5 sm:mt-1">
+                          {groupDate.toLocaleDateString('id-ID', { month: 'short' })}
                         </span>
-
-                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                          {schedule.jenis_layanan && (
-                            <span className={cn(
-                              "text-[9px] font-black uppercase px-2.5 py-1 rounded-full border",
-                              schedule.jenis_layanan.toLowerCase().includes('outlet') && schedule.jenis_layanan.toLowerCase().includes('homecare')
-                                ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                                : schedule.jenis_layanan.toLowerCase().includes('outlet')
-                                ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                                : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                            )}>
-                              {schedule.jenis_layanan}
-                            </span>
-                          )}
-
-                          <span className={cn(
-                            "text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-xl",
-                            schedule.status === 'Diproses' && "bg-warning-container/30 text-warning",
-                            schedule.status === 'Menunggu' && "bg-surface-container text-on-surface-variant",
-                            schedule.status === 'Selesai' && "bg-emerald-100 text-emerald-700",
-                            schedule.status === 'Dibatalkan' && "bg-red-100 text-red-600"
-                          )}>
-                            {schedule.status}
-                          </span>
-                        </div>
                       </div>
-
-                      {/* Info Pasien & Layanan */}
-                      <div>
-                        <div className="flex items-baseline justify-between gap-2">
-                          <h3 className="font-black text-base text-on-surface group-hover:text-primary transition-colors truncate">
-                            {schedule.childName}
-                          </h3>
-                          {schedule.usia && (
-                            <span className="text-[11px] font-bold text-on-surface-variant shrink-0 bg-surface-container px-2 py-0.5 rounded-lg">
-                              {schedule.usia}
-                            </span>
-                          )}
-                        </div>
-
-                        {schedule.services && (
-                          <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-primary truncate">
-                            <Activity className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{schedule.services}</span>
-                          </div>
-                        )}
-
-                        <div className="flex items-start gap-1.5 text-on-surface-variant text-xs mt-2.5">
-                          <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-outline" />
-                          <p className="line-clamp-2 leading-relaxed">{schedule.address}</p>
-                        </div>
+                      <div className="min-w-0">
+                        <h3 className="text-xs sm:text-sm font-black text-on-surface truncate">{formatGroupDate(group.dateKey)}</h3>
+                        <p className="text-[10px] sm:text-[11px] font-medium text-on-surface-variant">{group.items.length} jadwal</p>
                       </div>
+                      <div className="flex-1 h-px bg-surface-container" />
                     </div>
-
-                    {/* Tombol Aksi Card */}
-                    <div className="pt-4 mt-3 border-t border-surface-container flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDetail(schedule)}
-                        className="w-full bg-surface-container hover:bg-primary hover:text-white text-on-surface text-xs font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 group/btn shadow-sm"
-                      >
-                        <span>Detail & Mulai Pelayanan</span>
-                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
-                      </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                      {group.items.map(renderScheduleCard)}
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
