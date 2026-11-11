@@ -20,6 +20,9 @@ import {
   RotateCcw,
   Activity,
   Calendar1,
+  AlertTriangle,
+  AlertCircle,
+  Info
 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -53,11 +56,22 @@ const getUiConfig = (aksi: string, tabel: string, dataLama?: string | null, data
     const raw = dataLama || dataBaru;
     if (raw) {
       const parsed = JSON.parse(raw);
-      entityName = parsed.nama_layanan || parsed.nama_terapis || parsed.nama_pasien || parsed.username || '';
+      entityName = parsed.nama_layanan || parsed.nama_terapis || parsed.nama_pasien || parsed.username || parsed.nama_kategori || '';
     }
   } catch {}
 
   const entitySuffix = entityName ? ` "${entityName}"` : '';
+
+  let changeDetail = '';
+  try {
+    if (dataLama && dataBaru) {
+      const lama = JSON.parse(dataLama);
+      const baru = JSON.parse(dataBaru);
+      const changed = Array.from(new Set([...Object.keys(lama), ...Object.keys(baru)]))
+        .filter((k) => lama[k] !== baru[k] && k !== 'updated_at' && k !== 'created_at' && k !== 'id');
+      changeDetail = changed.slice(0, 3).map((k) => k.replace(/_/g, ' ')).join(', ');
+    }
+  } catch {}
 
   switch (aksi) {
     case 'create':
@@ -74,7 +88,7 @@ const getUiConfig = (aksi: string, tabel: string, dataLama?: string | null, data
         icon: FileEdit,
         color: "bg-blue-500/10 text-blue-600 border border-blue-500/20",
         title: `Update ${tabel}`,
-        subtitle: `Perubahan data${entitySuffix}`
+        subtitle: `Perubahan data${entitySuffix}${changeDetail ? ` (${changeDetail})` : ''}`
       };
     case 'delete':
       return {
@@ -151,6 +165,7 @@ export default function Layout({ children }: LayoutProps) {
 
   // State untuk notifikasi dropdown
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [dashboardAlerts, setDashboardAlerts] = useState<any[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(true);
 
@@ -159,11 +174,18 @@ export default function Layout({ children }: LayoutProps) {
     const fetchRecentLogs = async () => {
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost/awee-babycare/backend/api';
-        const response = await fetch(`${baseUrl}/auditlog.php`);
-        const result = await response.json();
+        const [logsResponse, alertsResponse] = await Promise.all([
+          fetch(`${baseUrl}/auditlog.php`),
+          fetch(`${baseUrl}/dashboard.php`),
+        ]);
+        const result = await logsResponse.json();
+        const alertsResult = await alertsResponse.json();
         if (result.status === 200) {
           // Ambil 5 log terbaru saja
           setRecentLogs(result.data.slice(0, 5));
+        }
+        if (alertsResult.status === 200) {
+          setDashboardAlerts(alertsResult.data?.alerts ?? []);
         }
       } catch (error) {
         console.error("Gagal mengambil data log untuk notifikasi", error);
@@ -185,6 +207,36 @@ export default function Layout({ children }: LayoutProps) {
     // Fallback jika belum punya foto: Pakai inisial nama menggunakan ui-avatars
     return <img src={`https://ui-avatars.com/api/?name=${userName}&background=random`} alt={userName} className="w-full h-full object-cover" />;
   };
+
+  // Notifikasi per-role: utamakan alert dashboard, fallback ke audit log terbaru
+  const notificationItems = dashboardAlerts.length > 0
+    ? dashboardAlerts.slice(0, 5).map((a) => ({
+        key: `alert-${a.id}`,
+        title: a.title,
+        subtitle: a.description,
+        time: a.time,
+        link: a.link || '/',
+        by: null as string | null,
+        icon: a.type === 'error' ? AlertCircle : a.type === 'warning' ? AlertTriangle : Info,
+        color: a.type === 'error'
+          ? 'bg-error/10 text-error border border-error/20'
+          : a.type === 'warning'
+            ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+            : 'bg-primary/10 text-primary border border-primary/20',
+      }))
+    : recentLogs.map((log) => {
+        const config = getUiConfig(log.aksi, log.nama_tabel, log.data_lama, log.data_baru);
+        return {
+          key: `log-${log.id}`,
+          title: config.title,
+          subtitle: config.subtitle,
+          time: new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+          link: '/audit-log',
+          by: log.user as string | null,
+          icon: config.icon,
+          color: config.color,
+        };
+      });
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -277,7 +329,7 @@ export default function Layout({ children }: LayoutProps) {
                 className="relative p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all cursor-pointer"
               >
                 <Bell className="w-5 h-5" />
-                {hasNewNotifications && recentLogs.length > 0 && (
+                {hasNewNotifications && notificationItems.length > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest animate-pulse" />
                 )}
               </button>
@@ -305,49 +357,47 @@ export default function Layout({ children }: LayoutProps) {
                           <span className="font-extrabold text-xs text-on-surface uppercase tracking-wider">Notifikasi Aktivitas</span>
                         </div>
                         <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
-                          {recentLogs.length} Terbaru
+                          {notificationItems.length} Terbaru
                         </span>
                       </div>
 
                       {/* List Item Dropdown */}
                       <div className="max-h-[320px] overflow-y-auto divide-y divide-surface-container/60">
-                        {recentLogs.length === 0 ? (
+                        {notificationItems.length === 0 ? (
                           <div className="p-8 text-center text-xs text-on-surface-variant font-medium">
                             Belum ada aktivitas terbaru.
                           </div>
                         ) : (
-                          recentLogs.map((log) => {
-                            const config = getUiConfig(log.aksi, log.nama_tabel, log.data_lama, log.data_baru);
-                            const Icon = config.icon;
-
-                            // Hitung waktu relatif atau sederhana
-                            const logTime = new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                          notificationItems.map((item) => {
+                            const Icon = item.icon;
 
                             return (
                               <NavLink
-                                key={log.id}
-                                to="/audit-log"
+                                key={item.key}
+                                to={item.link}
                                 onClick={() => setIsNotificationOpen(false)}
                                 className="flex items-start gap-3 p-3.5 hover:bg-surface-container-low transition-all text-left group"
                               >
-                                <div className={cn("w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-xs mt-0.5", config.color)}>
+                                <div className={cn("w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-xs mt-0.5", item.color)}>
                                   <Icon className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between gap-1.5 mb-0.5">
                                     <span className="text-xs font-bold text-on-surface truncate group-hover:text-primary transition-colors">
-                                      {config.title}
+                                      {item.title}
                                     </span>
                                     <span className="text-[9px] font-semibold text-on-surface-variant shrink-0">
-                                      {logTime}
+                                      {item.time}
                                     </span>
                                   </div>
-                                  <p className="text-[11px] text-on-surface-variant truncate font-medium">
-                                    {config.subtitle}
+                                  <p className="text-[11px] text-on-surface-variant font-medium line-clamp-2">
+                                    {item.subtitle}
                                   </p>
-                                  <span className="text-[9px] text-on-surface-variant/70 font-medium">
-                                    Oleh <strong className="font-semibold text-on-surface-variant">{log.user}</strong>
-                                  </span>
+                                  {item.by && (
+                                    <span className="text-[9px] text-on-surface-variant/70 font-medium">
+                                      Oleh <strong className="font-semibold text-on-surface-variant">{item.by}</strong>
+                                    </span>
+                                  )}
                                 </div>
                               </NavLink>
                             );

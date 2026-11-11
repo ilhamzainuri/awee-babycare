@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Jakarta');
 
 $host = "localhost";
 $user = "root";       
@@ -61,5 +62,11 @@ function getTotalCommission($conn, $whereClause = "a.deleted_at IS NULL", $param
     $res = $stmt->fetch(PDO::FETCH_ASSOC);
 
     return $res['total_komisi'] ? (float)$res['total_komisi'] : 0.00;
+}
+
+// Nama kolom primary key tiap tabel (kategori memakai id_kategori, bukan id)
+function getTablePrimaryKey($table) {
+    $map = ['kategori' => 'id_kategori'];
+    return $map[$table] ?? 'id';
 }
 ?>

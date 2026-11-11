@@ -261,7 +261,8 @@ export default function AuditLog() {
     if (!dataLamaStr) return null;
     try {
       const obj = JSON.parse(dataLamaStr);
-      return obj.nama_layanan || obj.nama_terapis || obj.nama_pasien || obj.username || null;
+      return obj.nama_layanan || obj.nama_terapis || obj.nama_pasien || 
+obj.username || obj.nama_kategori || null;
     } catch {
       return null;
     }
@@ -596,6 +597,21 @@ export default function AuditLog() {
                         Otomatis dihapus permanen dalam {log.days_remaining} hari jika tidak dipulihkan.
                       </p>
                     )}
+
+                    {/* Penanda hapus permanen manual */}
+                    {log.aksi === 'delete' && (() => {
+                      try {
+                        const info = JSON.parse(log.data_baru || '{}');
+                        return info.keterangan ? (
+                          <p className="text-xs text-error font-semibold flex items-center gap-1">
+                            <Trash2 className="w-3 h-3" />
+                            {info.keterangan}
+                          </p>
+                        ) : null;
+                      } catch {
+                        return null;
+                      }
+                    })()}
                   </div>
 
                   {/* Render Data Perubahan (Update) */}

@@ -48,6 +48,7 @@ export default function Reports() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTherapist, setFilterTherapist] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterPayment, setFilterPayment] = useState('All');
 
   // ==========================================
   // STATE & EFFECT UNTUK MODAL DETAIL KOMISI TERAPIS
@@ -125,6 +126,19 @@ export default function Reports() {
 
     fetchDetail();
   }, [selectedTrxId]);
+
+  const formatDateTime = (dateStr: string | null | undefined): string => {
+    if (!dateStr || dateStr === '0000-00-00 00:00:00') return '';
+    try {
+      const d = new Date(dateStr.replace(' ', 'T'));
+      if (isNaN(d.getTime())) return '';
+      const tgl = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      return `${tgl}, ${jam}`;
+    } catch {
+      return '';
+    }
+  };
   // ==========================================
   // EFFECT UNTUK FETCH DATA REPORT UTAMA
   // ==========================================
@@ -175,13 +189,23 @@ export default function Reports() {
 
   const uniqueTherapists = Array.from(new Set(reservations.map(r => r.nama_terapis)));
 
+  const getPaymentMethod = (res: any) =>
+    res.status_pembayaran === 'Verified' && res.metode_bayar_terapis
+      ? res.metode_bayar_terapis
+      : res.metode_bayar_admin;
+
+  const uniquePaymentMethods = Array.from(
+    new Set(reservations.map(getPaymentMethod).filter(Boolean))
+  ).sort();
+
   const filteredReservations = reservations.filter(res => {
     const matchSearch = res.nama_pasien.toLowerCase().includes(searchQuery.toLowerCase()) ||
       `#TRX-${res.trx_id}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchTherapist = filterTherapist === 'All' || res.nama_terapis === filterTherapist;
     const matchStatus = filterStatus === 'All' || res.status_jadwal === filterStatus;
+    const matchPayment = filterPayment === 'All' || getPaymentMethod(res) === filterPayment;
 
-    return matchSearch && matchTherapist && matchStatus;
+    return matchSearch && matchTherapist && matchStatus && matchPayment;
   });
 
   // ==========================================
@@ -201,7 +225,7 @@ export default function Reports() {
         "Waktu": `${tgl} ${jam}`,
         "Nama Pasien": res.nama_pasien,
         "Nama Terapis": res.nama_terapis,
-        "Metode Bayar": res.metode_bayar_admin,
+        "Metode Bayar": getPaymentMethod(res),
         "Status Pembayaran": res.status_pembayaran,
         "Status Pelaksanaan": res.status_jadwal,
         "Total Kotor (Rp)": hargaKotor,
@@ -561,7 +585,7 @@ export default function Reports() {
                   <p className="text-sm text-on-surface-variant">Tabel riwayat reservasi yang terfilter</p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full md:w-auto">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                     <input
@@ -583,6 +607,20 @@ export default function Reports() {
                       <option value="All">Semua Terapis</option>
                       {uniqueTherapists.map(name => (
                         <option key={name as string} value={name as string}>{name as string}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                    <select
+                      value={filterPayment}
+                      onChange={(e) => setFilterPayment(e.target.value)}
+                      className="w-full sm:w-auto appearance-none pl-10 pr-8 py-2 bg-surface-container-low border border-surface-container rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary outline-none cursor-pointer"
+                    >
+                      <option value="All">Semua Metode</option>
+                      {uniquePaymentMethods.map(method => (
+                        <option key={method} value={method}>{method}</option>
                       ))}
                     </select>
                   </div>
@@ -627,76 +665,7 @@ export default function Reports() {
                       const hargaKotor = parseFloat(res.total_harga_kunjungan) || 0;
                       const komisiTerapis = parseFloat(res.total_komisi_kunjungan) || 0;
                       const totalBersih = hargaKotor - komisiTerapis;
-                      const prepareExportData = () => {
-                        return filteredReservations.map((res) => {
-                          const hargaKotor = parseFloat(res.total_harga_kunjungan) || 0;
-                          const komisiTerapis = parseFloat(res.total_komisi_kunjungan) || 0;
-                          const totalBersih = hargaKotor - komisiTerapis;
 
-                          const tgl = new Date(res.waktu_reservasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-                          const jam = new Date(res.waktu_reservasi).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-                          return {
-                            "ID Transaksi": `TRX-${res.trx_id}`,
-                            "Waktu": `${tgl} ${jam}`,
-                            "Nama Pasien": res.nama_pasien,
-                            "Nama Terapis": res.nama_terapis,
-                            "Metode Bayar": res.metode_bayar_admin,
-                            "Status Pembayaran": res.status_pembayaran,
-                            "Status Pelaksanaan": res.status_jadwal,
-                            "Total Kotor (Rp)": hargaKotor,
-                            "Total Bersih (Rp)": totalBersih,
-                          };
-                        });
-                      };
-
-                      const handleExportExcel = async () => {
-    const data = prepareExportData();
-    
-    // Definisikan header, key data, dan lebar kolom (dalam karakter)
-    const excelColumns = [
-      { header: 'ID Transaksi', key: 'ID Transaksi', width: 20 },
-      { header: 'Waktu', key: 'Waktu', width: 22 },
-      { header: 'Nama Pasien', key: 'Nama Pasien', width: 25 },
-      { header: 'Nama Terapis', key: 'Nama Terapis', width: 25 },
-      { header: 'Metode Bayar', key: 'Metode Bayar', width: 18 },
-      { header: 'Status Pembayaran', key: 'Status Pembayaran', width: 20 },
-      { header: 'Status Pelaksanaan', key: 'Status Pelaksanaan', width: 20 },
-      { header: 'Total Kotor', key: 'Total Kotor (Rp)', width: 20, isCurrency: true },
-      { header: 'Total Bersih', key: 'Total Bersih (Rp)', width: 20, isCurrency: true },
-    ];
-
-    await exportToExcel({
-      data,
-      fileName: `Laporan_Klinik_${activeFilter}_${new Date().toISOString().split('T')[0]}`,
-      sheetName: 'Data Transaksi',
-      columns: excelColumns
-    });
-  };
-
-                      const handleExportPDF = () => {
-                        const data = prepareExportData();
-
-                        // Definisikan kolom untuk PDF (sesuaikan dengan keys dari prepareExportData)
-                        const pdfColumns = [
-                          { header: 'ID Transaksi', dataKey: 'ID Transaksi' },
-                          { header: 'Waktu', dataKey: 'Waktu' },
-                          { header: 'Nama Pasien', dataKey: 'Nama Pasien' },
-                          { header: 'Terapis', dataKey: 'Nama Terapis' },
-                          { header: 'Pembayaran', dataKey: 'Status Pembayaran' },
-                          { header: 'Pelaksanaan', dataKey: 'Status Pelaksanaan' },
-                          { header: 'Kotor (Rp)', dataKey: 'Total Kotor (Rp)' },
-                          { header: 'Bersih (Rp)', dataKey: 'Total Bersih (Rp)' }
-                        ];
-
-                        exportToPDF({
-                          title: `Laporan Transaksi & Keuangan - Filter: ${activeFilter}`,
-                          fileName: `Laporan_Klinik_${activeFilter}`,
-                          data,
-                          columns: pdfColumns,
-                          orientation: 'landscape' // Memanjang ke samping karena kolom cukup banyak
-                        });
-                      };
                       return (
                         <tr key={res.trx_id} className="hover:bg-surface-container-lowest/50 transition-colors group">
                           <td className="p-4 border-b border-surface-container">
@@ -706,7 +675,7 @@ export default function Reports() {
                           <td className="p-4 border-b border-surface-container font-bold text-sm text-on-surface">{res.nama_pasien}</td>
                           <td className="p-4 border-b border-surface-container text-sm text-on-surface-variant">{res.nama_terapis}</td>
                           <td className="p-4 border-b border-surface-container">
-                            <p className="text-sm font-bold">{res.metode_bayar_admin}</p>
+                            <p className="text-sm font-bold">{getPaymentMethod(res)}</p>
                             <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-0.5", res.status_pembayaran === 'Verified' ? "text-tertiary" : "text-error")}>
                               {res.status_pembayaran}
                             </p>
@@ -877,7 +846,11 @@ export default function Reports() {
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-on-surface-variant">Waktu Reservasi</span>
-                            <span className="font-bold text-on-surface">{trxDetail.waktu_reservasi}</span>
+                            <span className="font-bold text-on-surface">{formatDateTime(trxDetail.created_at) || '-'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-on-surface-variant">Waktu Pelayanan</span>
+                            <span className="font-bold text-on-surface">{formatDateTime(trxDetail.waktu_reservasi) || '-'}</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-on-surface-variant">Status Pelaksanaan</span>
@@ -889,11 +862,15 @@ export default function Reports() {
                         <div className="space-y-2 text-xs">
                           <div className="flex justify-between">
                             <span className="text-on-surface-variant">Mulai Layanan:</span>
-                            <span className="font-medium">{trxDetail.waktu_mulai_layanan || '-'}</span>
+                            <span className="font-medium">
+                              {formatDateTime(trxDetail.waktu_mulai_layanan) || 'Belum dimulai'}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-on-surface-variant">Selesai Layanan:</span>
-                            <span className="font-medium">{trxDetail.waktu_selesai_layanan || '-'}</span>
+                            <span className="font-medium">
+                              {formatDateTime(trxDetail.waktu_selesai_layanan) || (trxDetail.waktu_mulai_layanan ? 'Belum selesai' : 'Belum dimulai')}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -922,8 +899,19 @@ export default function Reports() {
                         {/* Total Pembayaran */}
                         <div className="border-t border-surface-container pt-4 space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-on-surface-variant">Metode Bayar</span>
+                            <span className="text-sm text-on-surface-variant">Metode Bayar (Rencana Admin)</span>
                             <span className="text-sm font-bold">{trxDetail.metode_bayar_admin || '-'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-on-surface-variant">Metode Bayar (Aktual Terapis)</span>
+                            <span className={cn(
+                              "text-sm font-bold",
+                              trxDetail.metode_bayar_terapis && trxDetail.metode_bayar_admin !== trxDetail.metode_bayar_terapis
+                                ? "text-error"
+                                : trxDetail.metode_bayar_terapis ? "text-tertiary" : "text-on-surface-variant"
+                            )}>
+                              {trxDetail.metode_bayar_terapis || 'Belum Diinput'}
+                            </span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-on-surface-variant">Status Bayar</span>

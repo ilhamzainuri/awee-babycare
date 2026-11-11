@@ -23,6 +23,7 @@ try {
     } elseif ($method === 'DELETE') {
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         $requester_id = isset($_GET['requester_id']) ? (int)$_GET['requester_id'] : 0;
+        $actor_id_input = isset($_GET['actor_id']) ? (int)$_GET['actor_id'] : 0;
 
         if (!$id) {
             http_response_code(400);
@@ -47,11 +48,12 @@ try {
         }
 
         $log_stmt = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'delete', ?, ?, ?, NULL)");
+        $actor_id = $actor_id_input ?: ($requester_id ?: null);
 
         $conn->beginTransaction();
         try {
             $conn->prepare("UPDATE users SET deleted_at = NOW() WHERE id = ?")->execute([$id]);
-            $log_stmt->execute([1, 'users', $id, json_encode($user)]);
+            $log_stmt->execute([$actor_id, 'users', $id, json_encode($user)]);
 
             $t_stmt = $conn->prepare("SELECT id, nama_terapis, no_whatsapp FROM therapists WHERE user_id = ? AND deleted_at IS NULL LIMIT 1");
             $t_stmt->execute([$id]);
@@ -59,7 +61,7 @@ try {
 
             if ($therapist) {
                 $conn->prepare("UPDATE therapists SET deleted_at = NOW(), status_aktif = 0 WHERE id = ?")->execute([$therapist['id']]);
-                $log_stmt->execute([1, 'therapists', $therapist['id'], json_encode($therapist)]);
+                $log_stmt->execute([$actor_id, 'therapists', $therapist['id'], json_encode($therapist)]);
             }
 
             $conn->commit();

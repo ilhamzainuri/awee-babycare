@@ -58,8 +58,8 @@ try {
     $update->execute([$metode_baru, $appointment_id]);
 
     // Catat ke audit_logs
-    $data_lama = ["metode_bayar_terapis" => $row["metode_bayar_terapis"]];
-    $data_baru = ["metode_bayar_terapis" => $metode_baru, "override_by" => "admin"];
+    $data_lama = ["nama_pasien" => $row["nama_pasien"], "metode_bayar_terapis" => $row["metode_bayar_terapis"]];
+    $data_baru = ["nama_pasien" => $row["nama_pasien"], "metode_bayar_terapis" => $metode_baru, "override_by" => "admin"];
 
     $log = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, \"update\", \"appointments\", ?, ?, ?)");
     $log->execute([

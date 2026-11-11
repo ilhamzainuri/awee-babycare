@@ -17,7 +17,7 @@ import {
   DollarSign,
   AlertTriangle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, canStartService, startServiceBlockMessage } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ActiveScheduleDetail {
@@ -29,11 +29,15 @@ interface ActiveScheduleDetail {
   raw_address?: string;
   jenis_layanan?: string;
   time: string;
+  waktu_reservasi_raw?: string;
   status: 'Pending' | 'Confirmed' | 'On Process' | 'Menunggu' | 'Diproses' | 'Selesai' | 'Dibatalkan' | string;
   phone?: string;
   mapLink?: string;
   complaint?: string;
   services?: string;
+  status_pembayaran?: string;
+  alasan_penolakan?: string | null;
+  waktu_penolakan?: string | null;
 }
 
 export default function AllSchedulesPage() {
@@ -287,6 +291,7 @@ export default function AllSchedulesPage() {
                       raw_address: item.alamat_lengkap,
                       jenis_layanan: item.jenis_layanan,
                       time: formatDate(item.waktu_reservasi),
+                      waktu_reservasi_raw: item.waktu_reservasi,
                       status:
                         item.status_jadwal === 'Menunggu'
                           ? 'Pending'
@@ -297,6 +302,9 @@ export default function AllSchedulesPage() {
                       mapLink: item.link_shareloc,
                       complaint: item.keluhan_awal,
                       services: item.rincian_layanan,
+                      status_pembayaran: item.status_pembayaran,
+                      alasan_penolakan: item.alasan_penolakan,
+                      waktu_penolakan: item.waktu_penolakan,
                     })
                   }
                   className="text-[11px] font-bold text-primary hover:underline self-end flex items-center gap-1"
@@ -380,6 +388,22 @@ export default function AllSchedulesPage() {
                   </div>
                 </div>
 
+                {/* Pemberitahuan pembayaran ditolak admin */}
+                {selectedDetail.status_pembayaran === 'Rejected' && (
+                  <div className="bg-error-container/40 border border-error/30 p-4 rounded-2xl flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-black text-sm text-error">Pembayaran Ditolak Admin</p>
+                      <p className="text-xs font-medium text-on-surface mt-0.5">
+                        {selectedDetail.alasan_penolakan || 'Tidak ada alasan yang dicatat.'}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant mt-1">
+                        Silakan koordinasi dengan admin untuk perbaikan bukti pembayaran.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Daftar Layanan */}
                 <div>
                   <h4 className="text-xs font-black text-on-surface uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -457,12 +481,27 @@ export default function AllSchedulesPage() {
               {/* Action Buttons */}
               <div className="p-5 border-t border-surface-container bg-surface-container-low rounded-b-3xl shrink-0 flex flex-col gap-3">
                 {selectedDetail.status === 'Pending' || selectedDetail.status === 'Menunggu' ? (
-                  <button
-                    onClick={openStartModal}
-                    className="w-full bg-primary hover:bg-primary/90 text-on-primary text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30"
-                  >
-                    <Activity className="w-5 h-5" /> Mulai Layanan Sekarang
-                  </button>
+                  <>
+                    {!canStartService(selectedDetail.waktu_reservasi_raw) && (
+                      <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-xs font-semibold text-amber-700">{startServiceBlockMessage(selectedDetail.waktu_reservasi_raw)}</p>
+                      </div>
+                    )}
+                    <button
+                      onClick={canStartService(selectedDetail.waktu_reservasi_raw) ? openStartModal : undefined}
+                      disabled={!canStartService(selectedDetail.waktu_reservasi_raw)}
+                      title={startServiceBlockMessage(selectedDetail.waktu_reservasi_raw)}
+                      className={cn(
+                        "w-full text-sm font-black py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2",
+                        canStartService(selectedDetail.waktu_reservasi_raw)
+                          ? "bg-primary hover:bg-primary/90 text-on-primary shadow-lg shadow-primary/30"
+                          : "bg-on-surface/10 text-on-surface/30 cursor-not-allowed"
+                      )}
+                    >
+                      <Activity className="w-5 h-5" /> {canStartService(selectedDetail.waktu_reservasi_raw) ? 'Mulai Layanan Sekarang' : 'Belum Saatnya Dimulai'}
+                    </button>
+                  </>
                 ) : selectedDetail.status === 'On Process' || selectedDetail.status === 'Diproses' ? (
                   <button
                     onClick={openReportModal}

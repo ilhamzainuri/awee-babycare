@@ -28,28 +28,33 @@ try {
     $waktu_selesai = date('Y-m-d H:i:s');
     $bukti_bayar_url = null;
 
-    // Handle File Upload
-    if (isset($_FILES['bukti_pembayaran']) && $_FILES['bukti_pembayaran']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = '../uploads/payments/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
+    // Bukti pembayaran wajib diunggah untuk semua metode (Cash maupun Transfer)
+    if (!isset($_FILES['bukti_pembayaran']) || $_FILES['bukti_pembayaran']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(["status" => 400, "message" => "Bukti pembayaran wajib diunggah untuk semua metode pembayaran."]);
+        exit;
+    }
 
-        $fileExtension = pathinfo($_FILES['bukti_pembayaran']['name'], PATHINFO_EXTENSION);
-        $fileName = 'payment_' . $appointment_id . '_' . time() . '.' . $fileExtension;
-        $targetFile = $uploadDir . $fileName;
+    $uploadDir = '../uploads/payments/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
 
-        if (move_uploaded_file($_FILES['bukti_pembayaran']['tmp_name'], $targetFile)) {
-            $bukti_bayar_url = $fileName;
-        } else {
-            throw new Exception("Gagal mengunggah foto bukti pembayaran.");
-        }
-    } else if ($metode_bayar_terapis === 'Transfer Bank' || $metode_bayar_terapis === 'Transfer') {
-        // Jika wajib upload saat transfer
-        // throw new Exception("Bukti pembayaran wajib diunggah untuk metode Transfer.");
+    $fileExtension = pathinfo($_FILES['bukti_pembayaran']['name'], PATHINFO_EXTENSION);
+    $fileName = 'payment_' . $appointment_id . '_' . time() . '.' . $fileExtension;
+    $targetFile = $uploadDir . $fileName;
+
+    if (move_uploaded_file($_FILES['bukti_pembayaran']['tmp_name'], $targetFile)) {
+        $bukti_bayar_url = $fileName;
+    } else {
+        throw new Exception("Gagal mengunggah foto bukti pembayaran.");
     }
 
     $conn->beginTransaction();
+
+    $oldStmt = $conn->prepare("SELECT nama_pasien, status_jadwal, waktu_selesai_layanan, catatan_terapis, metode_bayar_terapis, bukti_bayar_url FROM appointments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+    $oldStmt->execute([$appointment_id]);
+    $appt = $oldStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
     $stmtUpdate = $conn->prepare("
         UPDATE appointments 
@@ -70,17 +75,29 @@ try {
     ]);
 
     if ($stmtUpdate->rowCount() > 0) {
-        $stmtLog = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_baru) VALUES (?, 'update', 'appointments', ?, ?)");
+        $data_lama_log = [
+            "nama_pasien" => $appt['nama_pasien'] ?? null,
+            "status_jadwal" => $appt['status_jadwal'] ?? null,
+            "waktu_selesai_layanan" => $appt['waktu_selesai_layanan'] ?? null,
+            "catatan_terapis" => $appt['catatan_terapis'] ?? null,
+            "metode_bayar_terapis" => $appt['metode_bayar_terapis'] ?? null,
+            "bukti_bayar_url" => $appt['bukti_bayar_url'] ?? null
+        ];
+        $data_baru_log = [
+            "nama_pasien" => $appt['nama_pasien'] ?? null,
+            "status_jadwal" => "Selesai",
+            "waktu_selesai_layanan" => $waktu_selesai,
+            "catatan_terapis" => $catatan_terapis,
+            "metode_bayar_terapis" => $metode_bayar_terapis,
+            "bukti_bayar_url" => $bukti_bayar_url
+        ];
+
+        $stmtLog = $conn->prepare("INSERT INTO audit_logs (user_id, aksi, nama_tabel, record_id, data_lama, data_baru) VALUES (?, 'update', 'appointments', ?, ?, ?)");
         $stmtLog->execute([
             $user_id, 
             $appointment_id, 
-            json_encode([
-                "Status" => "Selesai", 
-                "Waktu Selesai" => $waktu_selesai,
-                "Catatan" => $catatan_terapis,
-                "Metode Bayar (Terapis)" => $metode_bayar_terapis,
-                "Bukti Bayar" => $bukti_bayar_url
-            ])
+            json_encode($data_lama_log),
+            json_encode($data_baru_log)
         ]);
 
         $conn->commit();

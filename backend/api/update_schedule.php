@@ -79,6 +79,25 @@ try {
     $new_status_jadwal = $has_status ? $input['status_jadwal'] : $old_status_jadwal;
     $alasan_batal = isset($input['alasan_batal']) ? trim($input['alasan_batal']) : '';
 
+    // Validasi aturan bisnis: Layanan yang sedang 'Diproses' terkunci penuh.
+    // Hanya boleh maju ke 'Selesai'; reschedule, pembatalan, dan kembalikan ke 'Menunggu' ditolak.
+    if ($old_status_jadwal === 'Diproses') {
+        if ($has_datetime) {
+            throw new Exception("Layanan sedang 'Diproses'. Jadwal tidak dapat di-reschedule.");
+        }
+        if ($new_status_jadwal === 'Dibatalkan') {
+            throw new Exception("Layanan sedang 'Diproses' sehingga tidak dapat dibatalkan.");
+        }
+        if ($new_status_jadwal === 'Menunggu') {
+            throw new Exception("Layanan sedang 'Diproses' sehingga tidak dapat dikembalikan ke status 'Menunggu'.");
+        }
+    }
+
+    // Validasi waktu tidak boleh mundur (hanya jika tanggal/waktu diubah)
+    if ($has_datetime && strtotime($new_datetime) < strtotime(date('Y-m-d H:i:s'))) {
+        throw new Exception("Gagal: Waktu pelayanan tidak boleh di masa lalu. Silakan pilih waktu saat ini atau di masa depan.");
+    }
+
     // 2. Cek Overlap jika status BUKAN 'Dibatalkan'
     // Cek hanya dilakukan jika:
     // a. Tanggal/waktu berubah, ATAU
@@ -143,17 +162,17 @@ try {
         $new_data = ['nama_pasien' => $appointment['nama_pasien']];
 
         if ($old_waktu_reservasi !== $new_datetime) {
-            $old_data['Waktu Reservasi'] = $old_waktu_reservasi;
-            $new_data['Waktu Reservasi'] = $new_datetime;
+            $old_data['waktu_reservasi'] = $old_waktu_reservasi;
+            $new_data['waktu_reservasi'] = $new_datetime;
         }
 
         if ($old_status_jadwal !== $new_status_jadwal) {
-            $old_data['Status Jadwal'] = $old_status_jadwal;
-            $new_data['Status Jadwal'] = $new_status_jadwal;
+            $old_data['status_jadwal'] = $old_status_jadwal;
+            $new_data['status_jadwal'] = $new_status_jadwal;
         }
 
         if (!empty($alasan_batal)) {
-            $new_data['Alasan Pembatalan'] = $alasan_batal;
+            $new_data['alasan_pembatalan'] = $alasan_batal;
         }
 
         $old_data_json = json_encode($old_data, JSON_UNESCAPED_UNICODE);

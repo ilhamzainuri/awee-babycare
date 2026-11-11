@@ -49,7 +49,7 @@ try {
     $tabel     = $log['nama_tabel'];
     $record_id = (int)$log['record_id'];
 
-    $allowed_tables = ['therapists', 'services', 'appointments', 'users'];
+    $allowed_tables = ['therapists', 'services', 'appointments', 'users', 'kategori'];
 
     if (!in_array($tabel, $allowed_tables)) {
         http_response_code(400);
@@ -58,7 +58,8 @@ try {
     }
 
     // 2. Pastikan record masih ada di tabel
-    $stmtCheck = $conn->prepare("SELECT id FROM `$tabel` WHERE id = ? LIMIT 1");
+    $pk = getTablePrimaryKey($tabel);
+    $stmtCheck = $conn->prepare("SELECT `$pk` AS id FROM `$tabel` WHERE `$pk` = ? LIMIT 1");
     $stmtCheck->execute([$record_id]);
     $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
@@ -78,7 +79,7 @@ try {
         $stmtDelDetails->execute([$record_id]);
     }
 
-    $stmtDelete = $conn->prepare("DELETE FROM `$tabel` WHERE id = ?");
+    $stmtDelete = $conn->prepare("DELETE FROM `$tabel` WHERE `$pk` = ?");
     $stmtDelete->execute([$record_id]);
 
     $conn->exec("SET FOREIGN_KEY_CHECKS = 1;");

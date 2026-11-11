@@ -15,9 +15,10 @@ import {
   Map,
   MessageCircle,
   Info,
-  ClipboardList
+  ClipboardList,
+  AlertCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, canStartService, startServiceBlockMessage, groupSchedulesByDate, formatGroupDate, formatDateRange, localDateKey } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Interface Data
@@ -44,6 +45,9 @@ interface ActiveSchedule {
   jenis_layanan?: string;
   status: 'Menunggu' | 'Diproses' | 'Selesai' | 'Dibatalkan' | string;
   status_db?: string;
+  status_pembayaran?: string;
+  alasan_penolakan?: string | null;
+  waktu_penolakan?: string | null;
   phone?: string;
   mapLink?: string;
   complaint?: string;
@@ -65,9 +69,13 @@ interface HistoryItem {
 export default function TherapistDashboard() {
   const [profile, setProfile] = useState<TherapistProfile | null>(null);
   const [schedules, setSchedules] = useState<ActiveSchedule[]>([]);
+  const [weeklySchedules, setWeeklySchedules] = useState<ActiveSchedule[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Mode Tampilan Jadwal: Hari Ini atau Perpekan
+  const [scheduleView, setScheduleView] = useState<'today' | 'weekly'>('today');
 
   // State Filter Komisi Dinamis
   const [commissionRange, setCommissionRange] = useState<'today' | 'weekly' | 'monthly' | 'custom'>('weekly');
@@ -112,6 +120,7 @@ export default function TherapistDashboard() {
       if (response.ok && result.status === 200) {
         setProfile(result.data.profile);
         setSchedules(result.data.schedules || []);
+        setWeeklySchedules(result.data.weekly_schedules || []);
         setHistory(result.data.history || []);
       } else {
         throw new Error(result.message || 'Gagal memuat data dari server');
@@ -213,31 +222,127 @@ export default function TherapistDashboard() {
     navigate('/therapist/submit-report', { state: { selectedDetail } });
   };
 
-  // Cek apakah jadwal sudah bisa dimulai (±60 menit sebelum waktu reservasi)
+  // Layanan baru bisa dimulai tepat pada/atau setelah waktu reservasi
   const canStartSchedule = (detail: ActiveSchedule | null): boolean => {
     if (!detail) return false;
-    const rawTime = detail.waktu_reservasi_raw || detail.time;
-    if (!rawTime) return true;
-    const scheduleTime = new Date(rawTime.replace(' ', 'T'));
-    const now = new Date();
-    const diffMinutes = (scheduleTime.getTime() - now.getTime()) / 60000;
-    // Bisa dimulai jika waktunya sudah lewat atau dalam 60 menit ke depan
-    return diffMinutes <= 60;
+    return canStartService(detail.waktu_reservasi_raw || detail.time);
   };
 
   const getStartBlockMessage = (detail: ActiveSchedule | null): string => {
     if (!detail) return '';
-    const rawTime = detail.waktu_reservasi_raw || detail.time;
-    if (!rawTime) return '';
-    const scheduleTime = new Date(rawTime.replace(' ', 'T'));
-    const now = new Date();
-    const diffMinutes = Math.ceil((scheduleTime.getTime() - now.getTime()) / 60000);
-    if (diffMinutes > 60) {
-      const jam = Math.floor(diffMinutes / 60);
-      const mnt = diffMinutes % 60;
-      return `Layanan baru bisa dimulai ${jam > 0 ? jam + ' jam ' : ''}${mnt > 0 ? mnt + ' menit ' : ''}lagi (terjadwal: ${scheduleTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})`;
-    }
-    return '';
+    return startServiceBlockMessage(detail.waktu_reservasi_raw || detail.time);
+  };
+
+  const weeklyGroups = groupSchedulesByDate(weeklySchedules);
+  const weeklyStart = new Date();
+  const weeklyEnd = new Date();
+  weeklyEnd.setDate(weeklyStart.getDate() + 6);
+  const weeklyRangeLabel = formatDateRange(localDateKey(weeklyStart), localDateKey(weeklyEnd));
+
+  const renderScheduleCard = (schedule: ActiveSchedule, index: number) => {
+    const isOverdue = schedule.status === 'Diproses' && schedule.waktu_reservasi_raw && (new Date(schedule.waktu_reservasi_raw.replace(' ', 'T')).getTime() < new Date().setHours(0,0,0,0));
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.04 }}
+        key={schedule.id}
+        className={cn(
+          "bg-surface-container-lowest border rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden group",
+          isOverdue ? "border-error/40 bg-error-container/5" : "border-surface-container"
+        )}
+      >
+        {/* Status Top Strip Bar */}
+        <div className={cn("absolute top-0 left-0 right-0 h-1 sm:h-1.5",
+          schedule.status === 'Diproses' && "bg-warning",
+          schedule.status === 'Menunggu' && "bg-outline",
+          schedule.status === 'Selesai' && "bg-emerald-500",
+          schedule.status === 'Dibatalkan' && "bg-red-400"
+        )} />
+
+        <div className="space-y-2.5 sm:space-y-3.5">
+          {/* Header Card: Jam & Badges */}
+          <div className="flex justify-between items-start gap-2 flex-wrap">
+            <span className="text-[10px] sm:text-[11px] font-extrabold text-on-surface tracking-wide bg-surface-container px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl flex items-center gap-1.5">
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" /> 
+              {schedule.time}
+            </span>
+
+            <div className="flex items-center gap-1 flex-wrap justify-end">
+              {schedule.jenis_layanan && (
+                <span className={cn(
+                  "text-[8px] sm:text-[9px] font-black uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border",
+                  schedule.jenis_layanan.toLowerCase().includes('outlet') && schedule.jenis_layanan.toLowerCase().includes('homecare')
+                    ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                    : schedule.jenis_layanan.toLowerCase().includes('outlet')
+                    ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                )}>
+                  {schedule.jenis_layanan}
+                </span>
+              )}
+
+              <span className={cn(
+                "text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl",
+                schedule.status === 'Diproses' && "bg-warning-container/30 text-warning",
+                schedule.status === 'Menunggu' && "bg-surface-container text-on-surface-variant",
+                schedule.status === 'Selesai' && "bg-emerald-100 text-emerald-700",
+                schedule.status === 'Dibatalkan' && "bg-red-100 text-red-600"
+              )}>
+                {schedule.status}
+              </span>
+
+              {schedule.status_pembayaran === 'Rejected' && (
+                <span
+                  className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-error-container text-on-error-container border border-error/30"
+                  title={schedule.alasan_penolakan || 'Pembayaran ditolak admin'}
+                >
+                  Bayar Ditolak
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Info Pasien & Layanan */}
+          <div>
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="font-black text-sm sm:text-base text-on-surface group-hover:text-primary transition-colors truncate">
+                {schedule.childName}
+              </h3>
+              {schedule.usia && (
+                <span className="text-[10px] sm:text-[11px] font-bold text-on-surface-variant shrink-0 bg-surface-container px-2 py-0.5 rounded-lg">
+                  {schedule.usia}
+                </span>
+              )}
+            </div>
+
+            {schedule.services && (
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-primary truncate">
+                <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                <span className="truncate">{schedule.services}</span>
+              </div>
+            )}
+
+            <div className="flex items-start gap-1.5 text-on-surface-variant text-[11px] sm:text-xs mt-2">
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 mt-0.5 shrink-0 text-outline" />
+              <p className="line-clamp-2 leading-relaxed">{schedule.address}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tombol Aksi Card */}
+        <div className="pt-3 mt-2.5 sm:pt-4 sm:mt-3 border-t border-surface-container flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedDetail(schedule)}
+            className="w-full bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] sm:text-xs font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-2 group/btn shadow-sm"
+          >
+            <span>Detail & Mulai Pelayanan</span>
+            <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform group-hover/btn:translate-x-1" />
+          </button>
+        </div>
+      </motion.div>
+    );
   };
 
   if (isLoading) return <div className="flex h-64 items-center justify-center"><div className="text-on-surface-variant font-bold animate-pulse text-sm">Memuat Data Dashboard...</div></div>;
@@ -325,114 +430,165 @@ export default function TherapistDashboard() {
       {/* MAIN CONTENT SPLIT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* DAFTAR JADWAL BERDASARKAN TANGGAL */}
-        <section className="lg:col-span-2 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
+        {/* DAFTAR JADWAL: CARD HARI INI & PERPEKAN */}
+        <section className="lg:col-span-2 space-y-5">
+          {/* Header & Tabs */}
+          <div className="bg-surface-container-lowest border border-surface-container p-4 sm:p-5 rounded-3xl shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-primary/10 text-primary rounded-2xl">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-on-surface">Jadwal Pelayanan Terapis</h2>
+                  <p className="text-xs text-on-surface-variant font-medium">
+                    Pantau dan kelola jadwal tindakan pasien hari ini dan pekan ini
+                  </p>
+                </div>
+              </div>
+
+              {/* Tombol Akses Riwayat Lengkap */}
+              <button 
+                onClick={() => setIsAllSchedulesOpen(true)} 
+                className="text-xs text-primary font-bold hover:underline flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 px-3.5 py-2 rounded-xl transition-all self-start sm:self-auto shrink-0"
+              >
+                <span>Semua Jadwal</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Tab Selector: Hari Ini vs Perpekan */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-surface-container">
+              <div className="inline-flex p-1 bg-surface-container rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setScheduleView('today')}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                    scheduleView === 'today'
+                      ? "bg-surface-container-lowest text-primary shadow-sm"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  )}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Jadwal Hari Ini</span>
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.2 rounded-full font-extrabold",
+                    scheduleView === 'today' ? "bg-primary/10 text-primary" : "bg-surface-container-high text-on-surface-variant"
+                  )}>
+                    {schedules.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setScheduleView('weekly')}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                    scheduleView === 'weekly'
+                      ? "bg-surface-container-lowest text-primary shadow-sm"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  )}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Jadwal Perpekan (7 Hari)</span>
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.2 rounded-full font-extrabold",
+                    scheduleView === 'weekly' ? "bg-primary/10 text-primary" : "bg-surface-container-high text-on-surface-variant"
+                  )}>
+                    {weeklySchedules.length}
+                  </span>
+                </button>
+              </div>
+
+              {/* Tanggal Picker untuk Hari Ini */}
+              {scheduleView === 'today' && (
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-outline pointer-events-none" />
+                    <input
+                      type="date"
+                      value={activeDate}
+                      onChange={(e) => setActiveDate(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 bg-surface-container border border-surface-container-highest rounded-xl text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary outline-none cursor-pointer"
+                      title="Pilih Tanggal Tertentu"
+                    />
+                  </div>
+                  {activeDate !== todayStr && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveDate(todayStr)}
+                      className="text-[11px] text-primary font-bold bg-primary/10 hover:bg-primary/20 px-2.5 py-1.5 rounded-xl transition-all"
+                    >
+                      Hari Ini
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Keterangan Periode Pekan */}
+              {scheduleView === 'weekly' && (
+                <div className="text-[11px] font-bold text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-xl">
+                  📅 {weeklyRangeLabel}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* GRID CARD JADWAL */}
+          {isLoadingSchedules ? (
+            <div className="bg-surface-container-lowest border border-surface-container p-12 text-center rounded-3xl text-sm text-on-surface-variant animate-pulse font-bold">
+              Memuat data jadwal terapis...
+            </div>
+          ) : (scheduleView === 'today' ? schedules : weeklySchedules).length === 0 ? (
+            <div className="bg-surface-container-lowest border border-dashed border-surface-container p-12 text-center rounded-3xl space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-surface-container flex items-center justify-center text-outline">
+                <Calendar className="w-6 h-6" />
+              </div>
               <div>
-                <h2 className="text-lg font-black text-on-surface">
-                  Therapist Schedule
-                </h2>
-                <p className="text-[11px] text-on-surface-variant font-bold">
-                  {new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
+                <p className="text-sm font-bold text-on-surface">
+                  {scheduleView === 'today'
+                    ? `Tidak ada jadwal pada ${new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+                    : 'Tidak ada jadwal terdaftar untuk 7 hari ke depan.'}
+                </p>
+                <p className="text-xs text-on-surface-variant mt-1 font-medium">
+                  {scheduleView === 'today'
+                    ? 'Pilih tanggal lain atau buka tab jadwal perpekan.'
+                    : 'Jadwal baru akan muncul di sini setelah reservasi dikonfirmasi oleh admin.'}
                 </p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              {/* Filter Tanggal Seperti Admin */}
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
-                <input
-                  type="date"
-                  value={activeDate}
-                  onChange={(e) => setActiveDate(e.target.value)}
-                  className="pl-9 pr-3 py-1.5 bg-surface-container-lowest border border-surface-container rounded-xl text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary outline-none cursor-pointer shadow-sm hover:border-primary/40 transition-all"
-                  title="Pilih Tanggal Jadwal"
-                />
-              </div>
-
-              {activeDate !== todayStr && (
-                <button
-                  onClick={() => setActiveDate(todayStr)}
-                  className="text-[11px] text-primary font-bold bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl transition-all"
-                >
-                  Hari Ini
-                </button>
-              )}
-
-              <button onClick={() => setIsAllSchedulesOpen(true)} className="text-[11px] text-primary font-bold hover:underline flex items-center gap-1 bg-primary/5 px-3 py-1.5 rounded-full transition-all shrink-0">
-                Semua Jadwal <ChevronRight className="w-3 h-3" />
-              </button>
+          ) : scheduleView === 'today' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              {schedules.map(renderScheduleCard)}
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {isLoadingSchedules ? (
-              <div className="col-span-2 bg-surface-container-lowest border border-surface-container p-8 text-center rounded-3xl text-sm text-on-surface-variant animate-pulse font-bold">
-                Memuat jadwal untuk tanggal terpilih...
-              </div>
-            ) : schedules.length === 0 ? (
-              <div className="col-span-2 bg-surface-container-lowest border border-dashed border-surface-container p-8 text-center rounded-3xl text-sm text-on-surface-variant italic">
-                Tidak ada jadwal untuk tanggal {new Date(activeDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
-              </div>
-            ) : (
-              schedules.map((schedule, index) => (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05 }} key={schedule.id} className="bg-surface-container-lowest border border-surface-container rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                  <div className={cn("absolute top-0 left-0 right-0 h-1.5",
-                    schedule.status === 'Diproses' && "bg-warning",
-                    schedule.status === 'Menunggu' && "bg-outline",
-                    schedule.status === 'Selesai' && "bg-emerald-500",
-                    schedule.status === 'Dibatalkan' && "bg-red-400"
-                  )} />
-                  <div>
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="text-[10px] font-extrabold text-on-surface-variant tracking-wide bg-surface-container px-2 py-1 rounded-md flex items-center gap-1"><Clock className="w-3 h-3" /> {schedule.time}</span>
-                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                        {schedule.jenis_layanan && (
-                          <span className={cn(
-                            "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border",
-                            schedule.jenis_layanan.toLowerCase().includes('outlet') && schedule.jenis_layanan.toLowerCase().includes('homecare')
-                              ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                              : schedule.jenis_layanan.toLowerCase().includes('outlet')
-                              ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                              : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                          )}>
-                            {schedule.jenis_layanan}
-                          </span>
-                        )}
-                        <span className={cn(
-                          "text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md",
-                          schedule.status === 'Diproses' && "bg-warning-container/30 text-warning",
-                          schedule.status === 'Menunggu' && "bg-surface-container text-on-surface-variant",
-                          schedule.status === 'Selesai' && "bg-emerald-100 text-emerald-700",
-                          schedule.status === 'Dibatalkan' && "bg-red-100 text-red-600"
-                        )}>
-                          {schedule.status}
+          ) : (
+            <div className="space-y-4 sm:space-y-6">
+              {weeklyGroups.map(group => {
+                const groupDate = new Date(`${group.dateKey}T00:00:00`);
+                return (
+                  <div key={group.dateKey} className="space-y-2 sm:space-y-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex flex-col items-center justify-center shrink-0">
+                        <span className="text-sm sm:text-base font-black leading-none">{groupDate.getDate()}</span>
+                        <span className="text-[8px] sm:text-[9px] font-bold uppercase leading-none mt-0.5 sm:mt-1">
+                          {groupDate.toLocaleDateString('id-ID', { month: 'short' })}
                         </span>
                       </div>
+                      <div className="min-w-0">
+                        <h3 className="text-xs sm:text-sm font-black text-on-surface truncate">{formatGroupDate(group.dateKey)}</h3>
+                        <p className="text-[10px] sm:text-[11px] font-medium text-on-surface-variant">{group.items.length} jadwal</p>
+                      </div>
+                      <div className="flex-1 h-px bg-surface-container" />
                     </div>
-                    <h3 className="font-black text-base text-on-surface group-hover:text-primary transition-colors">{schedule.childName}</h3>
-                    <div className="flex items-start gap-1.5 text-on-surface-variant text-xs mt-2 mb-4">
-                      <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-outline" />
-                      <p className="line-clamp-2">{schedule.address}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                      {group.items.map(renderScheduleCard)}
                     </div>
                   </div>
-
-                  <button onClick={() => setSelectedDetail(schedule)} className="w-full bg-surface-container border border-surface-container-high hover:bg-primary hover:text-white text-on-surface text-xs font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 group/btn">
-                    <span>Lihat Detail & Lokasi</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
-                  </button>
-                </motion.div>
-              ))
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* RIWAYAT SINGKAT */}
@@ -502,6 +658,9 @@ export default function TherapistDashboard() {
                           <div className="flex items-center gap-2 mb-1.5">
                             <h3 className="font-bold text-on-surface text-base truncate">{item.nama_pasien}</h3>
                             <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full border", item.status_jadwal === 'Menunggu' ? "bg-surface-container text-on-surface border-outline-variant" : item.status_jadwal === 'Diproses' ? "bg-warning-container/30 text-warning border-warning/20" : item.status_jadwal === 'Selesai' ? "bg-success-container/30 text-success border-success/20" : "bg-error-container/30 text-error border-error/20")}>{item.status_jadwal}</span>
+                            {item.status_pembayaran === 'Rejected' && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border bg-error-container text-on-error-container border-error/30" title={item.alasan_penolakan || 'Pembayaran ditolak admin'}>Bayar Ditolak</span>
+                            )}
                           </div>
                           <p className="text-xs text-on-surface-variant mb-2 line-clamp-1 font-medium flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> {item.rincian_layanan || 'Pemeriksaan Umum'}</p>
                           <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-on-surface-variant">
@@ -515,7 +674,7 @@ export default function TherapistDashboard() {
                             <p className="text-sm font-black text-primary">{formatRupiah(item.total_komisi_kunjungan)}</p>
                           </div>
                           <button onClick={() => setSelectedDetail({
-                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), status: item.status_jadwal, phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan
+                            id: item.id, childName: item.nama_pasien, usia: item.usia_saat_ini, bb: item.bb_saat_ini, address: item.alamat_lengkap, time: formatDate(item.waktu_reservasi), waktu_reservasi_raw: item.waktu_reservasi, status: item.status_jadwal, phone: item.no_hp_ortu, mapLink: item.link_shareloc, complaint: item.keluhan_awal, services: item.rincian_layanan, status_pembayaran: item.status_pembayaran, alasan_penolakan: item.alasan_penolakan, waktu_penolakan: item.waktu_penolakan
                           })} className="text-[11px] font-bold text-primary hover:underline self-end flex items-center gap-1">
                             Lihat Detail <ArrowRight className="w-3 h-3"/>
                           </button>
@@ -580,6 +739,22 @@ export default function TherapistDashboard() {
                     <p className="font-black text-sm text-primary uppercase">{selectedDetail.status}</p>
                   </div>
                 </div>
+
+                {/* Pemberitahuan pembayaran ditolak admin */}
+                {selectedDetail.status_pembayaran === 'Rejected' && (
+                  <div className="bg-error-container/40 border border-error/30 p-4 rounded-2xl flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-black text-sm text-error">Pembayaran Ditolak Admin</p>
+                      <p className="text-xs font-medium text-on-surface mt-0.5">
+                        {selectedDetail.alasan_penolakan || 'Tidak ada alasan yang dicatat.'}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant mt-1">
+                        Silakan koordinasi dengan admin untuk perbaikan bukti pembayaran.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Daftar Layanan */}
                 <div>

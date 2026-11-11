@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 CREATE TABLE IF NOT EXISTS `kategori` (
   `id_kategori` bigint(20) NOT NULL AUTO_INCREMENT,
   `nama_kategori` varchar(150) NOT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_kategori`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -44,13 +45,25 @@ CREATE TABLE IF NOT EXISTS `kategori` (
 CREATE TABLE IF NOT EXISTS `therapists` (
   `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) UNSIGNED NOT NULL,
+  `nik` char(16) DEFAULT NULL,
   `nama_terapis` varchar(150) NOT NULL,
   `no_whatsapp` varchar(20) NOT NULL,
+  `tempat_lahir` varchar(100) DEFAULT NULL,
+  `tanggal_lahir` date DEFAULT NULL,
+  `jenis_kelamin` enum('Laki-laki','Perempuan') DEFAULT NULL,
+  `alamat` varchar(255) DEFAULT NULL,
+  `kelurahan` varchar(100) DEFAULT NULL,
+  `kecamatan` varchar(100) DEFAULT NULL,
+  `kota_kabupaten` varchar(100) DEFAULT NULL,
+  `provinsi` varchar(100) DEFAULT NULL,
+  `agama` varchar(30) DEFAULT NULL,
+  `status_perkawinan` varchar(30) DEFAULT NULL,
   `status_aktif` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_therapists_nik` (`nik`),
   KEY `fk_therapists_user` (`user_id`),
   CONSTRAINT `fk_therapists_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -93,7 +106,9 @@ CREATE TABLE IF NOT EXISTS `appointments` (
   `status_jadwal` enum('Menunggu','Diproses','Selesai','Dibatalkan') DEFAULT 'Menunggu',
   `metode_bayar_admin` varchar(50) DEFAULT NULL COMMENT 'Rencana awal pembayaran, misal: Transfer',
   `metode_bayar_terapis` varchar(50) DEFAULT NULL COMMENT 'Fakta pembayaran di lapangan, misal: Cash',
-  `status_pembayaran` enum('Unverified','Verified') DEFAULT 'Unverified',
+  `status_pembayaran` enum('Unverified','Verified','Rejected') DEFAULT 'Unverified',
+  `alasan_penolakan` text DEFAULT NULL,
+  `waktu_penolakan` datetime DEFAULT NULL,
   `bukti_bayar_url` varchar(255) DEFAULT NULL,
   `total_harga_kunjungan` decimal(12,2) DEFAULT 0.00,
   `total_komisi_kunjungan` decimal(12,2) DEFAULT 0.00,

@@ -42,6 +42,10 @@ function cleanupExpiredDeletedRecords($conn) {
         $stmtDelUsers = $conn->prepare("DELETE FROM users WHERE role = 'therapist' AND deleted_at IS NOT NULL AND deleted_at < ?");
         $stmtDelUsers->execute([$thirtyDaysAgo]);
 
+        // 5. Kategori yang expired > 30 hari dan tidak lagi dipakai layanan
+        $stmtDelKategori = $conn->prepare("DELETE FROM kategori WHERE deleted_at IS NOT NULL AND deleted_at < ? AND NOT EXISTS (SELECT 1 FROM services s WHERE s.kategori_id = kategori.id_kategori)");
+        $stmtDelKategori->execute([$thirtyDaysAgo]);
+
         $conn->exec("SET FOREIGN_KEY_CHECKS = 1;");
         $conn->commit();
     } catch (Exception $e) {
@@ -93,7 +97,7 @@ try {
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Periksa apakah item dengan aksi 'delete' masih berstatus soft-deleted dan dapat di-restore
-        $allowed_tables = ['therapists', 'services', 'appointments', 'users'];
+        $allowed_tables = ['therapists', 'services', 'appointments', 'users', 'kategori'];
 
         foreach ($data as &$row) {
             $row['id'] = (int)$row['id'];
@@ -108,7 +112,7 @@ try {
                 $recId = $row['record_id'];
 
                 try {
-                    $checkStmt = $conn->prepare("SELECT id, deleted_at FROM `$tbl` WHERE id = ? LIMIT 1");
+                    $checkStmt = $conn->prepare("SELECT `" . getTablePrimaryKey($tbl) . "` AS id, deleted_at FROM `$tbl` WHERE `" . getTablePrimaryKey($tbl) . "` = ? LIMIT 1");
                     $checkStmt->execute([$recId]);
                     $rec = $checkStmt->fetch(PDO::FETCH_ASSOC);
 

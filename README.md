@@ -88,7 +88,47 @@ npm run dev
 
 Setelah perintah `npm run dev` berhasil dijalankan, terminal akan memberikan URL lokal.
 Secara default, Frontend dapat diakses melalui browser pada:
-👉 **`http://localhost:5173/`** atau sesuai port yang diberikan oleh Vite.
+👉 **`http://localhost:3000/`** atau sesuai port yang diberikan oleh Vite.
+
+---
+
+## 📱 Akses Melalui Handphone
+
+Aplikasi bisa dibuka dari handphone selama handphone dan komputer berada di **jaringan Wi-Fi yang sama**. Server dev sudah dijalankan dengan `--host=0.0.0.0`, jadi tidak perlu konfigurasi tambahan pada Vite.
+
+### 1. Cari Alamat IP Komputer
+
+Buka **Command Prompt** di komputer, lalu jalankan:
+
+```bash
+ipconfig
+```
+
+Cari baris **IPv4 Address** pada adapter Wi-Fi (biasanya bernilai seperti `192.168.1.5`).
+
+### 2. Izinkan Akses lewat Firewall Windows
+
+Jika pertama kali diakses dari luar, Windows sering memblokir. Jalankan Command Prompt **as Administrator**:
+
+```powershell
+netsh advfirewall firewall add rule name="Vite Dev 3000" dir=in action=allow protocol=TCP localport=3000
+```
+
+### 3. Buka dari Browser Handphone
+
+Pastikan `npm run dev` dan XAMPP (Apache + MySQL) sedang berjalan, lalu buka di browser handphone:
+
+👉 **`http://<IP-KOMPUTER>:3000/`**
+
+Contoh: `http://192.168.1.5:3000/`
+
+### Troubleshooting
+
+| Masalah | Solusi |
+|---|---|
+| Halaman tidak termuat dari handphone | Pastikan HP dan komputer satu jaringan Wi-Fi (bukan pakai data seluler). Cek firewall seperti langkah 2. |
+| Data tidak muncul / error API | `VITE_API_BASE_URL` di `frontend/.env` harus **relatif** (`/awee-babycare/backend/api`), jangan diubah ke `http://localhost/...`. URL absolut `localhost` akan mengarah ke HP itu sendiri, bukan ke komputer. Dengan path relatif, request otomatis lewat proxy Vite ke Apache di komputer. |
+| Reset session login | Buka aplikasi di Chrome Android → menu ⋮ → **Situs desktop** (opsional, tampilan admin memang dirancang untuk layar lebar). |
 
 ---
 

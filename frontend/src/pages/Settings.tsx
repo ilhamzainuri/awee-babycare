@@ -68,6 +68,7 @@ export default function Settings() {
     try {
       const formData = new FormData();
       formData.append('id', userId);
+      formData.append('actor_id', userId);
       formData.append('username', username);
       if (password) formData.append('password', password);
       if (fotoFile) formData.append('foto', fotoFile);

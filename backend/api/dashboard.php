@@ -96,7 +96,7 @@ try {
     $total_terapis = $row ? (int)$row['total'] : 0;
 
     // KPI 4: Menunggu Verifikasi Pembayaran (Hanya yang tidak Dibatalkan)
-    $stmt = $conn->query("SELECT COUNT(id) as unverified FROM appointments WHERE status_pembayaran = 'Unverified' AND status_jadwal != 'Dibatalkan' AND deleted_at IS NULL");
+    $stmt = $conn->query("SELECT COUNT(id) as unverified FROM appointments WHERE status_pembayaran IN ('Unverified', 'Rejected') AND status_jadwal != 'Dibatalkan' AND deleted_at IS NULL");
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $menunggu_verifikasi = $row ? (int)$row['unverified'] : 0;
 
@@ -119,7 +119,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         FROM appointments 
         WHERE metode_bayar_admin != metode_bayar_terapis 
         AND metode_bayar_terapis IS NOT NULL
-        AND status_pembayaran = 'Unverified'
+        AND status_pembayaran IN ('Unverified', 'Rejected')
         AND status_jadwal != 'Dibatalkan'
         AND deleted_at IS NULL
         ORDER BY waktu_reservasi DESC
@@ -148,7 +148,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         SELECT id, nama_pasien, waktu_reservasi, total_harga_kunjungan, metode_bayar_admin, metode_bayar_terapis 
         FROM appointments 
         WHERE status_jadwal = 'Selesai'
-        AND status_pembayaran = 'Unverified'
+        AND status_pembayaran IN ('Unverified', 'Rejected')
         AND deleted_at IS NULL
         ORDER BY waktu_reservasi DESC
         LIMIT 4
@@ -178,7 +178,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         SELECT id, nama_pasien, waktu_reservasi, total_harga_kunjungan, metode_bayar_admin 
         FROM appointments 
         WHERE bukti_bayar_url IS NOT NULL 
-        AND status_pembayaran = 'Unverified'
+        AND status_pembayaran IN ('Unverified', 'Rejected')
         AND status_jadwal != 'Dibatalkan'
         AND deleted_at IS NULL
         ORDER BY waktu_reservasi DESC
@@ -209,7 +209,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         $stmtGeneral = $conn->query("
             SELECT id, nama_pasien, waktu_reservasi, total_harga_kunjungan, metode_bayar_admin 
             FROM appointments 
-            WHERE status_pembayaran = 'Unverified'
+            WHERE status_pembayaran IN ('Unverified', 'Rejected')
             AND status_jadwal != 'Dibatalkan'
             AND deleted_at IS NULL
             $notInClause
@@ -248,7 +248,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
         ");
         $auditLogs = $stmtAudit->fetchAll(PDO::FETCH_ASSOC);
 
-        $allowed_tables = ['therapists', 'services', 'appointments', 'users'];
+        $allowed_tables = ['therapists', 'services', 'appointments', 'users', 'kategori'];
 
         foreach ($auditLogs as $al) {
             $namaEntitas = '';
@@ -262,7 +262,7 @@ $pendapatan_bersih = $revenueHariIni['bersih']; // Menggantikan KPI 6
 
             if ($al['aksi'] === 'delete' && in_array($al['nama_tabel'], $allowed_tables)) {
                 $tbl = $al['nama_tabel'];
-                $chk = $conn->prepare("SELECT id, deleted_at FROM `$tbl` WHERE id = ? LIMIT 1");
+                $chk = $conn->prepare("SELECT `" . getTablePrimaryKey($tbl) . "` AS id, deleted_at FROM `$tbl` WHERE `" . getTablePrimaryKey($tbl) . "` = ? LIMIT 1");
                 $chk->execute([$al['record_id']]);
                 $rec = $chk->fetch(PDO::FETCH_ASSOC);
 

@@ -50,7 +50,7 @@ try {
     $record_id = (int)$log['record_id'];
 
     // 2. Daftar tabel yang mendukung restore (soft-delete dengan kolom deleted_at)
-    $allowed_tables = ['therapists', 'services', 'appointments', 'users'];
+    $allowed_tables = ['therapists', 'services', 'appointments', 'users', 'kategori'];
 
     if (!in_array($tabel, $allowed_tables)) {
         http_response_code(400);
@@ -59,7 +59,8 @@ try {
     }
 
     // 3. Pastikan record masih ada di tabel
-    $stmtCheck = $conn->prepare("SELECT id, deleted_at FROM `$tabel` WHERE id = ? LIMIT 1");
+    $pk = getTablePrimaryKey($tabel);
+    $stmtCheck = $conn->prepare("SELECT `$pk` AS id, deleted_at FROM `$tabel` WHERE `$pk` = ? LIMIT 1");
     $stmtCheck->execute([$record_id]);
     $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
@@ -77,14 +78,14 @@ try {
 
     // 4. Jalankan restore: set deleted_at = NULL
     if ($tabel === 'therapists') {
-        $stmtRestore = $conn->prepare("UPDATE `$tabel` SET deleted_at = NULL, status_aktif = 1 WHERE id = ?");
+        $stmtRestore = $conn->prepare("UPDATE `$tabel` SET deleted_at = NULL, status_aktif = 1 WHERE `$pk` = ?");
     } else {
-        $stmtRestore = $conn->prepare("UPDATE `$tabel` SET deleted_at = NULL WHERE id = ?");
+        $stmtRestore = $conn->prepare("UPDATE `$tabel` SET deleted_at = NULL WHERE `$pk` = ?");
     }
     $stmtRestore->execute([$record_id]);
 
     // 5. Ambil data setelah restore untuk dicatat di log
-    $stmtAfter = $conn->prepare("SELECT * FROM `$tabel` WHERE id = ? LIMIT 1");
+    $stmtAfter = $conn->prepare("SELECT * FROM `$tabel` WHERE `$pk` = ? LIMIT 1");
     $stmtAfter->execute([$record_id]);
     $dataAfter = $stmtAfter->fetch(PDO::FETCH_ASSOC);
 

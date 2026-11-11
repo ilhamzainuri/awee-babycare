@@ -36,6 +36,16 @@ try {
             $waktu_reservasi = $input['waktu_reservasi'];
             $id_therapist = (int)$input['id_therapist'];
 
+            // Validasi waktu tidak boleh mundur (masa lalu)
+            if (strtotime($waktu_reservasi) < strtotime(date('Y-m-d H:i:s'))) {
+                http_response_code(400);
+                echo json_encode([
+                    "status" => 400,
+                    "message" => "Gagal: Waktu pelayanan tidak boleh di masa lalu. Silakan pilih waktu saat ini atau di masa depan."
+                ]);
+                exit();
+            }
+
             $stmtCheckOverlap = $conn->prepare("
                 SELECT waktu_reservasi, nama_pasien 
                 FROM appointments 
@@ -195,8 +205,8 @@ try {
             if ($data_lama) {
                 $kalkulasi_bersih = $data_lama['total_harga_kunjungan'] - $data_lama['total_komisi_kunjungan'];
 
-                // Update Status dan Isi Total Bersih
-                $stmt = $conn->prepare("UPDATE appointments SET status_pembayaran = 'Verified', total_bersih = (total_harga_kunjungan - total_komisi_kunjungan) WHERE id = ?");
+                // Update Status dan Isi Total Bersih (sekalian bersihkan jejak penolakan)
+                $stmt = $conn->prepare("UPDATE appointments SET status_pembayaran = 'Verified', total_bersih = (total_harga_kunjungan - total_komisi_kunjungan), alasan_penolakan = NULL, waktu_penolakan = NULL WHERE id = ?");
                 $stmt->execute([$id_target]);
 
                 $data_baru = $data_lama;
@@ -245,6 +255,7 @@ try {
             $therapist_id = $terapis['id'];
             $stmtSched = $conn->prepare("
                 SELECT a.id, a.nama_pasien, a.usia_saat_ini, a.bb_saat_ini, a.waktu_reservasi, a.alamat_lengkap, a.status_jadwal,
+                       a.status_pembayaran, a.alasan_penolakan, a.waktu_penolakan,
                        a.no_hp_ortu, a.link_shareloc, a.keluhan_awal, a.total_komisi_kunjungan,
                        (SELECT GROUP_CONCAT(s.nama_layanan SEPARATOR ' + ') 
                         FROM appointment_details ad 

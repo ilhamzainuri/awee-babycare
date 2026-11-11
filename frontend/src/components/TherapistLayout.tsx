@@ -12,6 +12,10 @@ import {
   Bell,
   CalendarPlus,
   FileEdit,
+  XCircle,
+  CalendarClock,
+  Wallet,
+  CheckCircle2,
   Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -49,6 +53,36 @@ const getNotificationConfig = (type: string) => {
         icon: Activity,
         color: "bg-primary-container/20 text-primary",
         title: "Perubahan Status Layanan"
+      };
+    case 'cancelled':
+      return {
+        icon: XCircle,
+        color: "bg-error-container/40 text-error",
+        title: "Jadwal Dibatalkan"
+      };
+    case 'reschedule':
+      return {
+        icon: CalendarClock,
+        color: "bg-secondary-container/20 text-secondary",
+        title: "Jadwal Diubah"
+      };
+    case 'payment_verified':
+      return {
+        icon: CheckCircle2,
+        color: "bg-tertiary-container/10 text-tertiary",
+        title: "Pembayaran Terverifikasi"
+      };
+    case 'payment_rejected':
+      return {
+        icon: XCircle,
+        color: "bg-error-container/40 text-error",
+        title: "Pembayaran Ditolak"
+      };
+    case 'override':
+      return {
+        icon: Wallet,
+        color: "bg-secondary-container/20 text-secondary",
+        title: "Metode Bayar Diubah Admin"
       };
     case 'data_update':
       return {

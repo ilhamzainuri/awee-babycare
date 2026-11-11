@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Thermometer, Scale, Activity, Check, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
-import { cn } from '@/lib/utils';
+import { cn, canStartService, startServiceBlockMessage } from '@/lib/utils';
 
 export default function StartService() {
   const location = useLocation();
@@ -90,6 +90,12 @@ export default function StartService() {
       return;
     }
 
+    const matched = schedules.find(s => s.id === Number(selectedScheduleId));
+    if (matched && !canStartService(matched.waktu_reservasi_raw)) {
+      alert(startServiceBlockMessage(matched.waktu_reservasi_raw));
+      return;
+    }
+
     setIsStartingService(true);
     try {
       const sessionStr = localStorage.getItem('user_session');
@@ -161,7 +167,7 @@ export default function StartService() {
                   <option value="" disabled>-- Pilih Pasien --</option>
                   {schedules.map(s => (
                     <option key={s.id} value={s.id}>
-                      {s.is_overdue ? '⚠️ [TERLAMBAT] ' : ''}{s.childName} ({s.time}) - {s.status}
+                      {s.is_overdue ? '⚠️ [TERLAMBAT] ' : ''}{!canStartService(s.waktu_reservasi_raw) ? '[Belum waktunya] ' : ''}{s.childName} ({s.time}) - {s.status}
                     </option>
                   ))}
                 </select>
